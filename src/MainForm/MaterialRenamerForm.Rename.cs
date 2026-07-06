@@ -34,7 +34,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            List<RenamePlan> badRows = currentPlan.Where(IsBlockingIssue).ToList();
+            List<RenamePlan> badRows = currentPlan.Where(RenamePlanBuilder.IsBlockingIssue).ToList();
             if (badRows.Count > 0)
             {
                 MessageBox.Show(this, BuildIssueMessage(badRows), "存在文件问题", MessageBoxButtons.OK, MessageBoxIcon.Warning);

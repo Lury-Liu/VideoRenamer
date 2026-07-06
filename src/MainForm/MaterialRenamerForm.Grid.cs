@@ -134,13 +134,13 @@ namespace VideoMaterialRenamer
                     gridRow.Tag = row;
                     gridRow.Height = grid.RowTemplate.Height;
                     gridRow.Resizable = DataGridViewTriState.False;
-                    gridRow.Cells[GridSceneColumn].Value = GetEffectiveScene(row, GetDefaultScene(), true);
+                    gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
                     gridRow.Cells[GridShotColumn].Value = row.Sequence;
-                    gridRow.Cells[GridMainColumn].Value = GetCellSummary(row.MainFiles);
-                    gridRow.Cells[GridBackupColumn].Value = GetCellSummary(row.BackupFiles);
+                    gridRow.Cells[GridMainColumn].Value = RenamePlanBuilder.GetCellSummary(row.MainFiles);
+                    gridRow.Cells[GridBackupColumn].Value = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
                     gridRow.Cells[GridProgressColumn].Value = row.ProgressPercent;
-                    gridRow.Cells[GridMainColumn].ToolTipText = GetCellSummary(row.MainFiles);
-                    gridRow.Cells[GridBackupColumn].ToolTipText = GetCellSummary(row.BackupFiles);
+                    gridRow.Cells[GridMainColumn].ToolTipText = RenamePlanBuilder.GetCellSummary(row.MainFiles);
+                    gridRow.Cells[GridBackupColumn].ToolTipText = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
                     ApplyGridNumberCellStyles(gridRow);
                 }
                 ApplyGridNumberColumnStyles();
@@ -167,13 +167,13 @@ namespace VideoMaterialRenamer
                 gridRow.Tag = row;
                 gridRow.Height = grid.RowTemplate.Height;
                 gridRow.Resizable = DataGridViewTriState.False;
-                gridRow.Cells[GridSceneColumn].Value = GetEffectiveScene(row, GetDefaultScene(), true);
+                gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
                 gridRow.Cells[GridShotColumn].Value = row.Sequence;
-                gridRow.Cells[GridMainColumn].Value = GetCellSummary(row.MainFiles);
-                gridRow.Cells[GridBackupColumn].Value = GetCellSummary(row.BackupFiles);
+                gridRow.Cells[GridMainColumn].Value = RenamePlanBuilder.GetCellSummary(row.MainFiles);
+                gridRow.Cells[GridBackupColumn].Value = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
                 gridRow.Cells[GridProgressColumn].Value = row.ProgressPercent;
-                gridRow.Cells[GridMainColumn].ToolTipText = GetCellSummary(row.MainFiles);
-                gridRow.Cells[GridBackupColumn].ToolTipText = GetCellSummary(row.BackupFiles);
+                gridRow.Cells[GridMainColumn].ToolTipText = RenamePlanBuilder.GetCellSummary(row.MainFiles);
+                gridRow.Cells[GridBackupColumn].ToolTipText = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
                 ApplyGridNumberCellStyles(gridRow);
             }
             finally
@@ -375,7 +375,7 @@ namespace VideoMaterialRenamer
             ShotRow targetRow = rows[rowIndex];
             List<string> targetFiles = columnIndex == GridMainColumn ? targetRow.MainFiles : targetRow.BackupFiles;
             List<string> targetTails = columnIndex == GridMainColumn ? targetRow.MainTailOverrides : targetRow.BackupTailOverrides;
-            EnsureTailOverrideSize(targetRow, columnIndex == GridMainColumn);
+            RenamePlanBuilder.EnsureTailOverrideSize(targetRow, columnIndex == GridMainColumn);
             HashSet<string> existing = GetAllFileKeys();
             List<string> skippedNames = new List<string>();
             int added = 0;
@@ -430,7 +430,7 @@ namespace VideoMaterialRenamer
                 }
                 else
                 {
-                    row.Scene = GetEffectiveScene(row, GetDefaultScene(), true);
+                    row.Scene = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
                     grid.Rows[e.RowIndex].Cells[GridSceneColumn].Value = row.Scene;
                     statusLabel.Text = "A 列场号必须是大于 0 的整数，已保留原场号。";
                 }

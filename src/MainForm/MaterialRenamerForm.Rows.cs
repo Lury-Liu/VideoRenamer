@@ -56,7 +56,7 @@ namespace VideoMaterialRenamer
 
             List<string> files = entry.IsMain ? entry.Row.MainFiles : entry.Row.BackupFiles;
             List<string> tails = entry.IsMain ? entry.Row.MainTailOverrides : entry.Row.BackupTailOverrides;
-            EnsureTailOverrideSize(entry.Row, entry.IsMain);
+            RenamePlanBuilder.EnsureTailOverrideSize(entry.Row, entry.IsMain);
             if (entry.FileIndex < 0 || entry.FileIndex >= files.Count)
             {
                 statusLabel.Text = "选中的素材记录已经变化，请重新选择。";

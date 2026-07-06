@@ -33,7 +33,7 @@ namespace VideoMaterialRenamer
             }
 
             currentPlan.Clear();
-            currentPlan.AddRange(BuildPlan(rows, (int)numEpisode.Value, GetDefaultScene(), chkKeepExtension.Checked, IsExport1080pEnabled(), IsRowSceneEnabled()));
+            currentPlan.AddRange(RenamePlanBuilder.BuildPlan(rows, (int)numEpisode.Value, GetDefaultScene(), chkKeepExtension.Checked, IsExport1080pEnabled(), IsRowSceneEnabled()));
 
             previewList.BeginUpdate();
             try
@@ -211,7 +211,7 @@ namespace VideoMaterialRenamer
             item.BackColor = entry.RowIndex % 2 == 0 ? UiTheme.PreviewAltBack(darkMode) : UiTheme.ControlBack(darkMode);
             item.ForeColor = UiTheme.TextColor(darkMode);
 
-            if (IsBlockingIssue(entry))
+            if (RenamePlanBuilder.IsBlockingIssue(entry))
             {
                 item.BackColor = UiTheme.PreviewErrorBack(darkMode);
             }
@@ -228,7 +228,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            int errors = currentPlan.Count(IsBlockingIssue);
+            int errors = currentPlan.Count(RenamePlanBuilder.IsBlockingIssue);
             if (currentPlan.Count == 0)
             {
                 statusLabel.Text = "把视频拖到表格 " + GetMainColumnDisplayName() + " 或 " + GetBackupColumnDisplayName() + " 单元格。";
@@ -302,7 +302,7 @@ namespace VideoMaterialRenamer
                     HashSet<string> lockedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (RenamePlan entry in batch)
                     {
-                        if (IsFileLocked(entry.TargetPath))
+                        if (RenamePlanBuilder.IsFileLocked(entry.TargetPath))
                         {
                             lockedPaths.Add(entry.TargetPath);
                         }
@@ -362,7 +362,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            List<RenamePlan> issues = currentPlan.Where(IsBlockingIssue).ToList();
+            List<RenamePlan> issues = currentPlan.Where(RenamePlanBuilder.IsBlockingIssue).ToList();
             if (issues.Count == 0)
             {
                 return;

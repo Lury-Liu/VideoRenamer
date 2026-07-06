@@ -106,7 +106,7 @@ namespace VideoMaterialRenamer
             row.BackupFiles.Add(@"C:\Temp\backup2.mp4");
             row.BackupFiles.Add(@"C:\Temp\backup3.mp4");
 
-            List<RenamePlan> plan = BuildPlan(new List<ShotRow> { row }, 5, 1, true, false);
+            List<RenamePlan> plan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { row }, 5, 1, true, false);
             string[] expected = new string[]
             {
                 "E5-S1-5-T1.mp4",
@@ -140,7 +140,7 @@ namespace VideoMaterialRenamer
 
             ShotRow customRow = new ShotRow { Sequence = 17 };
             customRow.MainFiles.Add(@"C:\Temp\custom.mp4");
-            List<RenamePlan> customPlan = BuildPlan(new List<ShotRow> { customRow }, 5, 1, true, false);
+            List<RenamePlan> customPlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { customRow }, 5, 1, true, false);
             if (customPlan.Count != 1 || customPlan[0].NewName != "E5-S1-17-T1.mp4")
             {
                 throw new Exception("自定义镜号测试失败：" + (customPlan.Count == 0 ? "无预览" : customPlan[0].NewName));
@@ -148,13 +148,13 @@ namespace VideoMaterialRenamer
 
             ShotRow customSceneRow = new ShotRow { Scene = 3, Sequence = 7 };
             customSceneRow.MainFiles.Add(@"C:\Temp\custom_scene.mp4");
-            List<RenamePlan> customScenePlan = BuildPlan(new List<ShotRow> { customSceneRow }, 5, 1, true, false, true);
+            List<RenamePlan> customScenePlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { customSceneRow }, 5, 1, true, false, true);
             if (customScenePlan.Count != 1 || customScenePlan[0].NewName != "E5-S3-7-T1.mp4" || customScenePlan[0].Scene != 3)
             {
                 throw new Exception("自定义场号测试失败：" + (customScenePlan.Count == 0 ? "无预览" : customScenePlan[0].NewName));
             }
 
-            List<RenamePlan> defaultScenePlan = BuildPlan(new List<ShotRow> { customSceneRow }, 5, 1, true, false, false);
+            List<RenamePlan> defaultScenePlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { customSceneRow }, 5, 1, true, false, false);
             if (defaultScenePlan.Count != 1 || defaultScenePlan[0].NewName != "E5-S1-7-T1.mp4")
             {
                 throw new Exception("默认场号测试失败：" + (defaultScenePlan.Count == 0 ? "无预览" : defaultScenePlan[0].NewName));
@@ -163,7 +163,7 @@ namespace VideoMaterialRenamer
             ShotRow customTailRow = new ShotRow { Sequence = 1 };
             customTailRow.MainFiles.Add(@"C:\Temp\custom_tail.mp4");
             customTailRow.MainTailOverrides.Add("补+文字");
-            List<RenamePlan> customTailPlan = BuildPlan(new List<ShotRow> { customTailRow }, 5, 1, true, false);
+            List<RenamePlan> customTailPlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { customTailRow }, 5, 1, true, false);
             if (customTailPlan.Count != 1 || customTailPlan[0].NewName != "E5-S1-1-补+文字.mp4" || customTailPlan[0].TailSegment != "补+文字")
             {
                 throw new Exception("自定义末尾编号测试失败：" + (customTailPlan.Count == 0 ? "无预览" : customTailPlan[0].NewName));
@@ -174,8 +174,8 @@ namespace VideoMaterialRenamer
             duplicateTailRow.MainFiles.Add(@"C:\Temp\dup2.mp4");
             duplicateTailRow.MainTailOverrides.Add("补手机");
             duplicateTailRow.MainTailOverrides.Add("");
-            List<RenamePlan> duplicateTailPlan = BuildPlan(new List<ShotRow> { duplicateTailRow }, 5, 6, true, false);
-            string uniqueTail = GetUniqueCustomTail(duplicateTailPlan[1], "补手机", duplicateTailPlan, 5, 6, true);
+            List<RenamePlan> duplicateTailPlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { duplicateTailRow }, 5, 6, true, false);
+            string uniqueTail = RenamePlanBuilder.GetUniqueCustomTail(duplicateTailPlan[1], "补手机", duplicateTailPlan, 5, 6, true);
             if (uniqueTail != "补手机2")
             {
                 throw new Exception("自定义末尾自动补号测试失败：" + uniqueTail);
@@ -189,7 +189,7 @@ namespace VideoMaterialRenamer
                 File.WriteAllText(alreadyNamed, "test");
                 ShotRow exportRow = new ShotRow { Sequence = 17 };
                 exportRow.MainFiles.Add(alreadyNamed);
-                List<RenamePlan> exportPlan = BuildPlan(new List<ShotRow> { exportRow }, 5, 1, true, true);
+                List<RenamePlan> exportPlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { exportRow }, 5, 1, true, true);
                 if (exportPlan.Count != 1 || exportPlan[0].Status != "待覆盖导出1080p")
                 {
                     throw new Exception("覆盖导出预览测试失败：" + (exportPlan.Count == 0 ? "无预览" : exportPlan[0].Status));

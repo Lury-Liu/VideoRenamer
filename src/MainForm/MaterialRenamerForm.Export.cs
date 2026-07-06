@@ -62,7 +62,7 @@ namespace VideoMaterialRenamer
 
                 if (outputMode == ExportOutputMode.SaveAsNewFile && StringComparer.OrdinalIgnoreCase.Equals(entry.OldPath, entry.TargetPath))
                 {
-                    entry.TargetPath = GetUniquePathWithSuffix(entry.TargetPath, "_1080p");
+                    entry.TargetPath = RenamePlanBuilder.GetUniquePathWithSuffix(entry.TargetPath, "_1080p");
                     entry.NewName = Path.GetFileName(entry.TargetPath);
                     entry.Status = "另存为新文件";
                 }

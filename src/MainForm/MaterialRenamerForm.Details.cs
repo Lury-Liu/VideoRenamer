@@ -88,7 +88,7 @@ namespace VideoMaterialRenamer
             bool isMain = columnIndex == GridMainColumn;
             RenamePlan firstPlan = currentPlan.FirstOrDefault(p => p.Row == row && p.IsMain == isMain && p.FileIndex == 0);
             string newName = firstPlan == null ? "" : firstPlan.NewName;
-            string context = string.Format("第 {0} 行 / 场号 {1} / 镜号 {2} / {3}，单元格共 {4} 个视频，当前显示第 1 个", rowIndex + 1, GetEffectiveScene(row, GetDefaultScene(), IsRowSceneEnabled()), row.Sequence, isMain ? "主要素材" : "备用素材", files.Count);
+            string context = string.Format("第 {0} 行 / 场号 {1} / 镜号 {2} / {3}，单元格共 {4} 个视频，当前显示第 1 个", rowIndex + 1, RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), IsRowSceneEnabled()), row.Sequence, isMain ? "主要素材" : "备用素材", files.Count);
             ShowVideoDetails(files[0], newName, context);
             UpdateCustomTailControls(firstPlan);
         }
@@ -217,18 +217,18 @@ namespace VideoMaterialRenamer
 
             string normalized = "";
             string requestedNormalized = "";
-            normalized = NormalizeCustomTailText(txtCustomTail == null ? "" : txtCustomTail.Text);
+            normalized = RenamePlanBuilder.NormalizeCustomTailText(txtCustomTail == null ? "" : txtCustomTail.Text);
             requestedNormalized = normalized;
             if (!string.IsNullOrWhiteSpace(normalized))
             {
-                normalized = GetUniqueCustomTail(entry, normalized, currentPlan, (int)numEpisode.Value, entry.Scene, chkKeepExtension.Checked);
+                normalized = RenamePlanBuilder.GetUniqueCustomTail(entry, normalized, currentPlan, (int)numEpisode.Value, entry.Scene, chkKeepExtension.Checked);
             }
 
             ShotRow row = entry.Row;
             bool isMain = entry.IsMain;
             int fileIndex = entry.FileIndex;
 
-            SetTailOverride(entry, normalized);
+            RenamePlanBuilder.SetTailOverride(entry, normalized);
 
             RefreshPreview();
             SelectPreviewEntry(row, isMain, fileIndex);
