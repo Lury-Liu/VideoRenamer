@@ -1,0 +1,39 @@
+# Generated build output
+/build/
+/dist/
+/updates/
+
+# Local IDE/cache files
+/.vs/
+/.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Large local binary dependencies
+/tools/ffmpeg.exe
+
+# Developer-only authorization material
+生成授权密钥工具.ps1
+*授权密钥*
+*.pem
+*.key
+*.pfx
+*.p12
+*.snk
+
+# Runtime logs/state
+rename_history.tsv
+*.log
+*.tmp
+*.bak
+*.zip
+
+# Packaged binaries
+*.exe
+*.pdb
+
+# OS metadata
+Thumbs.db
+Desktop.ini
