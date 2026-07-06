@@ -24,17 +24,18 @@ if (!(Test-Path -LiteralPath $mainScript)) {
     throw "找不到主程序脚本：$mainScript"
 }
 
-$utf8 = New-Object System.Text.UTF8Encoding($false)
-$utf8Bom = New-Object System.Text.UTF8Encoding($true)
-$scriptText = [System.IO.File]::ReadAllText($mainScript, $utf8)
-$match = [regex]::Match($scriptText, '(?s)\$source\s*=\s*@"\r?\n(.*?)\r?\n"@')
-if (!$match.Success) {
-    throw "无法从 video_material_renamer.ps1 提取 C# 源码。"
+$srcDir = Join-Path $root "src"
+if (!(Test-Path -LiteralPath $srcDir)) {
+    throw "找不到源码目录：$srcDir"
+}
+$sourceFiles = Get-ChildItem -LiteralPath $srcDir -Recurse -Filter *.cs |
+    Sort-Object FullName |
+    Select-Object -ExpandProperty FullName
+if (!$sourceFiles) {
+    throw "src 目录下没有找到任何 .cs 源码文件。"
 }
 
-New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
-[System.IO.File]::WriteAllText($generatedSource, $match.Groups[1].Value, $utf8Bom)
 
 $cscCandidates = @(
     "${env:WINDIR}\Microsoft.NET\Framework64\v4.0.30319\csc.exe",
@@ -70,9 +71,9 @@ $arguments += @(
     "/reference:System.Windows.Forms.dll",
     "/reference:System.Drawing.dll",
     "/reference:System.Core.dll",
-    "/reference:System.Security.dll",
-    $generatedSource
+    "/reference:System.Security.dll"
 )
+$arguments += $sourceFiles
 
 & $csc @arguments
 if ($LASTEXITCODE -ne 0) {
