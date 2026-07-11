@@ -359,6 +359,15 @@ namespace VideoMaterialRenamer
             thumbnailBox.Dock = DockStyle.Fill;
             thumbnailBox.SizeMode = PictureBoxSizeMode.Zoom;
             thumbnailBox.BorderStyle = BorderStyle.FixedSingle;
+            thumbnailBox.MouseMove += delegate(object sender, MouseEventArgs e)
+            {
+                if (thumbnailBox.Width > 1)
+                {
+                    double ratio = Math.Max(0.0, Math.Min(1.0, (double)e.X / thumbnailBox.Width));
+                    ShowFrameAtRatio(ratio);
+                }
+            };
+            thumbnailBox.MouseLeave += delegate { RestoreStaticThumbnail(); };
             panel.Controls.Add(thumbnailBox, 0, 1);
 
             detailTitleLabel = new Label();

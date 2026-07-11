@@ -260,5 +260,75 @@ namespace VideoMaterialRenamer
             thumbnailBox.Image = image;
             ownedDetailImage = ownsImage ? image : null;
         }
+
+        private void QueueFrameStripLoad(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return;
+            }
+            if (StringComparer.OrdinalIgnoreCase.Equals(path, frameStripPath) && frameStrip.Count > 0)
+            {
+                return;
+            }
+
+            int version = ++frameStripVersion;
+            frameStripPath = path;
+            ClearFrameStrip();
+
+            StartStaBackground(delegate
+            {
+                string ffmpegPath = FindFfmpegPath();
+                List<Image> frames = VideoFrameStripProvider.Extract(ffmpegPath, path, 16);
+                QueueOnUi(delegate
+                {
+                    if (version != frameStripVersion)
+                    {
+                        foreach (Image img in frames)
+                        {
+                            if (img != null) { img.Dispose(); }
+                        }
+                        return;
+                    }
+                    frameStrip = frames;
+                });
+            });
+        }
+
+        private void ShowFrameAtRatio(double ratio)
+        {
+            if (frameStrip == null || frameStrip.Count == 0)
+            {
+                return;
+            }
+            int index = (int)Math.Round(ratio * (frameStrip.Count - 1));
+            index = Math.Max(0, Math.Min(frameStrip.Count - 1, index));
+            Image frame = frameStrip[index];
+            if (frame != null)
+            {
+                SetDetailImage(frame, false);
+            }
+        }
+
+        private void RestoreStaticThumbnail()
+        {
+            Image cached;
+            if (TryGetThumbnailFromCache(currentDetailPath, out cached) && cached != null)
+            {
+                SetDetailImage(cached, false);
+            }
+        }
+
+        private void ClearFrameStrip()
+        {
+            if (frameStrip != null)
+            {
+                foreach (Image img in frameStrip)
+                {
+                    if (img != null) { img.Dispose(); }
+                }
+                frameStrip.Clear();
+            }
+        }
     }
 }

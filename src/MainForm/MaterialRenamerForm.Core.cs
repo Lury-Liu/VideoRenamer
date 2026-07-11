@@ -64,6 +64,9 @@ namespace VideoMaterialRenamer
         private Button btnAbout;
         private System.Windows.Forms.Timer previewColumnResizeTimer;
         private Image ownedDetailImage;
+        private List<Image> frameStrip = new List<Image>();
+        private string frameStripPath = "";
+        private int frameStripVersion;
         private int dragHighlightRow = -1;
         private int dragHighlightColumn = -1;
         private int detailLoadVersion;
@@ -274,6 +277,8 @@ namespace VideoMaterialRenamer
                     image.Dispose();
                 }
             }
+            ClearFrameStrip();
+
             thumbnailCache.Clear();
             thumbnailCacheOrder.Clear();
             thumbnailCacheNodes.Clear();
