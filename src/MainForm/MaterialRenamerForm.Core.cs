@@ -206,6 +206,12 @@ namespace VideoMaterialRenamer
                 }
             }
 
+            string stripArgs = VideoFrameStripProvider.BuildStripArguments(@"C:\Temp\in.mp4", @"C:\Temp\out\f_%03d.png", 12);
+            if (!stripArgs.Contains("-i") || !stripArgs.Contains("-frames:v") || !stripArgs.Contains("12") || !stripArgs.Contains("thumbnail"))
+            {
+                throw new Exception("抽帧参数测试失败：" + stripArgs);
+            }
+
             return "SelfTest OK";
         }
 
