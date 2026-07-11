@@ -237,12 +237,12 @@ namespace VideoMaterialRenamer
             ShotRow suffixRow = new ShotRow { Sequence = 28, ShotSuffix = "a" };
             suffixRow.MainFiles.Add(@"C:\Temp\bridge.mp4");
             List<RenamePlan> suffixPlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { suffixRow }, 1, 2, true, false);
-            if (suffixPlan.Count != 1 || suffixPlan[0].NewName != "E1-S2-28a-T1.mp4" || suffixPlan[0].ShotLabel != "28a")
+            if (suffixPlan.Count != 1 || suffixPlan[0].NewName != "E1-S2-28A-T1.mp4" || suffixPlan[0].ShotLabel != "28A")
             {
                 throw new Exception("镜号字母后缀测试失败：" + (suffixPlan.Count == 0 ? "无预览" : suffixPlan[0].NewName));
             }
 
-            if (RenamePlanBuilder.NormalizeShotSuffix(" B# ") != "b" || RenamePlanBuilder.NormalizeShotSuffix("abc") != "ab")
+            if (RenamePlanBuilder.NormalizeShotSuffix(" b# ") != "B" || RenamePlanBuilder.NormalizeShotSuffix("abc") != "AB")
             {
                 throw new Exception("镜号后缀净化测试失败。");
             }

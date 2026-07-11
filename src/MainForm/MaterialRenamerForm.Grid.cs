@@ -450,7 +450,7 @@ namespace VideoMaterialRenamer
                 {
                     row.Sequence = Math.Max(1, row.Sequence);
                     grid.Rows[e.RowIndex].Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
-                    statusLabel.Text = (IsRowSceneEnabled() ? "B" : "A") + " 列镜号可填正整数，或整数+字母（如 28a，用于两镜之间补插衔接镜）。";
+                    statusLabel.Text = (IsRowSceneEnabled() ? "B" : "A") + " 列镜号可填正整数，或整数+字母（如 28A，用于两镜之间补插衔接镜）。";
                 }
             }
             else if (e.ColumnIndex == GridProgressColumn)

@@ -417,6 +417,19 @@ namespace VideoMaterialRenamer
             chkCustomTail.AutoSize = true;
             chkCustomTail.Margin = new Padding(0, 5, 8, 0);
             chkCustomTail.CheckedChanged += delegate { UpdateCustomTailInputState(); };
+            ToolTip customTailTip = new ToolTip();
+            customTailTip.AutoPopDelay = 20000;
+            customTailTip.InitialDelay = 400;
+            customTailTip.ReshowDelay = 100;
+            customTailTip.ShowAlways = true;
+            customTailTip.SetToolTip(chkCustomTail,
+                "自定义新文件名末尾（替换默认的 T 编号）：\r\n" +
+                "· 在下方输入框填写文字或编号，回车应用到当前选中的一条素材。\r\n" +
+                "· 用于补拍/替换镜头命名，如 补1、补手机特写、替换 等。\r\n" +
+                "· 多选多条素材后点“批量应用”，会按基名自动递增：\r\n" +
+                "  例如输入“补” → 补_1、补_2、补_3；输入“替换1” → 替换_1、替换_2……\r\n" +
+                "· 文字与自动序号之间会自动加下划线，避免数字粘连（TT1 → TT1_2）。\r\n" +
+                "· 留空并应用可恢复为默认 T 编号。");
             panel.Controls.Add(chkCustomTail);
 
             txtCustomTail = new TextBox();

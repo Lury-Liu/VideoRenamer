@@ -167,7 +167,7 @@ namespace VideoMaterialRenamer
             {
                 if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
                 {
-                    builder.Append(char.ToLowerInvariant(ch));
+                    builder.Append(char.ToUpperInvariant(ch));
                 }
                 if (builder.Length >= 2)
                 {
