@@ -249,6 +249,44 @@ namespace VideoMaterialRenamer
             }
         }
 
+        private void ApplyBatchCustomTail()
+        {
+            if (previewList == null || previewList.SelectedItems.Count == 0)
+            {
+                MessageBox.Show(this, "请先在预览中选中一条或多条素材记录（可按住 Ctrl / Shift 多选）。", "未选择素材", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            string baseName = txtCustomTail == null ? "" : txtCustomTail.Text;
+            List<RenamePlan> selected = new List<RenamePlan>();
+            foreach (ListViewItem item in previewList.SelectedItems)
+            {
+                RenamePlan entry = item.Tag as RenamePlan;
+                if (entry != null && entry.Row != null)
+                {
+                    selected.Add(entry);
+                }
+            }
+            if (selected.Count == 0)
+            {
+                return;
+            }
+
+            List<string> tails = RenamePlanBuilder.BuildBatchTails(baseName, selected.Count);
+            for (int i = 0; i < selected.Count; i++)
+            {
+                RenamePlanBuilder.SetTailOverride(selected[i], tails[i]);
+            }
+
+            RefreshPreview();
+            if (statusLabel != null)
+            {
+                statusLabel.Text = string.IsNullOrWhiteSpace(RenamePlanBuilder.NormalizeCustomTailText(baseName))
+                    ? "已恢复所选 " + selected.Count + " 条为默认 T 编号。"
+                    : "已批量应用自定义末尾到 " + selected.Count + " 条。";
+            }
+        }
+
         private void SelectPreviewEntry(ShotRow row, bool isMain, int fileIndex)
         {
             if (previewList == null)

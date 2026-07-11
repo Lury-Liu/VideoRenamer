@@ -172,6 +172,45 @@ namespace VideoMaterialRenamer
             return string.IsNullOrWhiteSpace(normalized) ? "T" + Math.Max(1, take) : normalized;
         }
 
+        // 批量生成自定义尾段：基名末尾若带数字则拆出作为起始序号（"替换1"→base="替换",start=1），
+        // 否则起始序号 1。序号与基名之间用下划线分隔。空基名返回全空串（=回退默认 T 编号）。
+        public static List<string> BuildBatchTails(string baseName, int count)
+        {
+            List<string> result = new List<string>();
+            string normalizedBase = NormalizeCustomTailText(baseName);
+            if (string.IsNullOrWhiteSpace(normalizedBase))
+            {
+                for (int i = 0; i < Math.Max(0, count); i++)
+                {
+                    result.Add("");
+                }
+                return result;
+            }
+
+            int start = 1;
+            Match trailing = Regex.Match(normalizedBase, @"^(?<stem>.*?)(?<num>\d+)$");
+            if (trailing.Success)
+            {
+                string stem = trailing.Groups["stem"].Value;
+                int parsed;
+                if (int.TryParse(trailing.Groups["num"].Value, out parsed) && parsed > 0)
+                {
+                    normalizedBase = stem;
+                    start = parsed;
+                }
+            }
+
+            string stemTrimmed = normalizedBase.TrimEnd('_');
+            for (int i = 0; i < Math.Max(0, count); i++)
+            {
+                string tail = string.IsNullOrWhiteSpace(stemTrimmed)
+                    ? (start + i).ToString()
+                    : stemTrimmed + "_" + (start + i);
+                result.Add(NormalizeCustomTailText(tail));
+            }
+            return result;
+        }
+
         public static string NormalizeCustomTailText(string value)
         {
             if (string.IsNullOrWhiteSpace(value))

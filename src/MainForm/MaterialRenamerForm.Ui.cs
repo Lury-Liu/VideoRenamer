@@ -309,7 +309,7 @@ namespace VideoMaterialRenamer
             previewList.FullRowSelect = true;
             previewList.GridLines = true;
             previewList.HideSelection = false;
-            previewList.MultiSelect = false;
+            previewList.MultiSelect = true;
             previewList.ShowGroups = true;
             previewList.Columns.Add("行", 56);
             previewList.Columns.Add("镜号", 58);
@@ -423,6 +423,11 @@ namespace VideoMaterialRenamer
                 }
             };
             panel.Controls.Add(txtCustomTail);
+
+            Button btnBatchTail = NewButton("批量应用", 82);
+            btnBatchTail.Margin = new Padding(0, 2, 0, 0);
+            btnBatchTail.Click += delegate { ApplyBatchCustomTail(); };
+            panel.Controls.Add(btnBatchTail);
 
             return panel;
         }

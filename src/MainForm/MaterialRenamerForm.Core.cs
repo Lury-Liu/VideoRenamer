@@ -212,6 +212,24 @@ namespace VideoMaterialRenamer
                 }
             }
 
+            List<string> batchPlain = RenamePlanBuilder.BuildBatchTails("补", 3);
+            if (string.Join("|", batchPlain.ToArray()) != "补_1|补_2|补_3")
+            {
+                throw new Exception("批量尾段（无数字基名）测试失败：" + string.Join("|", batchPlain.ToArray()));
+            }
+
+            List<string> batchNumbered = RenamePlanBuilder.BuildBatchTails("替换1", 3);
+            if (string.Join("|", batchNumbered.ToArray()) != "替换_1|替换_2|替换_3")
+            {
+                throw new Exception("批量尾段（数字基名续号）测试失败：" + string.Join("|", batchNumbered.ToArray()));
+            }
+
+            List<string> batchEmpty = RenamePlanBuilder.BuildBatchTails("", 2);
+            if (string.Join("|", batchEmpty.ToArray()) != "|")
+            {
+                throw new Exception("批量尾段（空基名回退）测试失败：" + string.Join("|", batchEmpty.ToArray()));
+            }
+
             return "SelfTest OK";
         }
 
