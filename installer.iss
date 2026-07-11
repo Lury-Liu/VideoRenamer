@@ -1,14 +1,14 @@
 ﻿; ============================================================================
 ;  视频素材镜头表命名工具 - Inno Setup 安装脚本
 ;  由 打包安装程序.ps1 调用，或直接用 Inno Setup 打开编译。
-;  预处理变量 AppVersion 可由命令行覆盖： ISCC.exe /DAppVersion=1.0.5.34 installer.iss
+;  预处理变量 AppVersion 可由命令行覆盖： ISCC.exe /DAppVersion=1.0.6.0 installer.iss
 ; ============================================================================
 
 #define AppName "视频素材镜头表命名工具"
 #define AppPublisher "@寒松"
 #define AppExeName "视频素材镜头表命名工具.exe"
 #ifndef AppVersion
-  #define AppVersion "1.0.5.34"
+  #define AppVersion "1.0.6.0"
 #endif
 
 [Setup]
