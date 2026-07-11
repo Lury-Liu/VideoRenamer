@@ -47,7 +47,7 @@ namespace VideoMaterialRenamer
                     if (firstInGroup)
                     {
                         ListViewGroup group = new ListViewGroup(
-                            string.Format("第 {0} 行 / 场号 {1} / 镜号 {2}", entry.RowIndex, entry.Scene, entry.Shot),
+                            string.Format("第 {0} 行 / 场号 {1} / 镜号 {2}", entry.RowIndex, entry.Scene, entry.ShotLabel),
                             HorizontalAlignment.Left);
                         previewGroups[entry.RowIndex] = group;
                         previewList.Groups.Add(group);
@@ -56,7 +56,7 @@ namespace VideoMaterialRenamer
                     ListViewItem item = new ListViewItem(firstInGroup ? "▶ " + entry.RowIndex : "  " + entry.RowIndex);
                     item.Tag = entry;
                     item.Group = previewGroups[entry.RowIndex];
-                    item.SubItems.Add(entry.Shot.ToString());
+                    item.SubItems.Add(entry.ShotLabel);
                     item.SubItems.Add(entry.TailSegment);
                     item.SubItems.Add(entry.ColumnName);
                     item.SubItems.Add(entry.OldName);

@@ -176,9 +176,15 @@ namespace VideoMaterialRenamer
             duplicateTailRow.MainTailOverrides.Add("");
             List<RenamePlan> duplicateTailPlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { duplicateTailRow }, 5, 6, true, false);
             string uniqueTail = RenamePlanBuilder.GetUniqueCustomTail(duplicateTailPlan[1], "补手机", duplicateTailPlan, 5, 6, true);
-            if (uniqueTail != "补手机2")
+            if (uniqueTail != "补手机_2")
             {
                 throw new Exception("自定义末尾自动补号测试失败：" + uniqueTail);
+            }
+
+            string suffixJoin = RenamePlanBuilder.AppendCustomTailCounter("TT1", 11);
+            if (suffixJoin != "TT1_11")
+            {
+                throw new Exception("自动序号分隔符测试失败：" + suffixJoin);
             }
 
             string tempDir = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamerSelfTest_" + Guid.NewGuid().ToString("N"));
@@ -204,6 +210,37 @@ namespace VideoMaterialRenamer
                 catch
                 {
                 }
+            }
+
+            List<string> batchPlain = RenamePlanBuilder.BuildBatchTails("补", 3);
+            if (string.Join("|", batchPlain.ToArray()) != "补_1|补_2|补_3")
+            {
+                throw new Exception("批量尾段（无数字基名）测试失败：" + string.Join("|", batchPlain.ToArray()));
+            }
+
+            List<string> batchNumbered = RenamePlanBuilder.BuildBatchTails("替换1", 3);
+            if (string.Join("|", batchNumbered.ToArray()) != "替换_1|替换_2|替换_3")
+            {
+                throw new Exception("批量尾段（数字基名续号）测试失败：" + string.Join("|", batchNumbered.ToArray()));
+            }
+
+            List<string> batchEmpty = RenamePlanBuilder.BuildBatchTails("", 2);
+            if (string.Join("|", batchEmpty.ToArray()) != "|")
+            {
+                throw new Exception("批量尾段（空基名回退）测试失败：" + string.Join("|", batchEmpty.ToArray()));
+            }
+
+            ShotRow suffixRow = new ShotRow { Sequence = 28, ShotSuffix = "a" };
+            suffixRow.MainFiles.Add(@"C:\Temp\bridge.mp4");
+            List<RenamePlan> suffixPlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { suffixRow }, 1, 2, true, false);
+            if (suffixPlan.Count != 1 || suffixPlan[0].NewName != "E1-S2-28a-T1.mp4" || suffixPlan[0].ShotLabel != "28a")
+            {
+                throw new Exception("镜号字母后缀测试失败：" + (suffixPlan.Count == 0 ? "无预览" : suffixPlan[0].NewName));
+            }
+
+            if (RenamePlanBuilder.NormalizeShotSuffix(" B# ") != "b" || RenamePlanBuilder.NormalizeShotSuffix("abc") != "ab")
+            {
+                throw new Exception("镜号后缀净化测试失败。");
             }
 
             return "SelfTest OK";

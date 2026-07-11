@@ -25,6 +25,7 @@ namespace VideoMaterialRenamer
         public int FileIndex;
         public int Scene;
         public int Shot;
+        public string ShotLabel;
         public int Take;
         public string TailSegment;
         public string CustomTailText;

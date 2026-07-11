@@ -68,7 +68,7 @@ namespace VideoMaterialRenamer
                 string oldPath = Path.GetFullPath(files[fileIndex]);
                 string customTail = tailOverrides != null && fileIndex < tailOverrides.Count ? NormalizeCustomTailText(tailOverrides[fileIndex]) : "";
                 string tailSegment = GetTailSegment(take, customTail);
-                string newName = GetMaterialFileName(episode, scene, shot, tailSegment, oldPath, keepExtensionCase);
+                string newName = GetMaterialFileName(episode, scene, shot, row != null ? row.ShotSuffix : "", tailSegment, oldPath, keepExtensionCase);
                 string directory = Path.GetDirectoryName(oldPath);
                 string targetPath = Path.GetFullPath(Path.Combine(directory, newName));
                 string status = "就绪";
@@ -106,6 +106,7 @@ namespace VideoMaterialRenamer
                     FileIndex = fileIndex,
                     Scene = scene,
                     Shot = shot,
+                    ShotLabel = FormatShotLabel(shot, row != null ? row.ShotSuffix : ""),
                     Take = take,
                     TailSegment = tailSegment,
                     CustomTailText = customTail,
@@ -154,7 +155,34 @@ namespace VideoMaterialRenamer
             }
         }
 
-        public static string GetMaterialFileName(int episode, int scene, int shot, string tailSegment, string sourcePath, bool keepExtensionCase)
+        public static string NormalizeShotSuffix(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "";
+            }
+
+            StringBuilder builder = new StringBuilder();
+            foreach (char ch in value.Trim())
+            {
+                if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+                {
+                    builder.Append(char.ToLowerInvariant(ch));
+                }
+                if (builder.Length >= 2)
+                {
+                    break;
+                }
+            }
+            return builder.ToString();
+        }
+
+        public static string FormatShotLabel(int shot, string suffix)
+        {
+            return Math.Max(1, shot).ToString() + NormalizeShotSuffix(suffix);
+        }
+
+        public static string GetMaterialFileName(int episode, int scene, int shot, string shotSuffix, string tailSegment, string sourcePath, bool keepExtensionCase)
         {
             string extension = Path.GetExtension(sourcePath) ?? "";
             if (!keepExtensionCase)
@@ -163,13 +191,53 @@ namespace VideoMaterialRenamer
             }
 
             string safeTail = string.IsNullOrWhiteSpace(tailSegment) ? "T1" : tailSegment;
-            return string.Format("E{0}-S{1}-{2}-{3}{4}", Math.Max(1, episode), Math.Max(1, scene), Math.Max(1, shot), safeTail, extension);
+            string shotLabel = FormatShotLabel(shot, shotSuffix);
+            return string.Format("E{0}-S{1}-{2}-{3}{4}", Math.Max(1, episode), Math.Max(1, scene), shotLabel, safeTail, extension);
         }
 
         public static string GetTailSegment(int take, string customTail)
         {
             string normalized = NormalizeCustomTailText(customTail);
             return string.IsNullOrWhiteSpace(normalized) ? "T" + Math.Max(1, take) : normalized;
+        }
+
+        // 批量生成自定义尾段：基名末尾若带数字则拆出作为起始序号（"替换1"→base="替换",start=1），
+        // 否则起始序号 1。序号与基名之间用下划线分隔。空基名返回全空串（=回退默认 T 编号）。
+        public static List<string> BuildBatchTails(string baseName, int count)
+        {
+            List<string> result = new List<string>();
+            string normalizedBase = NormalizeCustomTailText(baseName);
+            if (string.IsNullOrWhiteSpace(normalizedBase))
+            {
+                for (int i = 0; i < Math.Max(0, count); i++)
+                {
+                    result.Add("");
+                }
+                return result;
+            }
+
+            int start = 1;
+            Match trailing = Regex.Match(normalizedBase, @"^(?<stem>.*?)(?<num>\d+)$");
+            if (trailing.Success)
+            {
+                string stem = trailing.Groups["stem"].Value;
+                int parsed;
+                if (int.TryParse(trailing.Groups["num"].Value, out parsed) && parsed > 0)
+                {
+                    normalizedBase = stem;
+                    start = parsed;
+                }
+            }
+
+            string stemTrimmed = normalizedBase.TrimEnd('_');
+            for (int i = 0; i < Math.Max(0, count); i++)
+            {
+                string tail = string.IsNullOrWhiteSpace(stemTrimmed)
+                    ? (start + i).ToString()
+                    : stemTrimmed + "_" + (start + i);
+                result.Add(NormalizeCustomTailText(tail));
+            }
+            return result;
         }
 
         public static string NormalizeCustomTailText(string value)
@@ -282,9 +350,11 @@ namespace VideoMaterialRenamer
         public static string AppendCustomTailCounter(string baseTail, int counter)
         {
             string suffix = Math.Max(2, counter).ToString();
-            int maxBaseLength = Math.Max(1, 80 - suffix.Length);
+            // 序号前加下划线分隔，避免 "TT1"+"1" 粘连成 "TT11"（视觉误读为 T111）。
+            string joiner = "_";
+            int maxBaseLength = Math.Max(1, 80 - suffix.Length - joiner.Length);
             string trimmedBase = baseTail.Length > maxBaseLength ? baseTail.Substring(0, maxBaseLength).Trim() : baseTail;
-            return NormalizeCustomTailText(trimmedBase + suffix);
+            return NormalizeCustomTailText(trimmedBase + joiner + suffix);
         }
 
         public static string BuildTargetPathForTail(RenamePlan entry, string tailSegment, int episode, int scene, bool keepExtensionCase)
@@ -295,7 +365,7 @@ namespace VideoMaterialRenamer
                 directory = Environment.CurrentDirectory;
             }
 
-            string newName = GetMaterialFileName(episode, scene, entry.Shot, tailSegment, entry.OldPath, keepExtensionCase);
+            string newName = GetMaterialFileName(episode, scene, entry.Shot, entry.Row != null ? entry.Row.ShotSuffix : "", tailSegment, entry.OldPath, keepExtensionCase);
             return Path.GetFullPath(Path.Combine(directory, newName));
         }
 

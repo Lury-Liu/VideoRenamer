@@ -135,7 +135,7 @@ namespace VideoMaterialRenamer
                     gridRow.Height = grid.RowTemplate.Height;
                     gridRow.Resizable = DataGridViewTriState.False;
                     gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
-                    gridRow.Cells[GridShotColumn].Value = row.Sequence;
+                    gridRow.Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
                     gridRow.Cells[GridMainColumn].Value = RenamePlanBuilder.GetCellSummary(row.MainFiles);
                     gridRow.Cells[GridBackupColumn].Value = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
                     gridRow.Cells[GridProgressColumn].Value = row.ProgressPercent;
@@ -168,7 +168,7 @@ namespace VideoMaterialRenamer
                 gridRow.Height = grid.RowTemplate.Height;
                 gridRow.Resizable = DataGridViewTriState.False;
                 gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
-                gridRow.Cells[GridShotColumn].Value = row.Sequence;
+                gridRow.Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
                 gridRow.Cells[GridMainColumn].Value = RenamePlanBuilder.GetCellSummary(row.MainFiles);
                 gridRow.Cells[GridBackupColumn].Value = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
                 gridRow.Cells[GridProgressColumn].Value = row.ProgressPercent;
@@ -438,16 +438,19 @@ namespace VideoMaterialRenamer
             else if (e.ColumnIndex == GridShotColumn)
             {
                 object value = grid.Rows[e.RowIndex].Cells[GridShotColumn].Value;
-                int parsed;
-                if (value != null && int.TryParse(value.ToString(), out parsed) && parsed > 0)
+                string text = value == null ? "" : value.ToString().Trim();
+                Match m = Regex.Match(text, @"^(?<num>\d+)\s*(?<suf>[A-Za-z]{0,2})$");
+                int parsedShot;
+                if (m.Success && int.TryParse(m.Groups["num"].Value, out parsedShot) && parsedShot > 0)
                 {
-                    row.Sequence = parsed;
+                    row.Sequence = parsedShot;
+                    row.ShotSuffix = RenamePlanBuilder.NormalizeShotSuffix(m.Groups["suf"].Value);
                 }
                 else
                 {
                     row.Sequence = Math.Max(1, row.Sequence);
-                    grid.Rows[e.RowIndex].Cells[GridShotColumn].Value = row.Sequence;
-                    statusLabel.Text = (IsRowSceneEnabled() ? "B" : "A") + " 列镜号必须是大于 0 的整数，已保留原镜号。";
+                    grid.Rows[e.RowIndex].Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
+                    statusLabel.Text = (IsRowSceneEnabled() ? "B" : "A") + " 列镜号可填正整数，或整数+字母（如 28a，用于两镜之间补插衔接镜）。";
                 }
             }
             else if (e.ColumnIndex == GridProgressColumn)
