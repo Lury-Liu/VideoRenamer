@@ -123,6 +123,8 @@ namespace VideoMaterialRenamer
                 SetDetailImage(CreatePlaceholderImage(info.Exists ? "缩略图读取中" : "无缩略图"), true);
                 QueueThumbnailLoad(path);
             }
+
+            QueueFrameStripLoad(path);
         }
 
         private bool IsCurrentDetailPath(string path)

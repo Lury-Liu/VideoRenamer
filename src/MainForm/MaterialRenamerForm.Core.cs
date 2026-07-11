@@ -64,6 +64,9 @@ namespace VideoMaterialRenamer
         private Button btnAbout;
         private System.Windows.Forms.Timer previewColumnResizeTimer;
         private Image ownedDetailImage;
+        private List<Image> frameStrip = new List<Image>();
+        private string frameStripPath = "";
+        private int frameStripVersion;
         private int dragHighlightRow = -1;
         private int dragHighlightColumn = -1;
         private int detailLoadVersion;
@@ -243,6 +246,12 @@ namespace VideoMaterialRenamer
                 throw new Exception("镜号后缀净化测试失败。");
             }
 
+            string stripArgs = VideoFrameStripProvider.BuildStripArguments(@"C:\Temp\in.mp4", @"C:\Temp\out\f_%03d.png", 12);
+            if (!stripArgs.Contains("-i") || !stripArgs.Contains("-frames:v") || !stripArgs.Contains("12") || !stripArgs.Contains("thumbnail"))
+            {
+                throw new Exception("抽帧参数测试失败：" + stripArgs);
+            }
+
             return "SelfTest OK";
         }
 
@@ -305,6 +314,8 @@ namespace VideoMaterialRenamer
                     image.Dispose();
                 }
             }
+            ClearFrameStrip();
+
             thumbnailCache.Clear();
             thumbnailCacheOrder.Clear();
             thumbnailCacheNodes.Clear();
