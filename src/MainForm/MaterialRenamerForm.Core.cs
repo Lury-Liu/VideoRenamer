@@ -64,6 +64,7 @@ namespace VideoMaterialRenamer
         private Button btnAbout;
         private System.Windows.Forms.Timer previewColumnResizeTimer;
         private Image ownedDetailImage;
+        private Font previewGroupFont;
         private List<Image> frameStrip = new List<Image>();
         private string frameStripPath = "";
         private int frameStripVersion;
@@ -315,6 +316,11 @@ namespace VideoMaterialRenamer
                 }
             }
             ClearFrameStrip();
+            if (previewGroupFont != null)
+            {
+                previewGroupFont.Dispose();
+                previewGroupFont = null;
+            }
 
             thumbnailCache.Clear();
             thumbnailCacheOrder.Clear();

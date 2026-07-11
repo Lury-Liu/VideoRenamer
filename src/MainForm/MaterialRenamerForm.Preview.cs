@@ -65,7 +65,12 @@ namespace VideoMaterialRenamer
                     item.SubItems.Add(GetListVideoSummary(entry.OldPath));
                     if (firstInGroup)
                     {
-                        item.Font = new Font(previewList.Font, FontStyle.Bold);
+                        if (previewGroupFont == null || !previewGroupFont.FontFamily.Equals(previewList.Font.FontFamily))
+                        {
+                            if (previewGroupFont != null) { previewGroupFont.Dispose(); }
+                            previewGroupFont = new Font(previewList.Font, FontStyle.Bold);
+                        }
+                        item.Font = previewGroupFont;
                     }
                     ApplyPreviewItemStatusStyle(item, entry);
 
