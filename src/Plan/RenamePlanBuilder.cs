@@ -282,9 +282,11 @@ namespace VideoMaterialRenamer
         public static string AppendCustomTailCounter(string baseTail, int counter)
         {
             string suffix = Math.Max(2, counter).ToString();
-            int maxBaseLength = Math.Max(1, 80 - suffix.Length);
+            // 序号前加下划线分隔，避免 "TT1"+"1" 粘连成 "TT11"（视觉误读为 T111）。
+            string joiner = "_";
+            int maxBaseLength = Math.Max(1, 80 - suffix.Length - joiner.Length);
             string trimmedBase = baseTail.Length > maxBaseLength ? baseTail.Substring(0, maxBaseLength).Trim() : baseTail;
-            return NormalizeCustomTailText(trimmedBase + suffix);
+            return NormalizeCustomTailText(trimmedBase + joiner + suffix);
         }
 
         public static string BuildTargetPathForTail(RenamePlan entry, string tailSegment, int episode, int scene, bool keepExtensionCase)

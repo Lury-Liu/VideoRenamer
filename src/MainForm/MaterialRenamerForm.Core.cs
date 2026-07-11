@@ -176,9 +176,15 @@ namespace VideoMaterialRenamer
             duplicateTailRow.MainTailOverrides.Add("");
             List<RenamePlan> duplicateTailPlan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { duplicateTailRow }, 5, 6, true, false);
             string uniqueTail = RenamePlanBuilder.GetUniqueCustomTail(duplicateTailPlan[1], "补手机", duplicateTailPlan, 5, 6, true);
-            if (uniqueTail != "补手机2")
+            if (uniqueTail != "补手机_2")
             {
                 throw new Exception("自定义末尾自动补号测试失败：" + uniqueTail);
+            }
+
+            string suffixJoin = RenamePlanBuilder.AppendCustomTailCounter("TT1", 11);
+            if (suffixJoin != "TT1_11")
+            {
+                throw new Exception("自动序号分隔符测试失败：" + suffixJoin);
             }
 
             string tempDir = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamerSelfTest_" + Guid.NewGuid().ToString("N"));
