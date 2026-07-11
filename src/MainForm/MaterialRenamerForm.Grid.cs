@@ -458,7 +458,8 @@ namespace VideoMaterialRenamer
                 grid.Rows[e.RowIndex].Cells[GridProgressColumn].Value = row.ProgressPercent;
             }
 
-            RenderAll();
+            RenderGridRow(e.RowIndex);
+            RefreshPreviewNamesOnly();
         }
 
         private int GetCurrentGridRowIndex()

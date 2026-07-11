@@ -249,6 +249,53 @@ namespace VideoMaterialRenamer
             }
         }
 
+        // 增量刷新：镜号/场号/尾段变化时，复用现有预览项，仅更新文本与配色，避免整表重建。
+        private void RefreshPreviewNamesOnly()
+        {
+            if (previewList == null)
+            {
+                return;
+            }
+
+            List<RenamePlan> rebuilt = RenamePlanBuilder.BuildPlan(rows, (int)numEpisode.Value, GetDefaultScene(), chkKeepExtension.Checked, IsExport1080pEnabled(), IsRowSceneEnabled());
+            if (rebuilt.Count != previewList.Items.Count)
+            {
+                currentPlan.Clear();
+                currentPlan.AddRange(rebuilt);
+                RefreshPreview();
+                return;
+            }
+
+            currentPlan.Clear();
+            currentPlan.AddRange(rebuilt);
+
+            previewList.BeginUpdate();
+            try
+            {
+                for (int i = 0; i < previewList.Items.Count; i++)
+                {
+                    ListViewItem item = previewList.Items[i];
+                    RenamePlan entry = rebuilt[i];
+                    item.Tag = entry;
+                    if (item.SubItems.Count > 6)
+                    {
+                        item.SubItems[1].Text = entry.ShotLabel;
+                        item.SubItems[2].Text = entry.TailSegment;
+                        item.SubItems[5].Text = entry.NewName;
+                        item.SubItems[6].Text = entry.Status;
+                    }
+                    ApplyPreviewItemStatusStyle(item, entry);
+                }
+                UpdatePreviewStatusSummary();
+            }
+            finally
+            {
+                previewList.EndUpdate();
+            }
+
+            SchedulePlanStatusChecks();
+        }
+
         private void RefreshPreviewStatusOnly()
         {
             if (previewList == null)
