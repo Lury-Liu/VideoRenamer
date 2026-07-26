@@ -40,17 +40,15 @@ namespace VideoMaterialRenamer
             return IsRunningPackagedExecutable();
         }
 
-        public static bool CheckForUpdatesOnStartup(IWin32Window owner)
+        // 启动更新提示：清单已由后台线程取回（与启动画面并行，见 Program.Run），
+        // 这里只做提示与安装。提示文案与原 CheckForUpdatesOnStartup 逐字一致。
+        // 原同步的 CheckForUpdatesOnStartup 与从未被调用的 CheckForUpdatesManually
+        //（约 50 行死代码，与 AboutForm 内自有流程重复）一并移除。
+        public static bool PromptAndInstallUpdate(UpdateInfo info, IWin32Window owner)
         {
-            if (!IsRunningPackagedExecutable())
-            {
-                return false;
-            }
-
             try
             {
-                UpdateInfo info = FetchUpdateInfo();
-                if (info == null || !IsNewerVersion(info.Version, AppInfo.Version))
+                if (info == null || !IsNewerVersion(info.Version, AppInfo.Version) || !IsRunningPackagedExecutable())
                 {
                     return false;
                 }
@@ -78,57 +76,6 @@ namespace VideoMaterialRenamer
             }
         }
 
-        public static bool CheckForUpdatesManually(IWin32Window owner)
-        {
-            try
-            {
-                UpdateInfo info = FetchUpdateInfo();
-                if (info == null)
-                {
-                    MessageBox.Show(owner, "未能从 GitHub 获取有效的版本信息。", "检查更新", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return false;
-                }
-
-                if (!IsNewerVersion(info.Version, AppInfo.Version))
-                {
-                    MessageBox.Show(
-                        owner,
-                        "当前已是最新版本。\r\n\r\n当前版本：" + AppInfo.Version + "\r\nGitHub 版本：" + GetDisplayVersion(info),
-                        "检查更新",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    return false;
-                }
-
-                string message =
-                    "检测到新版本 " + GetDisplayVersion(info) + "，当前版本 " + AppInfo.Version + "。\r\n\r\n" +
-                    "是否立即下载并更新？";
-                if (!string.IsNullOrWhiteSpace(info.Notes))
-                {
-                    message += "\r\n\r\n更新说明：\r\n" + info.Notes;
-                }
-
-                DialogResult result = MessageBox.Show(owner, message, "发现新版本", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                if (result != DialogResult.Yes)
-                {
-                    return false;
-                }
-
-                if (!IsRunningPackagedExecutable())
-                {
-                    MessageBox.Show(owner, "当前不是正式 EXE 运行状态，无法自动替换更新。", "无法更新", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return false;
-                }
-
-                return DownloadAndRestart(info, owner);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(owner, "检查更新失败：\r\n" + ex.Message, "检查更新", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-        }
-
         private static bool IsRunningPackagedExecutable()
         {
             try
@@ -147,7 +94,8 @@ namespace VideoMaterialRenamer
 
         private static UpdateInfo FetchUpdateInfo()
         {
-            ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | (SecurityProtocolType)3072;
+            // TLS 1.2 已在 Program.Run 启动时全进程启用一次（原先此处与
+            // 下载分部各自用 (SecurityProtocolType)3072 魔数改全局状态）。
             Exception directException = null;
 
             try

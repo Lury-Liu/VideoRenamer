@@ -1,18 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System;
 using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-using System.Text;
-using System.Threading;
 using System.Windows.Forms;
-using Microsoft.Win32;
 
 namespace VideoMaterialRenamer
 {
@@ -22,6 +10,15 @@ namespace VideoMaterialRenamer
         private readonly Label statusLabel;
         private readonly Label detailLabel;
         private readonly ProgressBar progressBar;
+        private readonly Button cancelButton;
+        private volatile bool cancelRequested;
+
+        // 下载线程轮询此标志（阶段6 新增：原对话框 ControlBox=false 且
+        // 无任何取消途径，连接停滞会把用户永远困在模态框里）。
+        public bool CancelRequested
+        {
+            get { return cancelRequested; }
+        }
 
         public UpdateDownloadProgressForm(bool darkMode)
         {
@@ -33,15 +30,16 @@ namespace VideoMaterialRenamer
             MinimizeBox = false;
             ControlBox = false;
             ShowInTaskbar = false;
-            ClientSize = new Size(460, 150);
+            ClientSize = new Size(460, 186);
             Font = new Font("Microsoft YaHei UI", 9f);
             AppIcon.Apply(this);
 
             TableLayoutPanel layout = new TableLayoutPanel();
             layout.Dock = DockStyle.Fill;
             layout.ColumnCount = 1;
-            layout.RowCount = 3;
+            layout.RowCount = 4;
             layout.Padding = new Padding(18, 16, 18, 14);
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -74,6 +72,20 @@ namespace VideoMaterialRenamer
             detailLabel.Text = "请不要关闭软件。";
             layout.Controls.Add(detailLabel, 0, 2);
 
+            cancelButton = new Button();
+            cancelButton.Text = "取消更新";
+            cancelButton.AutoSize = true;
+            cancelButton.Anchor = AnchorStyles.Right;
+            cancelButton.Click += delegate
+            {
+                cancelRequested = true;
+                cancelButton.Enabled = false;
+                statusLabel.Text = "正在取消更新...";
+            };
+            layout.Controls.Add(cancelButton, 0, 3);
+
+            // 主题只在构造时应用一次（原实现每个进度事件都重新给两个标签
+            // 套主题，下载中每秒重复上百次）。
             UiTheme.ApplyForm(this, darkMode);
         }
 
@@ -99,7 +111,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(status) && !cancelRequested)
             {
                 statusLabel.Text = status;
             }
@@ -115,8 +127,6 @@ namespace VideoMaterialRenamer
             }
 
             detailLabel.Text = BuildDetailText(percent, bytesReceived, totalBytes);
-            UiTheme.ApplyControl(statusLabel, darkMode);
-            UiTheme.ApplyControl(detailLabel, darkMode);
         }
 
         private static string BuildDetailText(int percent, long bytesReceived, long totalBytes)

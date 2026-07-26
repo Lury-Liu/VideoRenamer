@@ -28,6 +28,7 @@ namespace VideoMaterialRenamer
         {
             string error = "";
             bool started = false;
+            bool userCancelled = false;
             using (UpdateDownloadProgressForm progressForm = new UpdateDownloadProgressForm(UiTheme.DetectWindowsDarkMode()))
             {
                 progressForm.Shown += delegate
@@ -38,6 +39,9 @@ namespace VideoMaterialRenamer
                         bool threadStarted = TryDownloadAndRestart(info, delegate(string status, int percent, long bytesReceived, long totalBytes)
                         {
                             progressForm.UpdateProgress(status, percent, bytesReceived, totalBytes);
+                        }, delegate
+                        {
+                            return progressForm.CancelRequested;
                         }, out threadError);
 
                         started = threadStarted;
@@ -66,9 +70,11 @@ namespace VideoMaterialRenamer
                 {
                     progressForm.ShowDialog(owner);
                 }
+
+                userCancelled = progressForm.CancelRequested;
             }
 
-            if (!started)
+            if (!started && !userCancelled)
             {
                 MessageBox.Show(owner, "更新失败：\r\n" + error, "无法更新", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
@@ -78,10 +84,15 @@ namespace VideoMaterialRenamer
 
         public static bool TryDownloadAndRestart(UpdateInfo info, out string error)
         {
-            return TryDownloadAndRestart(info, null, out error);
+            return TryDownloadAndRestart(info, null, null, out error);
         }
 
         public static bool TryDownloadAndRestart(UpdateInfo info, Action<string, int, long, long> progress, out string error)
+        {
+            return TryDownloadAndRestart(info, progress, null, out error);
+        }
+
+        public static bool TryDownloadAndRestart(UpdateInfo info, Action<string, int, long, long> progress, Func<bool> cancelRequested, out string error)
         {
             error = "";
             if (info == null || string.IsNullOrWhiteSpace(info.DownloadUrl))
@@ -97,9 +108,8 @@ namespace VideoMaterialRenamer
 
             try
             {
-                ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | (SecurityProtocolType)3072;
                 ReportUpdateProgress(progress, "正在准备下载更新...", 0, 0, 0);
-                DownloadUpdateFile(info, downloadPath, progress);
+                DownloadUpdateFile(info, downloadPath, progress, cancelRequested);
 
                 if (!File.Exists(downloadPath) || new FileInfo(downloadPath).Length == 0)
                 {
@@ -140,12 +150,12 @@ namespace VideoMaterialRenamer
             }
         }
 
-        private static void DownloadUpdateFile(UpdateInfo info, string downloadPath, Action<string, int, long, long> progress)
+        private static void DownloadUpdateFile(UpdateInfo info, string downloadPath, Action<string, int, long, long> progress, Func<bool> cancelRequested)
         {
             Exception directException = null;
             try
             {
-                DownloadFileWithProgress(info.DownloadUrl, downloadPath, 30000, false, progress, "正在下载更新文件...");
+                DownloadFileWithProgress(info.DownloadUrl, downloadPath, 30000, false, progress, "正在下载更新文件...", cancelRequested);
                 return;
             }
             catch (Exception ex)
@@ -171,7 +181,7 @@ namespace VideoMaterialRenamer
             try
             {
                 ReportUpdateProgress(progress, "直链下载失败，正在切换备用下载方式...", -1, 0, 0);
-                DownloadReleaseAssetByName(info.FileName, downloadPath, 30000, progress);
+                DownloadReleaseAssetByName(info.FileName, downloadPath, 30000, progress, cancelRequested);
             }
             catch (Exception ex)
             {
@@ -179,7 +189,7 @@ namespace VideoMaterialRenamer
             }
         }
 
-        private static void DownloadReleaseAssetByName(string assetName, string outputPath, int timeoutMilliseconds, Action<string, int, long, long> progress)
+        private static void DownloadReleaseAssetByName(string assetName, string outputPath, int timeoutMilliseconds, Action<string, int, long, long> progress, Func<bool> cancelRequested)
         {
             if (string.IsNullOrWhiteSpace(AppInfo.UpdateReleaseApiUrl))
             {
@@ -204,8 +214,15 @@ namespace VideoMaterialRenamer
                 timeoutMilliseconds,
                 true,
                 progress,
-                "正在通过备用方式下载更新文件...");
+                "正在通过备用方式下载更新文件...",
+                cancelRequested);
         }
+
+        // 下载停滞判定阈值：超过该时长无任何进度事件即视为连接停滞并中止。
+        // （HttpWebRequest.Timeout 对 DownloadFileAsync 无效——原实现
+        // waitHandle.WaitOne() 无限期阻塞，停滞的连接把用户永远困在
+        // ControlBox=false 的模态框里。）
+        private const int DownloadStallTimeoutMilliseconds = 60000;
 
         private static void DownloadFileWithProgress(
             string url,
@@ -213,7 +230,8 @@ namespace VideoMaterialRenamer
             int timeoutMilliseconds,
             bool githubAssetApi,
             Action<string, int, long, long> progress,
-            string status)
+            string status,
+            Func<bool> cancelRequested)
         {
             if (string.IsNullOrWhiteSpace(url))
             {
@@ -230,9 +248,25 @@ namespace VideoMaterialRenamer
 
                 Exception failure = null;
                 bool cancelled = false;
+                long[] lastActivityTicks = { DateTime.UtcNow.Ticks };
+                int[] lastReportedPercent = { -2 };
+                long[] lastReportTicks = { 0 };
+
                 client.DownloadProgressChanged += delegate(object sender, DownloadProgressChangedEventArgs e)
                 {
+                    lastActivityTicks[0] = DateTime.UtcNow.Ticks;
                     int percent = e.TotalBytesToReceive > 0 ? e.ProgressPercentage : -1;
+
+                    // 节流：百分比变化或距上次上报超过 100ms 才上报
+                    //（WebClient 对 100MB 文件每秒可触发数百次进度事件，
+                    // 每次都跨线程投递会淹没 UI 线程）。
+                    long nowTicks = DateTime.UtcNow.Ticks;
+                    if (percent == lastReportedPercent[0] && (nowTicks - lastReportTicks[0]) < TimeSpan.TicksPerMillisecond * 100)
+                    {
+                        return;
+                    }
+                    lastReportedPercent[0] = percent;
+                    lastReportTicks[0] = nowTicks;
                     ReportUpdateProgress(progress, status, percent, e.BytesReceived, e.TotalBytesToReceive);
                 };
                 client.DownloadFileCompleted += delegate(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
@@ -244,9 +278,35 @@ namespace VideoMaterialRenamer
 
                 ReportUpdateProgress(progress, status, -1, 0, 0);
                 client.DownloadFileAsync(new Uri(url), outputPath);
-                waitHandle.WaitOne();
 
-                if (cancelled)
+                bool userCancelled = false;
+                bool stalled = false;
+                while (!waitHandle.WaitOne(500))
+                {
+                    if (cancelRequested != null && cancelRequested())
+                    {
+                        userCancelled = true;
+                        client.CancelAsync();
+                        waitHandle.WaitOne(10000);
+                        break;
+                    }
+
+                    long idleTicks = DateTime.UtcNow.Ticks - lastActivityTicks[0];
+                    if (idleTicks > TimeSpan.TicksPerMillisecond * DownloadStallTimeoutMilliseconds)
+                    {
+                        stalled = true;
+                        client.CancelAsync();
+                        waitHandle.WaitOne(10000);
+                        break;
+                    }
+                }
+
+                if (stalled)
+                {
+                    throw new IOException("更新下载超时（60 秒无数据），请稍后重试。");
+                }
+
+                if (userCancelled || cancelled)
                 {
                     throw new IOException("更新下载已取消。");
                 }
