@@ -148,7 +148,7 @@ namespace VideoMaterialRenamer
             {
                 try
                 {
-                    RunFfmpegExport(ffmpegPath, entry.OldPath, outputPath, true, watermarkText, progressCallback);
+                    FfmpegRunner.RunExport(ffmpegPath, entry.OldPath, outputPath, true, watermarkText, progressCallback);
                 }
                 catch
                 {
@@ -160,7 +160,7 @@ namespace VideoMaterialRenamer
                     {
                         progressCallback(0);
                     }
-                    RunFfmpegExport(ffmpegPath, entry.OldPath, outputPath, false, watermarkText, progressCallback);
+                    FfmpegRunner.RunExport(ffmpegPath, entry.OldPath, outputPath, false, watermarkText, progressCallback);
                 }
 
                 if (outputMode == ExportOutputMode.OverwriteOriginal)

@@ -278,7 +278,7 @@ namespace VideoMaterialRenamer
 
             StartStaBackground(delegate
             {
-                string ffmpegPath = FindFfmpegPath();
+                string ffmpegPath = FfmpegLocator.Resolve();
                 List<Image> frames = VideoFrameStripProvider.Extract(ffmpegPath, path, 16);
                 QueueOnUi(delegate
                 {

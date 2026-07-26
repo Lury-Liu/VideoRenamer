@@ -10,11 +10,6 @@ namespace VideoMaterialRenamer
     // 用 ffmpeg 一次性抽取若干均匀分布的关键帧，供预览区“鼠标划过看不同时间点画面”。
     public static class VideoFrameStripProvider
     {
-        private static string QuoteArgument(string value)
-        {
-            return "\"" + (value ?? "").Replace("\"", "\\\"") + "\"";
-        }
-
         public static string BuildStripArguments(string inputPath, string outputPattern, int frameCount)
         {
             int count = Math.Max(1, frameCount);
@@ -24,15 +19,15 @@ namespace VideoMaterialRenamer
             args.Add("-nostats");
             args.Add("-y");
             args.Add("-i");
-            args.Add(QuoteArgument(inputPath));
+            args.Add(FfmpegArguments.QuoteArgument(inputPath));
             // thumbnail 过滤器挑选有代表性的帧；scale 限制宽度加速。
             args.Add("-vf");
-            args.Add(QuoteArgument("thumbnail=n=" + count + ",scale=320:-1"));
+            args.Add(FfmpegArguments.QuoteArgument("thumbnail=n=" + count + ",scale=320:-1"));
             args.Add("-frames:v");
             args.Add(count.ToString());
             args.Add("-vsync");
             args.Add("vfr");
-            args.Add(QuoteArgument(outputPattern));
+            args.Add(FfmpegArguments.QuoteArgument(outputPattern));
             return string.Join(" ", args.ToArray());
         }
 

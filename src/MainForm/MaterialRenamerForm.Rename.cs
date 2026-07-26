@@ -56,7 +56,7 @@ namespace VideoMaterialRenamer
                     return;
                 }
 
-                string ffmpegPath = FindFfmpegPath();
+                string ffmpegPath = FfmpegLocator.Resolve();
                 if (string.IsNullOrWhiteSpace(ffmpegPath))
                 {
                     MessageBox.Show(

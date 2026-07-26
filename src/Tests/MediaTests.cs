@@ -32,14 +32,14 @@ namespace VideoMaterialRenamer.Tests
         private static void FfmpegExportArgsAudioCopyGolden()
         {
             TestAssert.AreEqual(ExportArgsAudioCopyGolden,
-                MaterialRenamerForm.BuildFfmpegArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", true, ""),
+                FfmpegArguments.BuildExportArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", true, ""),
                 "export args (audio copy) golden");
         }
 
         private static void FfmpegExportArgsAudioReencodeGolden()
         {
             TestAssert.AreEqual(ExportArgsAudioReencodeGolden,
-                MaterialRenamerForm.BuildFfmpegArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", false, ""),
+                FfmpegArguments.BuildExportArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", false, ""),
                 "export args (audio re-encode) golden");
         }
 
@@ -47,7 +47,7 @@ namespace VideoMaterialRenamer.Tests
         {
             // Watermark args embed a machine-dependent font path, so this pins
             // structure rather than an exact golden string.
-            string args = MaterialRenamerForm.BuildFfmpegArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", true, "E5-S1-1-T1.mp4");
+            string args = FfmpegArguments.BuildExportArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", true, "E5-S1-1-T1.mp4");
             TestAssert.IsTrue(args.Contains("-vf"), "watermark args use -vf");
             TestAssert.IsTrue(args.Contains("drawtext="), "watermark args use drawtext");
             TestAssert.IsFalse(args.Contains("-filter_complex"), "watermark args avoid -filter_complex");
@@ -56,7 +56,7 @@ namespace VideoMaterialRenamer.Tests
 
         private static void FfmpegNoWatermarkArgsClean()
         {
-            string args = MaterialRenamerForm.BuildFfmpegArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", true, "");
+            string args = FfmpegArguments.BuildExportArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", true, "");
             TestAssert.IsFalse(args.Contains("drawtext="), "no drawtext without watermark");
             TestAssert.IsFalse(args.Contains("未命名视频"), "no placeholder text without watermark");
         }
