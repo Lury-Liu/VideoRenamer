@@ -158,6 +158,47 @@ function Assert-CorePurity {
     Write-Host "[core-purity-gate] PASS: Core is WinForms/Drawing-free; Media is WinForms-free"
 }
 
+function Assert-ServicesPurity {
+    # Layering gate (Phase 13): src\Services\** must not mention WinForms or
+    # Drawing - UI orchestration for update/license/disclaimer lives in
+    # App\Presenters (UpdatePrompter/LicenseGate/DisclaimerGate).
+    param([string]$Root = $script:RepoRoot)
+    $violations = @()
+    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $Root "src\Services") -Recurse -Filter *.cs) {
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        if ($text.Contains("System.Windows.Forms")) { $violations += "$($file.FullName): Services references System.Windows.Forms" }
+        if ($text.Contains("System.Drawing")) { $violations += "$($file.FullName): Services references System.Drawing" }
+    }
+    if ($violations.Count -gt 0) {
+        $violations | ForEach-Object { Write-Host "[services-purity-gate] FAIL: $_" -ForegroundColor Red }
+        throw "Assert-ServicesPurity: $($violations.Count) layering violation(s)."
+    }
+    Write-Host "[services-purity-gate] PASS: Services is WinForms/Drawing-free"
+}
+
+function Assert-PaletteOwnership {
+    # No-hardcoded-styling gate (Phase 13): raw color construction is allowed
+    # only in App\Theme\** (the palette owner), App\Controls\** (owner-drawn
+    # cells) and src\Tests\** (palette pins). Anywhere else means a stray
+    # style escaped UiTheme. Scans .cs only, so this .ps1 cannot self-match.
+    param([string]$Root = $script:RepoRoot)
+    $needles = @("Color.FromArgb", "Color.White", "Color.Black", "Color.Red", "Color.Green", "Color.Blue", "Color.Yellow")
+    $violations = @()
+    $files = Get-ChildItem -LiteralPath (Join-Path $Root "src") -Recurse -Filter *.cs |
+        Where-Object { $_.FullName -notmatch "\\App\\Theme\\" -and $_.FullName -notmatch "\\App\\Controls\\" -and $_.FullName -notmatch "\\Tests\\" }
+    foreach ($file in $files) {
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        foreach ($needle in $needles) {
+            if ($text.Contains($needle)) { $violations += "$($file.FullName): raw '$needle' outside UiTheme" }
+        }
+    }
+    if ($violations.Count -gt 0) {
+        $violations | ForEach-Object { Write-Host "[palette-gate] FAIL: $_" -ForegroundColor Red }
+        throw "Assert-PaletteOwnership: $($violations.Count) hardcoded style(s)."
+    }
+    Write-Host "[palette-gate] PASS: raw colors confined to App\Theme + App\Controls (+ Tests pins)"
+}
+
 function Assert-StatusLiteralOwnership {
     # Compile-checked-seam guard: the plan-status Chinese literals may only
     # appear in PlanStatusText.cs (the mapper), PlanStatus.cs (enum doc

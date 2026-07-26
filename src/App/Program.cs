@@ -49,13 +49,13 @@ namespace VideoMaterialRenamer
             });
 
             bool darkMode = UiTheme.DetectWindowsDarkMode();
-            if (!DisclaimerManager.EnsureAccepted(null, darkMode))
+            if (!DisclaimerGate.EnsureAccepted(null, darkMode))
             {
                 return;
             }
 
             LicenseInfo licenseInfo;
-            if (!LicenseManager.EnsureLicensed(null, out licenseInfo))
+            if (!LicenseGate.EnsureLicensed(null, out licenseInfo))
             {
                 return;
             }

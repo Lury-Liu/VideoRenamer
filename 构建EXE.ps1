@@ -30,6 +30,12 @@ Assert-StatusLiteralOwnership
 # 分层纯净检查：Core 不得引用 WinForms/Drawing；Media 不得引用 WinForms（全文匹配，限定名也逃不掉）
 Assert-CorePurity
 
+# Services 分层纯净检查（阶段13）：更新/授权/免责的 UI 编排都在 App\Presenters
+Assert-ServicesPurity
+
+# 调色板所有权检查（阶段13）：裸颜色构造只允许在 App\Theme / App\Controls / Tests
+Assert-PaletteOwnership
+
 # 影子 csproj 结构一致性检查（LangVersion 5 / 资源名 / 文件集合 / 版本来源）
 Assert-CsprojParity
 

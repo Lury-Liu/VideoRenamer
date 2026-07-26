@@ -1,17 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using System.Text;
-using System.Threading;
-using System.Windows.Forms;
 using Microsoft.Win32;
 
 namespace VideoMaterialRenamer
@@ -19,7 +9,6 @@ namespace VideoMaterialRenamer
     public static class LicenseManager
     {
         private const string StateVersion = "LicenseStateV2";
-        private const int RenewalReminderDays = 3;
         private const int ClockRollbackGraceMinutes = 10;
         private const string ClockRollbackMessage = "检测到 Windows 时间倒退。请重新获取新的激活码后再输入，原密钥不能继续解锁。";
 
@@ -27,42 +16,8 @@ namespace VideoMaterialRenamer
         private static readonly string LicensePath = Path.Combine(LicenseDirectory, "license.v2.dat");
         private static readonly string StatePath = Path.Combine(LicenseDirectory, "license.state.v2.dat");
 
-        public static bool EnsureLicensed(IWin32Window owner)
-        {
-            LicenseInfo ignored;
-            return EnsureLicensed(owner, out ignored);
-        }
-
-        public static bool EnsureLicensed(IWin32Window owner, out LicenseInfo activeInfo)
-        {
-            activeInfo = null;
-            LicenseInfo info;
-            string error;
-            if (ValidateStoredLicense(out info, out error))
-            {
-                activeInfo = info;
-                ShowRenewalReminder(owner, info);
-                return true;
-            }
-
-            using (LicenseDialog dialog = new LicenseDialog(GetMachineCode(), error))
-            {
-                if (dialog.ShowDialog(owner) != DialogResult.OK)
-                {
-                    return false;
-                }
-
-                if (ValidateStoredLicense(out activeInfo, out error))
-                {
-                    ShowRenewalReminder(owner, activeInfo);
-                    return true;
-                }
-
-                MessageBox.Show(owner, error, "授权状态异常", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-        }
-
+        // 阶段13a：激活对话框编排与续期提醒弹窗移至 App/Presenters/
+        // LicenseGate；本类只剩验证委托与 DPAPI 存储（磁盘格式冻结）。
         public static int GetRemainingDays(LicenseInfo info)
         {
             if (info == null)
@@ -71,21 +26,6 @@ namespace VideoMaterialRenamer
             }
 
             return Math.Max(0, (int)Math.Ceiling((info.ExpiresUtc - DateTime.UtcNow).TotalDays));
-        }
-
-        private static void ShowRenewalReminder(IWin32Window owner, LicenseInfo info)
-        {
-            double daysLeftExact = (info.ExpiresUtc - DateTime.UtcNow).TotalDays;
-            if (daysLeftExact <= RenewalReminderDays)
-            {
-                int daysLeft = GetRemainingDays(info);
-                MessageBox.Show(
-                    owner,
-                    "授权将在 " + daysLeft + " 天后到期，请及时获取新的密钥续期。",
-                    "授权即将到期",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
         }
 
         public static string GetMachineCode()
@@ -151,7 +91,7 @@ namespace VideoMaterialRenamer
             }
         }
 
-        private static bool ValidateStoredLicense(out LicenseInfo info, out string error)
+        internal static bool ValidateStoredLicense(out LicenseInfo info, out string error)
         {
             info = null;
             error = "";
