@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -32,6 +32,8 @@ namespace VideoMaterialRenamer
             ShowInTaskbar = false;
             ClientSize = new Size(460, 186);
             Font = new Font("Microsoft YaHei UI", 9f);
+            AutoScaleDimensions = new SizeF(7F, 17F);
+            AutoScaleMode = AutoScaleMode.Font;
             AppIcon.Apply(this);
 
             TableLayoutPanel layout = new TableLayoutPanel();

@@ -35,6 +35,10 @@ namespace VideoMaterialRenamer
             Size = new Size(1240, 820);
             MinimumSize = new Size(820, 680);
             Font = new Font("Microsoft YaHei UI", 9f);
+            // 阶段10f：字体基准自动缩放（7x17 = 雅黑 9pt @96dpi 实测值；
+            // 96dpi 下缩放系数恰为 1，高 DPI 下按比例放大布局）。
+            AutoScaleDimensions = new SizeF(7F, 17F);
+            AutoScaleMode = AutoScaleMode.Font;
             AppIcon.Apply(this);
         }
 

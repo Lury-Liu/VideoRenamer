@@ -54,6 +54,13 @@ $arguments = @(
     "/utf8output"
 )
 
+# DPI 感知清单（阶段10f）：缺失即失去 DPI 感知——视为构建错误而非静默降级
+$manifestPath = Join-Path $root "src\App\app.manifest"
+if (!(Test-Path -LiteralPath $manifestPath)) {
+    throw "缺少 src\App\app.manifest（DPI 感知清单）。"
+}
+$arguments += "/win32manifest:$manifestPath"
+
 if (Test-Path -LiteralPath $iconPath) {
     $arguments += "/win32icon:$iconPath"
 }

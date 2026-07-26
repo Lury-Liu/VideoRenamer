@@ -23,6 +23,8 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <ApplicationIcon>assets\app.ico</ApplicationIcon>
+    <!-- 与 构建EXE.ps1 的 /win32manifest 一致（DPI 感知，阶段10f） -->
+    <ApplicationManifest>src\App\app.manifest</ApplicationManifest>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
   </PropertyGroup>
 
