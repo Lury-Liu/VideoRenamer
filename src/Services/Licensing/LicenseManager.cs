@@ -190,7 +190,9 @@ namespace VideoMaterialRenamer
 
             if (now > info.ExpiresUtc)
             {
-                error = "授权已到期，请获取新的 14 天密钥。";
+                // 有效期由密钥自带（签发端 -Days 决定，默认 30 天）——文案
+                // 不再写死天数，避免签发策略变化时文案失真。
+                error = "授权已到期，请获取新的激活密钥续期。";
                 return false;
             }
 
