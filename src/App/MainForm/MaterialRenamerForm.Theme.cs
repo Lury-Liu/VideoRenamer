@@ -26,16 +26,6 @@ namespace VideoMaterialRenamer
             RefreshPreview();
         }
 
-        private bool IsExport1080pEnabled()
-        {
-            return chkExport1080p != null && chkExport1080p.Checked;
-        }
-
-        private bool IsExportWatermarkEnabled()
-        {
-            return IsExport1080pEnabled() && chkExportWatermark != null && chkExportWatermark.Checked;
-        }
-
         private void UpdateWatermarkOptionState()
         {
             if (chkExportWatermark != null)

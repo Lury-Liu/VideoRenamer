@@ -350,6 +350,14 @@ namespace VideoMaterialRenamer
             {
                 for (int offset = 0; offset < targets.Count; offset += PlanStatusCheckBatchSize)
                 {
+                    // 循环内检查版本：被新一轮刷新取代的旧工作线程立即停止
+                    //（原实现只在 UI 回投时过滤，旧线程会继续每 20ms 排它
+                    // 打开文件探测锁，快速刷新时多个探测循环叠加）。
+                    if (version != planCheckVersion)
+                    {
+                        return;
+                    }
+
                     List<RenamePlan> batch = targets.Skip(offset).Take(PlanStatusCheckBatchSize).ToList();
                     HashSet<string> lockedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (RenamePlan entry in batch)

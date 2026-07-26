@@ -118,6 +118,26 @@ namespace VideoMaterialRenamer
             cell.Style.SelectionForeColor = Color.Empty;
         }
 
+        // 单元格填充的唯一实现（原 RenderGrid 循环体与 RenderGridRow 各写
+        // 一遍 12 行赋值，改列时必须改两处）。摘要每格只计算一次，
+        // Value 与 ToolTip 共用。
+        private void PopulateGridRow(DataGridViewRow gridRow, ShotRow row)
+        {
+            gridRow.Tag = row;
+            gridRow.Height = grid.RowTemplate.Height;
+            gridRow.Resizable = DataGridViewTriState.False;
+            gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
+            gridRow.Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
+            string mainSummary = RenamePlanBuilder.GetCellSummary(row.MainFiles);
+            string backupSummary = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
+            gridRow.Cells[GridMainColumn].Value = mainSummary;
+            gridRow.Cells[GridBackupColumn].Value = backupSummary;
+            gridRow.Cells[GridProgressColumn].Value = row.ProgressPercent;
+            gridRow.Cells[GridMainColumn].ToolTipText = mainSummary;
+            gridRow.Cells[GridBackupColumn].ToolTipText = backupSummary;
+            ApplyGridNumberCellStyles(gridRow);
+        }
+
         private void RenderGrid()
         {
             rendering = true;
@@ -130,18 +150,7 @@ namespace VideoMaterialRenamer
                 foreach (ShotRow row in rows)
                 {
                     int index = grid.Rows.Add();
-                    DataGridViewRow gridRow = grid.Rows[index];
-                    gridRow.Tag = row;
-                    gridRow.Height = grid.RowTemplate.Height;
-                    gridRow.Resizable = DataGridViewTriState.False;
-                    gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
-                    gridRow.Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
-                    gridRow.Cells[GridMainColumn].Value = RenamePlanBuilder.GetCellSummary(row.MainFiles);
-                    gridRow.Cells[GridBackupColumn].Value = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
-                    gridRow.Cells[GridProgressColumn].Value = row.ProgressPercent;
-                    gridRow.Cells[GridMainColumn].ToolTipText = RenamePlanBuilder.GetCellSummary(row.MainFiles);
-                    gridRow.Cells[GridBackupColumn].ToolTipText = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
-                    ApplyGridNumberCellStyles(gridRow);
+                    PopulateGridRow(grid.Rows[index], row);
                 }
                 ApplyGridNumberColumnStyles();
             }
@@ -162,19 +171,7 @@ namespace VideoMaterialRenamer
             rendering = true;
             try
             {
-                ShotRow row = rows[rowIndex];
-                DataGridViewRow gridRow = grid.Rows[rowIndex];
-                gridRow.Tag = row;
-                gridRow.Height = grid.RowTemplate.Height;
-                gridRow.Resizable = DataGridViewTriState.False;
-                gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
-                gridRow.Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
-                gridRow.Cells[GridMainColumn].Value = RenamePlanBuilder.GetCellSummary(row.MainFiles);
-                gridRow.Cells[GridBackupColumn].Value = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
-                gridRow.Cells[GridProgressColumn].Value = row.ProgressPercent;
-                gridRow.Cells[GridMainColumn].ToolTipText = RenamePlanBuilder.GetCellSummary(row.MainFiles);
-                gridRow.Cells[GridBackupColumn].ToolTipText = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
-                ApplyGridNumberCellStyles(gridRow);
+                PopulateGridRow(grid.Rows[rowIndex], rows[rowIndex]);
             }
             finally
             {

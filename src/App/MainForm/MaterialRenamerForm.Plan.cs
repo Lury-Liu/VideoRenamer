@@ -44,6 +44,18 @@ namespace VideoMaterialRenamer
             return chkRowScene != null && chkRowScene.Checked;
         }
 
+        // 导出设置读取（原先误放在 Theme 分部文件里，被 Preview/Rename/Ui
+        // 跨分部调用的隐藏接缝；命名设置的家在这里）。
+        private bool IsExport1080pEnabled()
+        {
+            return chkExport1080p != null && chkExport1080p.Checked;
+        }
+
+        private bool IsExportWatermarkEnabled()
+        {
+            return IsExport1080pEnabled() && chkExportWatermark != null && chkExportWatermark.Checked;
+        }
+
         private void InitializeRowScenesFromDefaultIfNeeded()
         {
             if (rowSceneModeInitialized)
