@@ -61,7 +61,10 @@ namespace VideoMaterialRenamer
             numEpisode.Value = 5;
             numEpisode.Width = 78;
             numEpisode.Margin = new Padding(0, 4, 14, 0);
-            numEpisode.ValueChanged += delegate { RefreshPreview(); };
+            // 集数只影响文件名文本，不影响分组标题/项目数——走增量刷新路径
+            // （计数不一致时该路径自带整表重建回退）。场号会出现在分组标题里，
+            // 仍走整表刷新，待阶段7 扩展增量路径同步分组标题后再切换。
+            numEpisode.ValueChanged += delegate { RefreshPreviewNamesOnly(); };
             settingsPanel.Controls.Add(numEpisode);
 
             Label labelScene = new Label();
