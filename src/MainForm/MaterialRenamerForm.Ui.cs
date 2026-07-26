@@ -494,5 +494,25 @@ namespace VideoMaterialRenamer
                 dialog.ShowDialog(this);
             }
         }
+
+        // 操作期间整窗锁定（重命名/导出共用）。原先误放在 History 分部文件里。
+        private void SetOperationUiEnabled(bool enabled)
+        {
+            operationRunning = !enabled;
+            UseWaitCursor = !enabled;
+            foreach (Control control in Controls)
+            {
+                if (object.ReferenceEquals(control, statusLabel))
+                {
+                    continue;
+                }
+                control.Enabled = enabled;
+            }
+
+            if (statusLabel != null)
+            {
+                statusLabel.Enabled = true;
+            }
+        }
     }
 }

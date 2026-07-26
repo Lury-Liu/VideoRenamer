@@ -49,6 +49,7 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("prepare_export_plan_existing_target_throws", PrepareExportPlanExistingTargetThrows));
             cases.Add(new TestCase("history_value_roundtrip", HistoryValueRoundtrip));
             cases.Add(new TestCase("history_encode_golden", HistoryEncodeGolden));
+            cases.Add(new TestCase("history_tsv_save_load_roundtrip", HistoryTsvSaveLoadRoundtrip));
             cases.Add(new TestCase("unique_path_with_suffix_first_candidate", UniquePathWithSuffixFirstCandidate));
             cases.Add(new TestCase("unique_path_with_suffix_counter_and_default", UniquePathWithSuffixCounterAndDefault));
             return cases;
@@ -522,17 +523,61 @@ namespace VideoMaterialRenamer.Tests
             foreach (string sample in samples)
             {
                 TestAssert.AreEqual(sample,
-                    MaterialRenamerForm.DecodeHistoryValue(MaterialRenamerForm.EncodeHistoryValue(sample)),
+                    RenameHistoryStore.DecodeValue(RenameHistoryStore.EncodeValue(sample)),
                     "history roundtrip");
             }
-            TestAssert.AreEqual("", MaterialRenamerForm.DecodeHistoryValue(MaterialRenamerForm.EncodeHistoryValue(null)), "null encodes as empty");
+            TestAssert.AreEqual("", RenameHistoryStore.DecodeValue(RenameHistoryStore.EncodeValue(null)), "null encodes as empty");
         }
 
         private static void HistoryEncodeGolden()
         {
             TestAssert.AreEqual("Qzpc57Sg5p2QXOesrDHpm4ZcYSBiLm1wNA==",
-                MaterialRenamerForm.EncodeHistoryValue(@"C:\素材\第1集\a b.mp4"),
+                RenameHistoryStore.EncodeValue(@"C:\素材\第1集\a b.mp4"),
                 "history encode golden (UTF-8 base64)");
+        }
+
+        private static void HistoryTsvSaveLoadRoundtrip()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string path = Path.Combine(dir, "rename_history.tsv");
+                List<RenameOperation> saved = new List<RenameOperation>();
+                saved.Add(new RenameOperation
+                {
+                    RowIndex = 2,
+                    IsMain = true,
+                    FileIndex = 0,
+                    OriginalPath = @"C:\素材\旧 名.mp4",
+                    RenamedPath = @"C:\素材\E1-S1-2-T1.mp4"
+                });
+                saved.Add(new RenameOperation
+                {
+                    RowIndex = 3,
+                    IsMain = false,
+                    FileIndex = 1,
+                    OriginalPath = @"C:\b\x.mov",
+                    RenamedPath = @"C:\b\E1-S1-3-T2.mov"
+                });
+
+                RenameHistoryStore.Save(path, saved);
+                string[] lines = File.ReadAllLines(path);
+                TestAssert.AreEqual(RenameHistoryStore.HeaderLine, lines[0], "tsv header line");
+                TestAssert.AreEqual(3, lines.Length, "tsv line count");
+                TestAssert.AreEqual(5, lines[1].Split('\t').Length, "tsv field count");
+
+                List<RenameOperation> loaded = RenameHistoryStore.Load(path);
+                TestAssert.AreEqual(2, loaded.Count, "loaded count");
+                TestAssert.AreEqual(2, loaded[0].RowIndex, "loaded RowIndex");
+                TestAssert.IsTrue(loaded[0].IsMain, "loaded IsMain");
+                TestAssert.AreEqual(@"C:\素材\旧 名.mp4", loaded[0].OriginalPath, "loaded OriginalPath");
+                TestAssert.AreEqual(@"C:\素材\E1-S1-2-T1.mp4", loaded[0].RenamedPath, "loaded RenamedPath");
+                TestAssert.IsNull(loaded[0].Row, "store returns unbound rows");
+                TestAssert.IsFalse(loaded[1].IsMain, "loaded backup flag");
+
+                TestAssert.AreEqual(0, RenameHistoryStore.Load(Path.Combine(dir, "missing.tsv")).Count, "missing file loads empty");
+                File.WriteAllText(path, "WrongHeader\r\n1\t1\t0\ta\tb");
+                TestAssert.AreEqual(0, RenameHistoryStore.Load(path).Count, "wrong header loads empty");
+            });
         }
 
         private static void UniquePathWithSuffixFirstCandidate()

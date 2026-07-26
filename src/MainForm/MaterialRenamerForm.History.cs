@@ -19,80 +19,18 @@ namespace VideoMaterialRenamer
     public partial class MaterialRenamerForm
     {
 
-        internal static string EncodeHistoryValue(string value)
-        {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(value ?? ""));
-        }
-
-        internal static string DecodeHistoryValue(string value)
-        {
-            return Encoding.UTF8.GetString(Convert.FromBase64String(value ?? ""));
-        }
-
         private void SaveRenameHistory(List<RenameOperation> operations)
         {
-            if (operations == null || operations.Count == 0)
-            {
-                return;
-            }
-
-            List<string> lines = new List<string>();
-            lines.Add("VideoMaterialRenamerHistoryV1");
-            foreach (RenameOperation op in operations)
-            {
-                lines.Add(string.Join("\t", new string[]
-                {
-                    op.RowIndex.ToString(),
-                    op.IsMain ? "1" : "0",
-                    op.FileIndex.ToString(),
-                    EncodeHistoryValue(op.OriginalPath),
-                    EncodeHistoryValue(op.RenamedPath)
-                }));
-            }
-
-            File.WriteAllLines(historyPath, lines.ToArray(), Encoding.UTF8);
+            RenameHistoryStore.Save(historyPath, operations);
         }
 
         private List<RenameOperation> LoadRenameHistory()
         {
-            List<RenameOperation> operations = new List<RenameOperation>();
-            if (!File.Exists(historyPath))
+            List<RenameOperation> operations = RenameHistoryStore.Load(historyPath);
+            foreach (RenameOperation op in operations)
             {
-                return operations;
+                op.Row = op.RowIndex >= 1 && op.RowIndex <= rows.Count ? rows[op.RowIndex - 1] : null;
             }
-
-            string[] lines = File.ReadAllLines(historyPath, Encoding.UTF8);
-            if (lines.Length == 0 || lines[0] != "VideoMaterialRenamerHistoryV1")
-            {
-                return operations;
-            }
-
-            for (int i = 1; i < lines.Length; i++)
-            {
-                string[] parts = lines[i].Split('\t');
-                if (parts.Length != 5)
-                {
-                    continue;
-                }
-
-                int rowIndex;
-                int fileIndex;
-                if (!int.TryParse(parts[0], out rowIndex) || !int.TryParse(parts[2], out fileIndex))
-                {
-                    continue;
-                }
-
-                operations.Add(new RenameOperation
-                {
-                    Row = rowIndex >= 1 && rowIndex <= rows.Count ? rows[rowIndex - 1] : null,
-                    RowIndex = rowIndex,
-                    IsMain = parts[1] == "1",
-                    FileIndex = fileIndex,
-                    OriginalPath = DecodeHistoryValue(parts[3]),
-                    RenamedPath = DecodeHistoryValue(parts[4])
-                });
-            }
-
             return operations;
         }
 
@@ -182,23 +120,5 @@ namespace VideoMaterialRenamer
             MessageBox.Show(this, string.Join("\r\n", failures.Take(8).ToArray()), "部分文件还原失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
-        private void SetOperationUiEnabled(bool enabled)
-        {
-            operationRunning = !enabled;
-            UseWaitCursor = !enabled;
-            foreach (Control control in Controls)
-            {
-                if (object.ReferenceEquals(control, statusLabel))
-                {
-                    continue;
-                }
-                control.Enabled = enabled;
-            }
-
-            if (statusLabel != null)
-            {
-                statusLabel.Enabled = true;
-            }
-        }
     }
 }
