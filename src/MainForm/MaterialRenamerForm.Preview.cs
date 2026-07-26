@@ -33,7 +33,7 @@ namespace VideoMaterialRenamer
             }
 
             currentPlan.Clear();
-            currentPlan.AddRange(RenamePlanBuilder.BuildPlan(rows, (int)numEpisode.Value, GetDefaultScene(), chkKeepExtension.Checked, IsExport1080pEnabled(), IsRowSceneEnabled()));
+            currentPlan.AddRange(RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance));
 
             previewList.BeginUpdate();
             try
@@ -262,7 +262,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            List<RenamePlan> rebuilt = RenamePlanBuilder.BuildPlan(rows, (int)numEpisode.Value, GetDefaultScene(), chkKeepExtension.Checked, IsExport1080pEnabled(), IsRowSceneEnabled());
+            List<RenamePlan> rebuilt = RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance);
             if (rebuilt.Count != previewList.Items.Count)
             {
                 currentPlan.Clear();

@@ -40,6 +40,7 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("status_export_overwrite_pending", StatusExportOverwritePending));
             cases.Add(new TestCase("is_blocking_issue_truth_table", IsBlockingIssueTruthTable));
             cases.Add(new TestCase("plan_status_text_goldens", PlanStatusTextGoldens));
+            cases.Add(new TestCase("build_plan_with_fake_probe", BuildPlanWithFakeProbe));
             cases.Add(new TestCase("build_plan_resizes_tail_overrides", BuildPlanResizesTailOverrides));
             cases.Add(new TestCase("shot_label_pattern_table", ShotLabelPatternTable));
             cases.Add(new TestCase("shot_label_try_parse_table", ShotLabelTryParseTable));
@@ -360,6 +361,39 @@ namespace VideoMaterialRenamer.Tests
             TestAssert.AreEqual("待覆盖导出1080p", PlanStatusText.For(PlanStatus.PendingOverwriteExport), "text PendingOverwriteExport");
             TestAssert.AreEqual("目标文件被占用", PlanStatusText.For(PlanStatus.TargetLocked), "text TargetLocked");
             TestAssert.AreEqual("另存为新文件", PlanStatusText.For(PlanStatus.SaveAsNewFile), "text SaveAsNewFile");
+        }
+
+        private static void BuildPlanWithFakeProbe()
+        {
+            // The IFileSystemProbe seam makes every status reachable without
+            // touching the real filesystem.
+            FakeFileSystemProbe probe = new FakeFileSystemProbe()
+                .AddExisting(@"C:\V\a.mp4")
+                .AddExisting(@"C:\V\b.mp4")
+                .AddExisting(@"C:\V\E1-S1-2-T1.mp4");
+
+            ShotRow readyRow = new ShotRow { Sequence = 1 };
+            readyRow.MainFiles.Add(@"C:\V\a.mp4");
+            ShotRow targetExistsRow = new ShotRow { Sequence = 2 };
+            targetExistsRow.MainFiles.Add(@"C:\V\b.mp4");
+            ShotRow missingRow = new ShotRow { Sequence = 3 };
+            missingRow.MainFiles.Add(@"C:\V\nope.mp4");
+
+            NamingSettings settings = new NamingSettings
+            {
+                Episode = 1,
+                DefaultScene = 1,
+                KeepExtensionCase = true,
+                Export1080p = false,
+                UseRowScene = false
+            };
+
+            List<RenamePlan> plan = RenamePlanBuilder.BuildPlan(
+                new List<ShotRow> { readyRow, targetExistsRow, missingRow }, settings, probe);
+
+            TestAssert.AreEqual(PlanStatus.Ready, plan[0].Status, "fake probe ready");
+            TestAssert.AreEqual(PlanStatus.TargetExists, plan[1].Status, "fake probe target exists");
+            TestAssert.AreEqual(PlanStatus.SourceMissing, plan[2].Status, "fake probe source missing");
         }
 
         private static void BuildPlanResizesTailOverrides()

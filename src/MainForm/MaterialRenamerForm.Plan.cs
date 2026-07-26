@@ -24,6 +24,21 @@ namespace VideoMaterialRenamer
             return numScene == null ? 1 : Math.Max(1, (int)numScene.Value);
         }
 
+        // 命名设置快照的唯一读取点：构造期（BuildUi→ApplyTheme→RenderAll）
+        // 各控件可能尚未创建，逐项判空保持与原分散读取相同的兜底语义。
+        private NamingSettings ReadNamingSettings()
+        {
+            return new NamingSettings
+            {
+                Episode = numEpisode == null ? 1 : (int)numEpisode.Value,
+                DefaultScene = GetDefaultScene(),
+                KeepExtensionCase = chkKeepExtension != null && chkKeepExtension.Checked,
+                Export1080p = IsExport1080pEnabled(),
+                ExportWatermark = IsExportWatermarkEnabled(),
+                UseRowScene = IsRowSceneEnabled()
+            };
+        }
+
         private bool IsRowSceneEnabled()
         {
             return chkRowScene != null && chkRowScene.Checked;

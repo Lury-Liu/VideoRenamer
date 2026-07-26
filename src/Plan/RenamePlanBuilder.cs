@@ -25,7 +25,21 @@ namespace VideoMaterialRenamer
             return useRowScene && row != null && row.Scene > 0 ? row.Scene : Math.Max(1, defaultScene);
         }
 
+        // 旧签名保留（既有调用方与测试沿用）；委托到快照+探测器版本。
         public static List<RenamePlan> BuildPlan(List<ShotRow> sourceRows, int episode, int scene, bool keepExtensionCase, bool export1080p, bool useRowScene = false)
+        {
+            NamingSettings settings = new NamingSettings
+            {
+                Episode = episode,
+                DefaultScene = scene,
+                KeepExtensionCase = keepExtensionCase,
+                Export1080p = export1080p,
+                UseRowScene = useRowScene
+            };
+            return BuildPlan(sourceRows, settings, RealFileSystemProbe.Instance);
+        }
+
+        public static List<RenamePlan> BuildPlan(List<ShotRow> sourceRows, NamingSettings settings, IFileSystemProbe probe)
         {
             Dictionary<string, bool> seen = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
             List<RenamePlan> plan = new List<RenamePlan>();
@@ -33,21 +47,21 @@ namespace VideoMaterialRenamer
 
             foreach (ShotRow row in sourceRows)
             {
-                int rowScene = GetEffectiveScene(row, scene, useRowScene);
+                int rowScene = GetEffectiveScene(row, settings.DefaultScene, settings.UseRowScene);
                 int shot = Math.Max(1, row.Sequence);
                 int take = 1;
 
                 EnsureTailOverrideSize(row, true);
                 EnsureTailOverrideSize(row, false);
-                AddFilesToPlan(plan, seen, row, rowIndex, "主要素材", true, row.MainFiles, row.MainTailOverrides, episode, rowScene, shot, ref take, keepExtensionCase, export1080p);
-                AddFilesToPlan(plan, seen, row, rowIndex, "备用素材", false, row.BackupFiles, row.BackupTailOverrides, episode, rowScene, shot, ref take, keepExtensionCase, export1080p);
+                AddFilesToPlan(plan, seen, row, rowIndex, "主要素材", true, row.MainFiles, row.MainTailOverrides, settings.Episode, rowScene, shot, ref take, settings.KeepExtensionCase, settings.Export1080p, probe);
+                AddFilesToPlan(plan, seen, row, rowIndex, "备用素材", false, row.BackupFiles, row.BackupTailOverrides, settings.Episode, rowScene, shot, ref take, settings.KeepExtensionCase, settings.Export1080p, probe);
                 rowIndex++;
             }
 
             return plan;
         }
 
-        public static void AddFilesToPlan(
+        private static void AddFilesToPlan(
             List<RenamePlan> plan,
             Dictionary<string, bool> seen,
             ShotRow row,
@@ -61,7 +75,8 @@ namespace VideoMaterialRenamer
             int shot,
             ref int take,
             bool keepExtensionCase,
-            bool export1080p)
+            bool export1080p,
+            IFileSystemProbe probe)
         {
             for (int fileIndex = 0; fileIndex < files.Count; fileIndex++)
             {
@@ -73,7 +88,7 @@ namespace VideoMaterialRenamer
                 string targetPath = Path.GetFullPath(Path.Combine(directory, newName));
                 PlanStatus status = PlanStatus.Ready;
 
-                if (!File.Exists(oldPath))
+                if (!probe.FileExists(oldPath))
                 {
                     status = PlanStatus.SourceMissing;
                 }
@@ -81,7 +96,7 @@ namespace VideoMaterialRenamer
                 {
                     status = export1080p ? PlanStatus.PendingOverwriteExport : PlanStatus.Unchanged;
                 }
-                else if (File.Exists(targetPath))
+                else if (probe.FileExists(targetPath))
                 {
                     status = PlanStatus.TargetExists;
                 }
@@ -131,28 +146,10 @@ namespace VideoMaterialRenamer
                  entry.Status == PlanStatus.SourceMissing);
         }
 
+        // 实现移至 RealFileSystemProbe；保留原 API 形状。
         public static bool IsFileLocked(string path)
         {
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-            {
-                return false;
-            }
-
-            try
-            {
-                using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-                {
-                }
-                return false;
-            }
-            catch (IOException)
-            {
-                return true;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return true;
-            }
+            return RealFileSystemProbe.Instance.IsFileLocked(path);
         }
 
         // 规则实现集中在 ShotLabelParser（与 TryParse 互为逆运算）；这里保留
