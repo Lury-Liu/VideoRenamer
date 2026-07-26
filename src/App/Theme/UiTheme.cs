@@ -204,6 +204,8 @@ namespace VideoMaterialRenamer
                 return;
             }
 
+            // 所有经主题化的窗口自动获得深色标题栏（阶段9c）。
+            WindowChrome.ApplyImmersiveDarkMode(form, dark);
             form.BackColor = WindowBack(dark);
             form.ForeColor = TextColor(dark);
             foreach (Control control in form.Controls)
@@ -223,6 +225,12 @@ namespace VideoMaterialRenamer
             bool muted = StringComparer.OrdinalIgnoreCase.Equals(role, "Muted");
             bool error = StringComparer.OrdinalIgnoreCase.Equals(role, "Error");
             bool primary = StringComparer.OrdinalIgnoreCase.Equals(role, "Primary");
+
+            if (StringComparer.OrdinalIgnoreCase.Equals(role, "Hairline"))
+            {
+                control.BackColor = BorderColor(dark);
+                return;
+            }
 
             if (control is ToolStrip)
             {

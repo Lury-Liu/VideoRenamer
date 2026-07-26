@@ -517,17 +517,14 @@ namespace VideoMaterialRenamer
             return button;
         }
 
-        private static Label NewActionSeparator()
+        // 1px 发丝分隔线（阶段9b：替换原"|"文字标签；颜色由主题 Hairline 角色供给）。
+        private static Control NewActionSeparator()
         {
-            Label separator = new Label();
-            separator.Text = "|";
-            separator.Tag = "Muted";
-            separator.AutoSize = false;
-            separator.Width = 10;
-            // 分割|的宽度设置
-            separator.Height = 30;
-            separator.TextAlign = ContentAlignment.MiddleCenter;
-            separator.Margin = new Padding(6, 2, 6, 2);
+            Panel separator = new Panel();
+            separator.Tag = "Hairline";
+            separator.Width = 1;
+            separator.Height = 22;
+            separator.Margin = new Padding(7, 6, 7, 2);
             return separator;
         }
 
