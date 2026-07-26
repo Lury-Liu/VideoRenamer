@@ -16,8 +16,17 @@ using Microsoft.Win32;
 
 namespace VideoMaterialRenamer
 {
-    public partial class MaterialRenamerForm
+    public partial class MaterialRenamerForm : IUiDispatcher
     {
+        // IUiDispatcher 实现：语义与 QueueOnUi 完全一致（含 false=未投递 契约）。
+        public bool Post(Action action)
+        {
+            if (action == null)
+            {
+                return false;
+            }
+            return QueueOnUi(delegate { action(); });
+        }
 
         private bool QueueOnUi(MethodInvoker action)
         {

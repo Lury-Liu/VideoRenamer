@@ -70,7 +70,6 @@ namespace VideoMaterialRenamer
         private int frameStripVersion;
         private int dragHighlightRow = -1;
         private int dragHighlightColumn = -1;
-        private int detailLoadVersion;
         private int planCheckVersion;
         private string currentDetailPath = "";
         private string currentDetailNewName = "";

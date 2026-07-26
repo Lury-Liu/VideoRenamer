@@ -100,7 +100,6 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            detailLoadVersion++;
             currentDetailPath = path ?? "";
             currentDetailNewName = newName ?? "";
             currentDetailContext = context ?? "";
@@ -336,7 +335,6 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            detailLoadVersion++;
             currentDetailPath = "";
             currentDetailNewName = "";
             currentDetailContext = "";
