@@ -48,7 +48,7 @@ namespace VideoMaterialRenamer
             Panel topPanel = new Panel();
             topPanel.Dock = DockStyle.Fill;
             topPanel.Padding = new Padding(14, 10, 14, 8);
-            topPanel.BackColor = Color.FromArgb(246, 247, 249);
+            topPanel.BackColor = UiTheme.PanelBack(darkMode);
             headerHost.Controls.Add(topPanel);
 
             BuildSettingsRow(topPanel);
@@ -61,7 +61,7 @@ namespace VideoMaterialRenamer
             settingsPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             settingsPanel.FlowDirection = FlowDirection.LeftToRight;
             settingsPanel.WrapContents = false;
-            settingsPanel.BackColor = Color.FromArgb(246, 247, 249);
+            settingsPanel.BackColor = UiTheme.PanelBack(darkMode);
             settingsPanel.Location = new Point(14, 10);
             settingsPanel.Size = new Size(1196, 34);
             topPanel.Controls.Add(settingsPanel);
@@ -148,7 +148,7 @@ namespace VideoMaterialRenamer
         {
             FlowLayoutPanel actionBar = new FlowLayoutPanel();
             actionBar.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            actionBar.BackColor = Color.FromArgb(246, 247, 249);
+            actionBar.BackColor = UiTheme.PanelBack(darkMode);
             actionBar.FlowDirection = FlowDirection.LeftToRight;
             actionBar.WrapContents = false;
             actionBar.Location = new Point(14, 48);
@@ -238,7 +238,7 @@ namespace VideoMaterialRenamer
             grid.AllowUserToResizeRows = false;
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
             grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
-            grid.BackgroundColor = Color.White;
+            grid.BackgroundColor = UiTheme.WindowBack(darkMode);
             grid.BorderStyle = BorderStyle.None;
             grid.ColumnHeadersHeight = 34;
             grid.RowHeadersVisible = true;

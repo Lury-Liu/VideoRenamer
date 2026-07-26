@@ -28,11 +28,12 @@ namespace VideoMaterialRenamer
 
             Color sceneColor = GetSceneColumnTextColor();
             Color shotColor = GetShotColumnTextColor();
+            Color selectionFore = UiTheme.SelectionFore(darkMode);
             grid.Columns[GridSceneColumn].DefaultCellStyle.ForeColor = sceneColor;
-            grid.Columns[GridSceneColumn].DefaultCellStyle.SelectionForeColor = Color.White;
+            grid.Columns[GridSceneColumn].DefaultCellStyle.SelectionForeColor = selectionFore;
             grid.Columns[GridSceneColumn].HeaderCell.Style.ForeColor = sceneColor;
             grid.Columns[GridShotColumn].DefaultCellStyle.ForeColor = shotColor;
-            grid.Columns[GridShotColumn].DefaultCellStyle.SelectionForeColor = Color.White;
+            grid.Columns[GridShotColumn].DefaultCellStyle.SelectionForeColor = selectionFore;
             grid.Columns[GridShotColumn].HeaderCell.Style.ForeColor = shotColor;
 
             foreach (DataGridViewRow row in grid.Rows)
@@ -49,9 +50,9 @@ namespace VideoMaterialRenamer
             }
 
             row.Cells[GridSceneColumn].Style.ForeColor = GetSceneColumnTextColor();
-            row.Cells[GridSceneColumn].Style.SelectionForeColor = Color.White;
+            row.Cells[GridSceneColumn].Style.SelectionForeColor = UiTheme.SelectionFore(darkMode);
             row.Cells[GridShotColumn].Style.ForeColor = GetShotColumnTextColor();
-            row.Cells[GridShotColumn].Style.SelectionForeColor = Color.White;
+            row.Cells[GridShotColumn].Style.SelectionForeColor = UiTheme.SelectionFore(darkMode);
         }
 
         private void ClearDragHighlight()

@@ -49,6 +49,7 @@ namespace VideoMaterialRenamer
             }
 
             UiTheme.ApplyForm(this, darkMode);
+            DataGridViewProgressCell.ApplyPalette(UiTheme.ProgressActiveFill(darkMode), UiTheme.ProgressCompletedFill(darkMode));
             ApplyGridNumberColumnStyles();
             if (thumbnailBox != null)
             {
@@ -61,14 +62,15 @@ namespace VideoMaterialRenamer
             ReapplyDragHighlight();
         }
 
+        // 颜色本体收拢进 UiTheme（阶段9a）；这里只按当前主题取值。
         private Color GetSceneColumnTextColor()
         {
-            return darkMode ? Color.FromArgb(255, 128, 128) : Color.FromArgb(190, 35, 35);
+            return UiTheme.SceneNumberText(darkMode);
         }
 
         private Color GetShotColumnTextColor()
         {
-            return darkMode ? UiTheme.TextColor(darkMode) : Color.Black;
+            return UiTheme.TextColor(darkMode);
         }
     }
 }

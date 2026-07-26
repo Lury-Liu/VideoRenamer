@@ -18,11 +18,27 @@ namespace VideoMaterialRenamer
 {
     public class DataGridViewProgressCell : DataGridViewTextBoxCell
     {
-        // 两种进度填充色是固定值：静态复用，避免导出期间每次重绘每个
-        // 可见进度格都分配再释放 SolidBrush（track/border 颜色依赖单元格
-        // 样式，保持按需创建）。
-        private static readonly Brush CompletedFillBrush = new SolidBrush(Color.FromArgb(43, 150, 92));
-        private static readonly Brush ActiveFillBrush = new SolidBrush(Color.FromArgb(35, 120, 210));
+        // 进度填充刷静态复用（避免导出期间每次重绘每个可见进度格都分配再
+        // 释放 SolidBrush）；颜色随主题经 ApplyPalette 换刷（阶段9a——
+        // 换刷与绘制都在 UI 线程，无并发使用窗口）。
+        private static Brush CompletedFillBrush = new SolidBrush(UiTheme.ProgressCompletedFill(false));
+        private static Brush ActiveFillBrush = new SolidBrush(UiTheme.ProgressActiveFill(false));
+
+        public static void ApplyPalette(Color activeFill, Color completedFill)
+        {
+            Brush oldActive = ActiveFillBrush;
+            Brush oldCompleted = CompletedFillBrush;
+            ActiveFillBrush = new SolidBrush(activeFill);
+            CompletedFillBrush = new SolidBrush(completedFill);
+            if (oldActive != null)
+            {
+                oldActive.Dispose();
+            }
+            if (oldCompleted != null)
+            {
+                oldCompleted.Dispose();
+            }
+        }
 
         protected override void Paint(
             Graphics graphics,
