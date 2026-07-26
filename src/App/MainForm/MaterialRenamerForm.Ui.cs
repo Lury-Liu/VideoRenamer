@@ -25,7 +25,19 @@ namespace VideoMaterialRenamer
             ConfigureFormShell();
             BuildHeaderArea();
             BuildFooterBar();
+            BuildOperationStrip();
             BuildWorkspaceSplit();
+        }
+
+        // 分区标题（阶段10g，与设计稿一致）：序号徽章 + 加粗标题。
+        private static Label NewZoneTitle(string text)
+        {
+            Label title = new Label();
+            title.Text = text;
+            title.AutoSize = true;
+            title.Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
+            title.Margin = new Padding(0, 6, 12, 0);
+            return title;
         }
 
         private void ConfigureFormShell()
@@ -69,6 +81,9 @@ namespace VideoMaterialRenamer
             settingsPanel.Location = new Point(14, 10);
             settingsPanel.Size = new Size(1196, 34);
             topPanel.Controls.Add(settingsPanel);
+
+            settingsPanel.Controls.Add(new ZoneBadge(1));
+            settingsPanel.Controls.Add(NewZoneTitle("命名设置"));
 
             Label labelEpisode = new Label();
             labelEpisode.Text = "集数 E";
@@ -142,12 +157,8 @@ namespace VideoMaterialRenamer
             toolbar.Padding = new Padding(4, 0, 4, 0);
             toolbar.Margin = new Padding(0);
 
-            Label zoneTitle = new Label();
-            zoneTitle.Text = "镜头表";
-            zoneTitle.AutoSize = true;
-            zoneTitle.Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
-            zoneTitle.Margin = new Padding(0, 7, 12, 0);
-            toolbar.Controls.Add(zoneTitle);
+            toolbar.Controls.Add(new ZoneBadge(2));
+            toolbar.Controls.Add(NewZoneTitle("镜头表"));
 
             Button btnAddRow = NewButton("新增行", 72);
             btnAddRow.Click += delegate { AddEmptyRow(); };
@@ -205,20 +216,6 @@ namespace VideoMaterialRenamer
             footerRight.Padding = new Padding(0);
             footerRight.Margin = new Padding(0);
 
-            operationProgress = new ProgressBar();
-            operationProgress.Width = 150;
-            operationProgress.Height = 20;
-            operationProgress.Margin = new Padding(0, 8, 10, 0);
-            operationProgress.Style = ProgressBarStyle.Continuous;
-            operationProgress.Visible = false;
-            footerRight.Controls.Add(operationProgress);
-
-            btnCancelOperation = NewButton("取消", 58);
-            btnCancelOperation.Margin = new Padding(0, 3, 10, 3);
-            btnCancelOperation.Visible = false;
-            btnCancelOperation.Click += delegate { CancelRunningOperation(); };
-            footerRight.Controls.Add(btnCancelOperation);
-
             chkExport1080p = new CheckBox();
             chkExport1080p.Text = "导出1080x1920";
             chkExport1080p.AutoSize = true;
@@ -255,8 +252,57 @@ namespace VideoMaterialRenamer
             statusLabel.Tag = "Muted";
             StatusText = "把视频拖到表格 B「主要素材」或 C「备用素材」单元格。";
 
+            // 序号徽章 ④：状态即"执行"分区的反馈（后添加者先停靠 → 徽章在最左）。
+            Panel badgeHost = new Panel();
+            badgeHost.Dock = DockStyle.Left;
+            badgeHost.Width = 28;
+            ZoneBadge footerBadge = new ZoneBadge(4);
+            footerBadge.Location = new Point(2, 8);
+            badgeHost.Controls.Add(footerBadge);
+
             footerBar.Controls.Add(statusLabel);
             footerBar.Controls.Add(footerRight);
+            footerBar.Controls.Add(badgeHost);
+        }
+
+        // 执行中条（阶段10g，与设计稿一致）：操作期间在窗口最底部显示
+        // 醒目的"执行中：[进度条] N% [取消]"整条，替代原先挤在执行栏里的
+        // 小进度条。空闲时隐藏。
+        private void BuildOperationStrip()
+        {
+            operationStrip = new Panel();
+            operationStrip.Dock = DockStyle.Bottom;
+            operationStrip.Height = 40;
+            operationStrip.Padding = new Padding(12, 7, 12, 7);
+            operationStrip.Visible = false;
+            Controls.Add(operationStrip);
+
+            operationProgress = new ProgressBar();
+            operationProgress.Dock = DockStyle.Fill;
+            operationProgress.Style = ProgressBarStyle.Continuous;
+
+            operationPercentLabel = new Label();
+            operationPercentLabel.Dock = DockStyle.Right;
+            operationPercentLabel.Width = 64;
+            operationPercentLabel.TextAlign = ContentAlignment.MiddleRight;
+            operationPercentLabel.Text = "0%";
+
+            btnCancelOperation = NewButton("取消", 62);
+            btnCancelOperation.Dock = DockStyle.Right;
+            btnCancelOperation.Click += delegate { CancelRunningOperation(); };
+
+            Label runningLabel = new Label();
+            runningLabel.Dock = DockStyle.Left;
+            runningLabel.Width = 66;
+            runningLabel.TextAlign = ContentAlignment.MiddleLeft;
+            runningLabel.Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold);
+            runningLabel.Text = "执行中：";
+
+            // 停靠按逆序处理：后添加者先停靠（取消=最右外侧，执行中=最左）。
+            operationStrip.Controls.Add(operationProgress);
+            operationStrip.Controls.Add(operationPercentLabel);
+            operationStrip.Controls.Add(btnCancelOperation);
+            operationStrip.Controls.Add(runningLabel);
         }
 
         private void BuildWorkspaceSplit()
@@ -349,27 +395,20 @@ namespace VideoMaterialRenamer
 
         private void BuildPreviewArea(SplitterPanel host)
         {
+            // 阶段10g：分区标题并入工具条行（设计稿为单行头），3 行壳 → 2 行。
             TableLayoutPanel previewShell = new TableLayoutPanel();
             previewShell.Dock = DockStyle.Fill;
             previewShell.ColumnCount = 1;
-            previewShell.RowCount = 3;
-            previewShell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-            previewShell.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            previewShell.RowCount = 2;
+            previewShell.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
             previewShell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             host.Controls.Add(previewShell);
 
-            Label previewTitle = new Label();
-            previewTitle.Text = "重命名预览";
-            previewTitle.Dock = DockStyle.Fill;
-            previewTitle.Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
-            previewTitle.Padding = new Padding(4, 6, 0, 0);
-            previewShell.Controls.Add(previewTitle, 0, 0);
-
-            previewShell.Controls.Add(BuildPreviewToolbar(), 0, 1);
+            previewShell.Controls.Add(BuildPreviewToolbar(), 0, 0);
 
             Panel previewBody = new Panel();
             previewBody.Dock = DockStyle.Fill;
-            previewShell.Controls.Add(previewBody, 0, 2);
+            previewShell.Controls.Add(previewBody, 0, 1);
 
             detailHost = new Panel();
             detailHost.Dock = DockStyle.Right;
@@ -538,8 +577,8 @@ namespace VideoMaterialRenamer
             return panel;
         }
 
-        // 预览工具条（阶段10b）：删除记录作用于预览选中项，随自定义末尾
-        // 工具一起紧挨预览列表。
+        // 预览工具条（阶段10b/10g）：分区徽章+标题、删除记录（作用于预览
+        // 选中项）、自定义末尾工具同驻一行，紧挨预览列表。
         private Control BuildPreviewToolbar()
         {
             FlowLayoutPanel panel = new FlowLayoutPanel();
@@ -549,23 +588,19 @@ namespace VideoMaterialRenamer
             panel.Padding = new Padding(6, 6, 6, 4);
             panel.Margin = new Padding(0);
 
+            panel.Controls.Add(new ZoneBadge(3));
+            panel.Controls.Add(NewZoneTitle("重命名预览"));
+
             Button btnDeleteRecord = NewButton("删除记录", 82);
             btnDeleteRecord.Click += delegate { DeleteSelectedPreviewRecord(); };
             btnDeleteRecord.Margin = new Padding(0, 0, 4, 0);
             panel.Controls.Add(btnDeleteRecord);
             panel.Controls.Add(NewActionSeparator());
 
-            Label label = new Label();
-            label.Text = "新文件名末尾";
-            label.Tag = "Muted";
-            label.AutoSize = false;
-            label.TextAlign = ContentAlignment.MiddleLeft;
-            label.Size = new Size(92, 26);
-            label.Margin = new Padding(0, 0, 8, 0);
-            panel.Controls.Add(label);
-
+            // 阶段10g（标注：文案合并）：原"新文件名末尾"说明标签 + "自定义"
+            // 勾选框合并为单个"自定义末尾"勾选框（与设计稿一致，悬浮说明保留）。
             chkCustomTail = new CheckBox();
-            chkCustomTail.Text = "自定义";
+            chkCustomTail.Text = "自定义末尾";
             chkCustomTail.AutoSize = true;
             chkCustomTail.Margin = new Padding(0, 5, 8, 0);
             chkCustomTail.CheckedChanged += delegate { UpdateCustomTailInputState(); };
@@ -671,7 +706,7 @@ namespace VideoMaterialRenamer
             UseWaitCursor = !enabled;
             foreach (Control control in Controls)
             {
-                if (object.ReferenceEquals(control, footerBar))
+                if (object.ReferenceEquals(control, footerBar) || object.ReferenceEquals(control, operationStrip))
                 {
                     continue;
                 }
@@ -714,26 +749,37 @@ namespace VideoMaterialRenamer
             }
         }
 
-        // 执行栏进度显隐与数值（导出/重命名共用）。
+        // 执行中条显隐与数值（导出/重命名共用）。
         private void SetOperationProgressVisible(bool visible)
         {
             if (operationProgress != null)
             {
                 operationProgress.Value = 0;
-                operationProgress.Visible = visible;
+            }
+            if (operationPercentLabel != null)
+            {
+                operationPercentLabel.Text = "0%";
             }
             if (btnCancelOperation != null)
             {
-                btnCancelOperation.Visible = visible;
                 btnCancelOperation.Enabled = visible;
+            }
+            if (operationStrip != null)
+            {
+                operationStrip.Visible = visible;
             }
         }
 
         private void SetOperationProgressValue(int percent)
         {
+            int clamped = Math.Max(0, Math.Min(100, percent));
             if (operationProgress != null)
             {
-                operationProgress.Value = Math.Max(0, Math.Min(100, percent));
+                operationProgress.Value = clamped;
+            }
+            if (operationPercentLabel != null)
+            {
+                operationPercentLabel.Text = clamped + "%";
             }
         }
 

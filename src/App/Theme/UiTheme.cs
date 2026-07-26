@@ -183,6 +183,18 @@ namespace VideoMaterialRenamer
             return dark ? Color.FromArgb(108, 62, 42) : Color.FromArgb(244, 227, 219);
         }
 
+        // --- 工作区序号徽章（①②③④，阶段10g） ---
+
+        public static Color ZoneBadgeBack(bool dark)
+        {
+            return dark ? Color.FromArgb(108, 62, 42) : Color.FromArgb(244, 227, 219);
+        }
+
+        public static Color ZoneBadgeFore(bool dark)
+        {
+            return dark ? Color.FromArgb(242, 209, 192) : Color.FromArgb(150, 72, 44);
+        }
+
         // --- 进度填充（DataGridViewProgressCell 经 ApplyPalette 取用） ---
 
         public static Color ProgressActiveFill(bool dark)
@@ -229,6 +241,12 @@ namespace VideoMaterialRenamer
             if (StringComparer.OrdinalIgnoreCase.Equals(role, "Hairline"))
             {
                 control.BackColor = BorderColor(dark);
+                return;
+            }
+
+            if (control is ZoneBadge)
+            {
+                ((ZoneBadge)control).ApplyBadgeTheme(dark);
                 return;
             }
 

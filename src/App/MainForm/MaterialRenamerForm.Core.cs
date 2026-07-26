@@ -65,7 +65,9 @@ namespace VideoMaterialRenamer
         private Button btnTheme;
         private Button btnAbout;
         private Panel footerBar;
+        private Panel operationStrip;
         private ProgressBar operationProgress;
+        private Label operationPercentLabel;
         private Button btnCancelOperation;
         private Panel detailHost;
         private Control detailPanelBody;
