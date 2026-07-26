@@ -59,9 +59,21 @@ Each phase lists its acceptance criteria and the **actual verification evidence*
 **Defect fixed:** cloned export plans lost the `28A` ShotLabel (latent since the feature shipped).
 **Defect logged (existing, fix in Phase 7):** the incremental preview path never refreshes group-header text, so shot/scene cell edits leave `第 N 行 / 场号 X / 镜号 Y` headers stale.
 
-## Phase 3 — Compile-checked seams ⏳
+## Phase 3 — Compile-checked seams ✅ (commits d521783, 5159f4a, b356f42, 4b77695)
 
-**Planned criteria:** PlanStatus enum with zero Chinese status literals outside `PlanStatusText.cs` (grep-verified); ~30 `statusLabel.Text` writes behind `IStatusSink`; `NamingSettings` snapshot + `IFileSystemProbe` into BuildPlan; `UiDispatcher` preserving the QueueOnUi drop-contract; dead `detailLoadVersion` removed. Gates: G1-G4 + status strings/colors identical in side-by-side conflict walkthrough.
+**Criteria:** stringly-typed status protocol → enum with enforced literal ownership; statusLabel writes funneled; control reads snapshot-ized; dispatcher contract declared; dead code removed.
+
+| Check | Evidence |
+|---|---|
+| 3a PlanStatus enum (8 states incl. first-class `TargetLocked`/`SaveAsNewFile`) | all comparison/assignment sites converted; golden masters **byte-identical** (user-visible text zero change); `plan_status_text_goldens` pins all 8 strings |
+| Literal-ownership gate | `Assert-StatusLiteralOwnership` in 构建EXE.ps1: 7 status literals outside PlanStatusText/PlanStatus/Tests = build failure; PASS after conversion (gate literals built from char codes so the gate can't match itself) |
+| 3b IStatusSink | 35 direct `statusLabel.Text` writes across 6 partials funneled through `SetStatus`/write-only `StatusText`; only the implementation site remains |
+| 3c NamingSettings + IFileSystemProbe | `ReadNamingSettings()` single control-read point; `BuildPlan(rows, settings, probe)` primary overload; `AddFilesToPlan` 14-param public API → private; `FakeFileSystemProbe` proves statuses deterministically without temp files |
+| 3d IUiDispatcher + dead code | drop-when-disposed contract documented as frozen; write-only `detailLoadVersion` deleted (3 sites) |
+| G1/G2 | SelfTest **53/53** (commit b356f42's message says 54 — actual is 53); SmokeTest OK |
+| G3 | build + status-literal-gate + verify-artifact PASS |
+
+**Note on the side-by-side conflict walkthrough:** the interactive portion (visual row-color comparison against a pre-phase build) is replaced by automated equivalents — status text pinned per-state by `plan_status_text_goldens` + golden masters, and styling logic untouched except the compile-checked comparison. A human visual pass over the five conflict types remains on the outstanding-verification list.
 
 ## Phase 4 — Directory restructure + purity gate + parity csproj ⏳
 ## Phase 5 — Form decomposition (5 releasable cuts) ⏳
