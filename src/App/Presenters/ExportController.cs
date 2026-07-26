@@ -19,11 +19,24 @@ namespace VideoMaterialRenamer
 
         private readonly IUiDispatcher dispatcher;
         private readonly IStatusSink status;
+        private volatile FfmpegCancellation activeCancellation;
 
         public ExportController(IUiDispatcher dispatcher, IStatusSink status)
         {
             this.dispatcher = dispatcher;
             this.status = status;
+        }
+
+        // 中止当前批次：立即杀掉活动 ffmpeg 进程，剩余条目不再开始。
+        // 已完成的文件保持完成状态；进行中文件的 .vmr_ 临时文件由
+        // ExportOne 的清理逻辑删除。
+        public void CancelActive()
+        {
+            FfmpegCancellation cancellation = activeCancellation;
+            if (cancellation != null)
+            {
+                cancellation.Cancel();
+            }
         }
 
         public void Start(
@@ -34,8 +47,23 @@ namespace VideoMaterialRenamer
             Action<RenamePlan, int> applyRowProgress,
             Action<ExportOutcome> completed)
         {
+            FfmpegCancellation cancellation = new FfmpegCancellation();
+            activeCancellation = cancellation;
+
             ThreadPool.QueueUserWorkItem(delegate
             {
+                // 开工前清扫覆盖模式可能遗留的 .vmr_ 孤儿临时文件。
+                HashSet<string> targetDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (RenamePlan item in plan)
+                {
+                    string dir = System.IO.Path.GetDirectoryName(item.OldPath);
+                    if (!string.IsNullOrWhiteSpace(dir))
+                    {
+                        targetDirectories.Add(dir);
+                    }
+                }
+                VideoExportService.SweepOrphanedExportTemps(targetDirectories);
+
                 ExportOutcome outcome = new ExportOutcome();
                 Dictionary<ShotRow, int> rowTotals = new Dictionary<ShotRow, int>();
                 Dictionary<ShotRow, int> rowCompleted = new Dictionary<ShotRow, int>();
@@ -58,6 +86,11 @@ namespace VideoMaterialRenamer
 
                 foreach (RenamePlan entry in plan)
                 {
+                    if (cancellation.IsCancelled)
+                    {
+                        break;
+                    }
+
                     index++;
                     int currentIndex = index;
                     RenamePlan currentEntry = entry;
@@ -86,7 +119,7 @@ namespace VideoMaterialRenamer
                             });
                         };
 
-                        VideoExportService.ExportOne(ffmpegPath, currentEntry, outputMode, watermarkEnabled, progressCallback);
+                        VideoExportService.ExportOne(ffmpegPath, currentEntry, outputMode, watermarkEnabled, progressCallback, cancellation);
                         if (currentEntry.Row != null && rowCompleted.ContainsKey(currentEntry.Row))
                         {
                             rowCompleted[currentEntry.Row]++;
@@ -102,6 +135,10 @@ namespace VideoMaterialRenamer
                             RenamedPath = currentEntry.TargetPath
                         });
                     }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
                     catch (Exception ex)
                     {
                         outcome.Failures.Add(currentEntry.OldName + ": " + ex.Message);
@@ -112,6 +149,7 @@ namespace VideoMaterialRenamer
                     }
                 }
 
+                activeCancellation = null;
                 dispatcher.Post(delegate
                 {
                     completed(outcome);

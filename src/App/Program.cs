@@ -28,6 +28,13 @@ namespace VideoMaterialRenamer
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            // 后台清扫上次异常退出遗留的抽帧临时目录（不阻塞启动）。
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                VideoFrameStripProvider.SweepOrphanedStripDirs();
+            });
+
             bool darkMode = UiTheme.DetectWindowsDarkMode();
             if (!DisclaimerManager.EnsureAccepted(null, darkMode))
             {

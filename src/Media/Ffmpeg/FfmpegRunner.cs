@@ -5,6 +5,71 @@ using System.Text.RegularExpressions;
 
 namespace VideoMaterialRenamer
 {
+    // 跨线程取消令牌：Cancel() 立即杀掉当前活动的 ffmpeg 进程（若有），
+    // 之后再启动的进程也会被立刻杀掉。取消后 RunExport 抛
+    // OperationCanceledException（调用方据此与真实失败区分）。
+    public sealed class FfmpegCancellation
+    {
+        private readonly object sync = new object();
+        private System.Diagnostics.Process active;
+        private bool cancelled;
+
+        public bool IsCancelled
+        {
+            get
+            {
+                lock (sync)
+                {
+                    return cancelled;
+                }
+            }
+        }
+
+        public void Cancel()
+        {
+            lock (sync)
+            {
+                cancelled = true;
+                if (active != null)
+                {
+                    try
+                    {
+                        active.Kill();
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+        }
+
+        internal void SetActive(System.Diagnostics.Process process)
+        {
+            lock (sync)
+            {
+                active = process;
+                if (cancelled && process != null)
+                {
+                    try
+                    {
+                        process.Kill();
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+        }
+
+        internal void ClearActive()
+        {
+            lock (sync)
+            {
+                active = null;
+            }
+        }
+    }
+
     // ffmpeg 导出进程的启动与进度解析。
     public static class FfmpegRunner
     {
@@ -96,6 +161,16 @@ namespace VideoMaterialRenamer
 
         public static void RunExport(string ffmpegPath, string inputPath, string outputPath, bool copyAudio, string watermarkText, Action<int> progressCallback)
         {
+            RunExport(ffmpegPath, inputPath, outputPath, copyAudio, watermarkText, progressCallback, null);
+        }
+
+        public static void RunExport(string ffmpegPath, string inputPath, string outputPath, bool copyAudio, string watermarkText, Action<int> progressCallback, FfmpegCancellation cancellation)
+        {
+            if (cancellation != null && cancellation.IsCancelled)
+            {
+                throw new OperationCanceledException("导出已取消。");
+            }
+
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = ffmpegPath;
             startInfo.Arguments = FfmpegArguments.BuildExportArguments(inputPath, outputPath, copyAudio, watermarkText);
@@ -106,6 +181,10 @@ namespace VideoMaterialRenamer
 
             using (Process process = Process.Start(startInfo))
             {
+                if (cancellation != null)
+                {
+                    cancellation.SetActive(process);
+                }
                 if (progressCallback != null)
                 {
                     progressCallback(5);
@@ -161,6 +240,14 @@ namespace VideoMaterialRenamer
                 }
 
                 process.WaitForExit();
+                if (cancellation != null)
+                {
+                    cancellation.ClearActive();
+                    if (cancellation.IsCancelled)
+                    {
+                        throw new OperationCanceledException("导出已取消。");
+                    }
+                }
                 if (process.ExitCode != 0)
                 {
                     throw new Exception(TrimProcessLog(error.ToString()));

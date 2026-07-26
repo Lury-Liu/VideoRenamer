@@ -32,7 +32,51 @@ namespace VideoMaterialRenamer
             }
         }
 
+        // 导出开始前清扫目标目录里遗留的 .vmr_ 孤儿临时文件（仅清理
+        // 1 小时以前的，避免误删并行实例正在写入的文件）。
+        public static void SweepOrphanedExportTemps(IEnumerable<string> directories)
+        {
+            if (directories == null)
+            {
+                return;
+            }
+
+            DateTime cutoff = DateTime.Now.AddHours(-1);
+            foreach (string directory in directories)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+                    {
+                        continue;
+                    }
+
+                    foreach (string temp in Directory.GetFiles(directory, ".vmr_*"))
+                    {
+                        try
+                        {
+                            if (File.GetLastWriteTime(temp) < cutoff)
+                            {
+                                File.Delete(temp);
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
         public static void ExportOne(string ffmpegPath, RenamePlan entry, ExportOutputMode outputMode, bool watermarkEnabled, Action<int> progressCallback)
+        {
+            ExportOne(ffmpegPath, entry, outputMode, watermarkEnabled, progressCallback, null);
+        }
+
+        public static void ExportOne(string ffmpegPath, RenamePlan entry, ExportOutputMode outputMode, bool watermarkEnabled, Action<int> progressCallback, FfmpegCancellation cancellation)
         {
             if (entry == null)
             {
@@ -70,7 +114,22 @@ namespace VideoMaterialRenamer
             {
                 try
                 {
-                    FfmpegRunner.RunExport(ffmpegPath, entry.OldPath, outputPath, true, watermarkText, progressCallback);
+                    FfmpegRunner.RunExport(ffmpegPath, entry.OldPath, outputPath, true, watermarkText, progressCallback, cancellation);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 取消不是失败：不做音频回退重试，直接向上传递。
+                    if (File.Exists(outputPath))
+                    {
+                        try
+                        {
+                            File.Delete(outputPath);
+                        }
+                        catch
+                        {
+                        }
+                    }
+                    throw;
                 }
                 catch
                 {
@@ -82,7 +141,7 @@ namespace VideoMaterialRenamer
                     {
                         progressCallback(0);
                     }
-                    FfmpegRunner.RunExport(ffmpegPath, entry.OldPath, outputPath, false, watermarkText, progressCallback);
+                    FfmpegRunner.RunExport(ffmpegPath, entry.OldPath, outputPath, false, watermarkText, progressCallback, cancellation);
                 }
 
                 if (outputMode == ExportOutputMode.OverwriteOriginal)

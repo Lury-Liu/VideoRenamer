@@ -144,6 +144,32 @@ namespace VideoMaterialRenamer
             return "SmokeTest OK";
         }
 
+        // 新行为（阶段5b）：任务进行中关窗需确认；确认后立即杀掉活动
+        // ffmpeg 进程（当前 .vmr_ 临时文件由导出服务的 finally 清理），
+        // 不再把 100% CPU 的 ffmpeg 子进程孤儿化。
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (operationRunning && e.CloseReason == CloseReason.UserClosing)
+            {
+                DialogResult confirm = MessageBox.Show(
+                    this,
+                    "任务仍在进行中，关闭窗口将中止导出并清理临时文件。确定要退出吗？",
+                    "确认退出",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+                if (confirm != DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                }
+                else
+                {
+                    exportController.CancelActive();
+                }
+            }
+
+            base.OnFormClosing(e);
+        }
+
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             if (previewColumnResizeTimer != null)

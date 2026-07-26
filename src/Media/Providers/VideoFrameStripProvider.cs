@@ -10,6 +10,32 @@ namespace VideoMaterialRenamer
     // 用 ffmpeg 一次性抽取若干均匀分布的关键帧，供预览区“鼠标划过看不同时间点画面”。
     public static class VideoFrameStripProvider
     {
+        // 启动时清扫上次异常退出遗留的抽帧临时目录（仅清理 1 小时以前的，
+        // 避免误删并行实例正在使用的目录）。
+        public static void SweepOrphanedStripDirs()
+        {
+            try
+            {
+                DateTime cutoff = DateTime.Now.AddHours(-1);
+                foreach (string dir in Directory.GetDirectories(Path.GetTempPath(), "VMR_Strip_*"))
+                {
+                    try
+                    {
+                        if (Directory.GetLastWriteTime(dir) < cutoff)
+                        {
+                            Directory.Delete(dir, true);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            catch
+            {
+            }
+        }
+
         public static string BuildStripArguments(string inputPath, string outputPattern, int frameCount)
         {
             int count = Math.Max(1, frameCount);
