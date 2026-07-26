@@ -112,4 +112,65 @@ Each phase lists its acceptance criteria and the **actual verification evidence*
 
 Measured (headless harness, 120-clip fixture): spinner-tick refresh 52.7→25.6 ms (2.1×); metadata read 249→17 ms/file (14.6×, values verified identical); GetUniqueCustomTail worst-case 0.24 ms/call. Golden masters byte-identical throughout. Fixes: stale-cache eviction, stale group headers, double-BuildPlan, O(n²) backfill, double buffering, static brushes, thumbnail retained-guard (use-after-dispose).
 
-## Health assessment ✅ — see [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md): **85/100** (baseline ≈38), gap list to ~90 enumerated.
+## V2 health assessment ✅ — 85/100 (baseline ≈38); superseded by V3 below.
+
+---
+
+# Modernization V3 (branch `refactor/modernization-v3`, plan: [MODERNIZATION_V3_PLAN.md](MODERNIZATION_V3_PLAN.md))
+
+Standing invariants held across all V3 phases: golden masters byte-identical (naming untouched), every commit gated in-script (SelfTest + SmokeTest before `git commit`), G3 build + verify-artifact at each phase boundary, 10 frozen contracts untouched.
+
+## Phase 8 — Foundations ✅ (4768f45, 3468e32, 1199ea3, 9633244, 6d85f58)
+
+| Item | Evidence |
+|---|---|
+| 8a currentPlan 单一所有者 | 字段+唯一写入点 ReplaceCurrentPlan 同驻 Plan 分部；grep 证明仅 1 处变更点 |
+| 8b BuildUi → 10 具名 Build* 方法 | 纯搬移（语句顺序逐条一致）；多语句匿名委托改具名处理器 |
+| 8c ProcessArguments 唯一实现 | ffmpeg 委托逐字节一致断言；导出参数黄金值不变 |
+| 8d AppLog | 1MB 滚动、绝不抛异常；崩溃仅观察记录；更新静默路径留痕 |
+| 8e LicenseValidator 纯函数 | 机器码+时钟注入；9 新用例（内置样例密钥全部已过期+哑机器码，注入 nowUtc 走通有效路径；拼接签名攻击、错误表逐字锁定；DPAPI 往返证明存储层完好） |
+
+Gates: SelfTest 55→65, SmokeTest OK, G3 PASS.
+
+## Phase 9 — 暖纸色系主题 ✅ (5a8470a, 87509ca) — 标注：视觉变更
+
+- 9a UiTheme 全角色重写（暖白纸面/暖炭深色 + 陶土主色 #BA5B34/#D97757）；按钮/复选框悬浮按下态；进度刷随主题换刷；全部散落色值清扫归位；palette_pins ×2 锁定色值。
+- 9b/9c 1px 发丝分隔线；DWM 深色标题栏（Win10 1903+/1809 回退，旧系统静默）。
+- 证据：scripts/capture-ui.ps1 离屏截图（浅/深）逐张人工核对；期间用像素探针排除了一次"删除按钮变红"的误判（ClearType 边缘色）。
+
+## Phase 10 — 布局重构 ✅ (764ac3c, 809c0d9, 1fa56af, 83f90b1) — 标注：布局/新行为
+
+- 10a 底部执行栏：状态 + 导出选项 + 取消命名 + 主按钮同驻（改变按钮含义的开关紧挨按钮）。
+- 10b 分区工具条：行/素材操作迁到镜头表上方；删除记录+自定义末尾迁到预览上方；头部收窄 100→52px。
+- 10c 详情面板可折叠（28px 细条）。冒烟门禁抓出真实缺陷：Control.Visible 在未显示窗体上恒 false，不能当状态——改显式字段。
+- 10d 执行栏进度条+可见取消：导出立即杀 ffmpeg；重命名文件间停（已完成部分照常入撤销历史）；取消后如实弹窗汇报。
+- 10e Ctrl+Z=取消命名、Ctrl+Enter=执行（文本编辑上下文不接管）。
+- 10f 系统级 DPI 感知：app.manifest（缺失即构建失败）+ 全部 6 窗体 AutoScaleMode.Font（基准 7x17 实测）；96dpi 截图逐像素不变证明缩放系数恰为 1；高 DPI 待人工核验；回退=移除 /win32manifest。
+- SmokeTest 同提交扩展：执行栏结构、进度初始隐藏、折叠往返断言。
+
+## Phase 11 — 性能收尾 ✅ (5084a53, 9685e1d)
+
+- 11a 120ms 尾沿防抖（事件层；直接调用不受影响）：微调框连打 N 击 N 次全表 BuildPlan → 停手后 1 次。
+- 11b CachedFileSystemProbe：单刷新周期 FileExists 记忆化（IsFileLocked 决不缓存）；计数用例锁定。
+- 11c 网格行级增量操作（增/移/删）：计数前置不满足即回退整表重建；冒烟等价性断言（增量后网格内容 == 整表重建逐格一致）。
+- 11d 启动清扫更新临时目录 1h 前孤儿（原来 ~100MB update_*.exe 永不清理）。
+
+## Phase 12 — 更新子系统 ✅ (abc8d02, 54e346a, 156cb43)
+
+- 12a 纯逻辑/UI 分离（逐字迁移）：UpdatePrompter（App）承载提示/进度窗/退出编排；Services 的 UpdateManager 零 WinForms；About 与启动共用同一下载/重启实现。
+- 12b 加固（经批准）：替换脚本 try/catch/finally——Copy 失败写标记+重启旧版+finally 必清下载文件；目录不可写→提权（一次 UAC）；拒绝提权绝不退出进程；下次启动提示失败原因。修复"接受更新后什么都没发生"（Program Files 安装的既有缺陷）。脚本形态+引号转义 2 用例锁定。**残余风险：提权端到端待下次真实发布人工验证。**
+- 12c 密钥默认有效期 30 天：签发端（本地工具，私钥不入库）默认改 30；应用零逻辑改动（密钥自带过期时间）；到期文案去掉写死天数。
+- 验收：`发布更新到GitHub.ps1 -DryRun` 全绿（sha256 生成、双门禁、停在上传前）。
+
+## Phase 13 — 边界收口 ✅ (e872a0f)
+
+- 13a LicenseGate/DisclaimerGate（App）逐字承接 UI 编排；LicenseManager 只剩验证委托+DPAPI 存储（磁盘格式逐字不动）；DisclaimerManager 只剩记录读写。
+- 13b 两道新门禁并入构建，均经植入违例演练（必须 FAIL 才被信任）：services-purity-gate（Services 全文无 WinForms/Drawing——顺带抓出 LicenseInfo/UpdateInfo 的残留 using 头）；palette-gate（裸颜色只许 App\Theme / App\Controls / Tests）。
+- 13c App/Grid → App/Controls（100% 相似度纯移动）；Services 全部 using 头裁至实际所需。
+- 依赖规则全部机器强制：Core ← Media/Services ← App ← Tests。
+
+**Documented deviation:** App/MainForm 分部的 15 行拷贝板 using 头未裁（纯外观、12 个文件的机械修改留作小额债务，见健康评估遗留清单）。
+
+## V3 final verification ✅
+
+SelfTest **70/70** · SmokeTest OK（含结构/等价性/折叠断言）· 全部 **6 门禁** PASS（status-literal / core-purity / services-purity / palette / csproj-parity / verify-artifact）· 发布 DryRun 全绿 · 实测性能复测通过（见健康评估 v2）。V3 共 **17 提交**，每个提交可发布。
