@@ -34,7 +34,7 @@ namespace VideoMaterialRenamer
         public string TargetPath;
         public string OldName;
         public string NewName;
-        public string Status;
+        public PlanStatus Status;
 
         // 浅克隆：Row 引用必须共享（撤销/导出进度按引用身份映射，测试锁定）。
         public RenamePlan Clone()

@@ -39,6 +39,7 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("status_source_missing", StatusSourceMissing));
             cases.Add(new TestCase("status_export_overwrite_pending", StatusExportOverwritePending));
             cases.Add(new TestCase("is_blocking_issue_truth_table", IsBlockingIssueTruthTable));
+            cases.Add(new TestCase("plan_status_text_goldens", PlanStatusTextGoldens));
             cases.Add(new TestCase("build_plan_resizes_tail_overrides", BuildPlanResizesTailOverrides));
             cases.Add(new TestCase("shot_label_pattern_table", ShotLabelPatternTable));
             cases.Add(new TestCase("shot_label_try_parse_table", ShotLabelTryParseTable));
@@ -243,7 +244,7 @@ namespace VideoMaterialRenamer.Tests
                 ShotRow row = new ShotRow { Sequence = 1 };
                 row.MainFiles.Add(source);
                 List<RenamePlan> plan = BuildSingleRowPlan(row, 1, 1, true, false);
-                TestAssert.AreEqual("就绪", plan[0].Status, "ready status");
+                TestAssert.AreEqual("就绪", PlanStatusText.For(plan[0].Status), "ready status");
             });
         }
 
@@ -256,7 +257,7 @@ namespace VideoMaterialRenamer.Tests
                 ShotRow row = new ShotRow { Sequence = 1 };
                 row.MainFiles.Add(source);
                 List<RenamePlan> plan = BuildSingleRowPlan(row, 1, 1, true, false);
-                TestAssert.AreEqual("未变化", plan[0].Status, "unchanged status");
+                TestAssert.AreEqual("未变化", PlanStatusText.For(plan[0].Status), "unchanged status");
             });
         }
 
@@ -271,7 +272,7 @@ namespace VideoMaterialRenamer.Tests
                 ShotRow row = new ShotRow { Sequence = 1 };
                 row.MainFiles.Add(source);
                 List<RenamePlan> plan = BuildSingleRowPlan(row, 1, 1, true, false);
-                TestAssert.AreEqual("目标已存在", plan[0].Status, "target exists status");
+                TestAssert.AreEqual("目标已存在", PlanStatusText.For(plan[0].Status), "target exists status");
             });
         }
 
@@ -288,8 +289,8 @@ namespace VideoMaterialRenamer.Tests
                 ShotRow rowB = new ShotRow { Sequence = 1 };
                 rowB.MainFiles.Add(second);
                 List<RenamePlan> plan = RenamePlanBuilder.BuildPlan(new List<ShotRow> { rowA, rowB }, 1, 1, true, false);
-                TestAssert.AreEqual("就绪", plan[0].Status, "first target keeps ready");
-                TestAssert.AreEqual("新文件名重复", plan[1].Status, "second same target flagged duplicate");
+                TestAssert.AreEqual("就绪", PlanStatusText.For(plan[0].Status), "first target keeps ready");
+                TestAssert.AreEqual("新文件名重复", PlanStatusText.For(plan[1].Status), "second same target flagged duplicate");
             });
         }
 
@@ -298,7 +299,7 @@ namespace VideoMaterialRenamer.Tests
             ShotRow row = new ShotRow { Sequence = 1 };
             row.MainFiles.Add(@"C:\VmrNoSuchDir_ff8a2\missing.mp4");
             List<RenamePlan> plan = BuildSingleRowPlan(row, 1, 1, true, false);
-            TestAssert.AreEqual("源文件丢失", plan[0].Status, "source missing status");
+            TestAssert.AreEqual("源文件丢失", PlanStatusText.For(plan[0].Status), "source missing status");
         }
 
         private static void StatusExportOverwritePending()
@@ -310,34 +311,55 @@ namespace VideoMaterialRenamer.Tests
                 ShotRow row = new ShotRow { Sequence = 17 };
                 row.MainFiles.Add(alreadyNamed);
                 List<RenamePlan> plan = BuildSingleRowPlan(row, 5, 1, true, true);
-                TestAssert.AreEqual("待覆盖导出1080p", plan[0].Status, "export overwrite pending status");
+                TestAssert.AreEqual("待覆盖导出1080p", PlanStatusText.For(plan[0].Status), "export overwrite pending status");
 
                 string freshSource = Path.Combine(dir, "fresh.mp4");
                 File.WriteAllText(freshSource, "test");
                 ShotRow freshRow = new ShotRow { Sequence = 18 };
                 freshRow.MainFiles.Add(freshSource);
                 List<RenamePlan> freshPlan = BuildSingleRowPlan(freshRow, 5, 1, true, true);
-                TestAssert.AreEqual("待覆盖导出1080p", freshPlan[0].Status, "ready promotes to export pending");
+                TestAssert.AreEqual("待覆盖导出1080p", PlanStatusText.For(freshPlan[0].Status), "ready promotes to export pending");
             });
         }
 
         private static void IsBlockingIssueTruthTable()
         {
-            string[] blocking = { "目标已存在", "目标文件被占用", "新文件名重复", "源文件丢失" };
-            foreach (string status in blocking)
+            PlanStatus[] blocking =
+            {
+                PlanStatus.TargetExists, PlanStatus.TargetLocked,
+                PlanStatus.DuplicateNewName, PlanStatus.SourceMissing
+            };
+            foreach (PlanStatus status in blocking)
             {
                 TestAssert.IsTrue(RenamePlanBuilder.IsBlockingIssue(new RenamePlan { Status = status }),
                     "blocking: " + status);
             }
 
-            string[] nonBlocking = { "就绪", "未变化", "待覆盖导出1080p", "另存为新文件", "" };
-            foreach (string status in nonBlocking)
+            PlanStatus[] nonBlocking =
+            {
+                PlanStatus.Ready, PlanStatus.Unchanged,
+                PlanStatus.PendingOverwriteExport, PlanStatus.SaveAsNewFile
+            };
+            foreach (PlanStatus status in nonBlocking)
             {
                 TestAssert.IsFalse(RenamePlanBuilder.IsBlockingIssue(new RenamePlan { Status = status }),
                     "non-blocking: " + status);
             }
 
             TestAssert.IsFalse(RenamePlanBuilder.IsBlockingIssue(null), "null entry is not blocking");
+        }
+
+        private static void PlanStatusTextGoldens()
+        {
+            // 显示文本冻结契约：与 V1.0.6.0 用户可见文本逐字一致。
+            TestAssert.AreEqual("就绪", PlanStatusText.For(PlanStatus.Ready), "text Ready");
+            TestAssert.AreEqual("未变化", PlanStatusText.For(PlanStatus.Unchanged), "text Unchanged");
+            TestAssert.AreEqual("目标已存在", PlanStatusText.For(PlanStatus.TargetExists), "text TargetExists");
+            TestAssert.AreEqual("新文件名重复", PlanStatusText.For(PlanStatus.DuplicateNewName), "text DuplicateNewName");
+            TestAssert.AreEqual("源文件丢失", PlanStatusText.For(PlanStatus.SourceMissing), "text SourceMissing");
+            TestAssert.AreEqual("待覆盖导出1080p", PlanStatusText.For(PlanStatus.PendingOverwriteExport), "text PendingOverwriteExport");
+            TestAssert.AreEqual("目标文件被占用", PlanStatusText.For(PlanStatus.TargetLocked), "text TargetLocked");
+            TestAssert.AreEqual("另存为新文件", PlanStatusText.For(PlanStatus.SaveAsNewFile), "text SaveAsNewFile");
         }
 
         private static void BuildPlanResizesTailOverrides()
@@ -419,7 +441,7 @@ namespace VideoMaterialRenamer.Tests
                 TargetPath = @"C:\Temp\b.mp4",
                 OldName = "a.mp4",
                 NewName = "b.mp4",
-                Status = "就绪"
+                Status = PlanStatus.Ready
             };
         }
 
@@ -472,13 +494,13 @@ namespace VideoMaterialRenamer.Tests
                 TargetPath = samePath,
                 OldName = "E1-S1-1-T1.mp4",
                 NewName = "E1-S1-1-T1.mp4",
-                Status = "待覆盖导出1080p"
+                Status = PlanStatus.PendingOverwriteExport
             };
             List<RenamePlan> prepared = ExportPlanBuilder.Prepare(
                 new List<RenamePlan> { entry }, ExportOutputMode.SaveAsNewFile);
             TestAssert.AreEqual(1, prepared.Count, "prepared count");
             TestAssert.AreEqual("E1-S1-1-T1_1080p.mp4", prepared[0].NewName, "save-as derives _1080p name");
-            TestAssert.AreEqual("另存为新文件", prepared[0].Status, "save-as status");
+            TestAssert.AreEqual("另存为新文件", PlanStatusText.For(prepared[0].Status), "save-as status");
             TestAssert.AreEqual(samePath, entry.TargetPath, "source entry untouched");
         }
 

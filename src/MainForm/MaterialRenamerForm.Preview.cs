@@ -61,7 +61,7 @@ namespace VideoMaterialRenamer
                     item.SubItems.Add(entry.ColumnName);
                     item.SubItems.Add(entry.OldName);
                     item.SubItems.Add(entry.NewName);
-                    item.SubItems.Add(entry.Status);
+                    item.SubItems.Add(PlanStatusText.For(entry.Status));
                     item.SubItems.Add(GetListVideoSummary(entry.OldPath));
                     if (firstInGroup)
                     {
@@ -220,7 +220,7 @@ namespace VideoMaterialRenamer
             {
                 item.BackColor = UiTheme.PreviewErrorBack(darkMode);
             }
-            else if (entry.Status == "未变化")
+            else if (entry.Status == PlanStatus.Unchanged)
             {
                 item.BackColor = UiTheme.PreviewNeutralBack(darkMode);
             }
@@ -287,7 +287,7 @@ namespace VideoMaterialRenamer
                         item.SubItems[1].Text = entry.ShotLabel;
                         item.SubItems[2].Text = entry.TailSegment;
                         item.SubItems[5].Text = entry.NewName;
-                        item.SubItems[6].Text = entry.Status;
+                        item.SubItems[6].Text = PlanStatusText.For(entry.Status);
                     }
                     ApplyPreviewItemStatusStyle(item, entry);
                 }
@@ -321,7 +321,7 @@ namespace VideoMaterialRenamer
 
                     if (item.SubItems.Count > 6)
                     {
-                        item.SubItems[6].Text = entry.Status;
+                        item.SubItems[6].Text = PlanStatusText.For(entry.Status);
                     }
                     ApplyPreviewItemStatusStyle(item, entry);
                 }
@@ -338,7 +338,7 @@ namespace VideoMaterialRenamer
         {
             int version = ++planCheckVersion;
             List<RenamePlan> targets = currentPlan
-                .Where(p => p.Status == "目标已存在" && !string.IsNullOrWhiteSpace(p.TargetPath))
+                .Where(p => p.Status == PlanStatus.TargetExists && !string.IsNullOrWhiteSpace(p.TargetPath))
                 .ToList();
 
             if (targets.Count == 0)
@@ -371,9 +371,9 @@ namespace VideoMaterialRenamer
 
                             foreach (RenamePlan entry in currentPlan)
                             {
-                                if (entry.Status == "目标已存在" && lockedPaths.Contains(entry.TargetPath))
+                                if (entry.Status == PlanStatus.TargetExists && lockedPaths.Contains(entry.TargetPath))
                                 {
-                                    entry.Status = "目标文件被占用";
+                                    entry.Status = PlanStatus.TargetLocked;
                                 }
                             }
 
@@ -441,7 +441,7 @@ namespace VideoMaterialRenamer
                     issue.RowIndex,
                     issue.ColumnName,
                     issue.TailSegment,
-                    issue.Status));
+                    PlanStatusText.For(issue.Status)));
                 lines.Add("  原文件：" + issue.OldName);
                 lines.Add("  目标名：" + issue.NewName);
             }

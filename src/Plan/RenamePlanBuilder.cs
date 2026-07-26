@@ -71,29 +71,29 @@ namespace VideoMaterialRenamer
                 string newName = GetMaterialFileName(episode, scene, shot, row != null ? row.ShotSuffix : "", tailSegment, oldPath, keepExtensionCase);
                 string directory = Path.GetDirectoryName(oldPath);
                 string targetPath = Path.GetFullPath(Path.Combine(directory, newName));
-                string status = "就绪";
+                PlanStatus status = PlanStatus.Ready;
 
                 if (!File.Exists(oldPath))
                 {
-                    status = "源文件丢失";
+                    status = PlanStatus.SourceMissing;
                 }
                 else if (StringComparer.OrdinalIgnoreCase.Equals(targetPath, oldPath))
                 {
-                    status = export1080p ? "待覆盖导出1080p" : "未变化";
+                    status = export1080p ? PlanStatus.PendingOverwriteExport : PlanStatus.Unchanged;
                 }
                 else if (File.Exists(targetPath))
                 {
-                    status = "目标已存在";
+                    status = PlanStatus.TargetExists;
                 }
 
-                if (export1080p && status == "就绪")
+                if (export1080p && status == PlanStatus.Ready)
                 {
-                    status = "待覆盖导出1080p";
+                    status = PlanStatus.PendingOverwriteExport;
                 }
 
                 if (seen.ContainsKey(targetPath))
                 {
-                    status = "新文件名重复";
+                    status = PlanStatus.DuplicateNewName;
                 }
 
                 seen[targetPath] = true;
@@ -125,10 +125,10 @@ namespace VideoMaterialRenamer
         public static bool IsBlockingIssue(RenamePlan entry)
         {
             return entry != null &&
-                (entry.Status == "目标已存在" ||
-                 entry.Status == "目标文件被占用" ||
-                 entry.Status == "新文件名重复" ||
-                 entry.Status == "源文件丢失");
+                (entry.Status == PlanStatus.TargetExists ||
+                 entry.Status == PlanStatus.TargetLocked ||
+                 entry.Status == PlanStatus.DuplicateNewName ||
+                 entry.Status == PlanStatus.SourceMissing);
         }
 
         public static bool IsFileLocked(string path)

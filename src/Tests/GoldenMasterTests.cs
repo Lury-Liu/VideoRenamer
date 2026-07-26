@@ -91,7 +91,7 @@ namespace VideoMaterialRenamer.Tests
             {
                 lines.Add(string.Format("{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}|{8}|{9}",
                     p.ColumnName, p.IsMain, p.FileIndex, p.Scene, p.Shot,
-                    p.ShotLabel, p.Take, p.TailSegment, p.NewName, p.Status));
+                    p.ShotLabel, p.Take, p.TailSegment, p.NewName, PlanStatusText.For(p.Status)));
             }
             return string.Join("\n", lines.ToArray());
         }

@@ -110,6 +110,37 @@ function Get-EmbeddedResourceNames {
     return @($names | Where-Object { $_ })
 }
 
+function Assert-StatusLiteralOwnership {
+    # Compile-checked-seam guard: the plan-status Chinese literals may only
+    # appear in PlanStatusText.cs (the mapper), PlanStatus.cs (enum doc
+    # comments), and src/Tests/ (text oracles). Any other occurrence means a
+    # stringly-typed comparison crept back in - fail the build.
+    param([string]$Root = $script:RepoRoot)
+    $literals = @([char[]]@(0x5C31,0x7EEA) -join "",  # JiuXu (ready)
+                  [char[]]@(0x672A,0x53D8,0x5316) -join "",
+                  [char[]]@(0x76EE,0x6807,0x5DF2,0x5B58,0x5728) -join "",
+                  [char[]]@(0x65B0,0x6587,0x4EF6,0x540D,0x91CD,0x590D) -join "",
+                  [char[]]@(0x6E90,0x6587,0x4EF6,0x4E22,0x5931) -join "",
+                  ([char[]]@(0x5F85,0x8986,0x76D6,0x5BFC,0x51FA) -join "") + "1080p",
+                  [char[]]@(0x76EE,0x6807,0x6587,0x4EF6,0x88AB,0x5360,0x7528) -join "")
+    $violations = @()
+    $files = Get-ChildItem -LiteralPath (Join-Path $Root "src") -Recurse -Filter *.cs |
+        Where-Object { $_.FullName -notmatch "\\Tests\\" -and $_.Name -ne "PlanStatusText.cs" -and $_.Name -ne "PlanStatus.cs" }
+    foreach ($file in $files) {
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        foreach ($lit in $literals) {
+            if ($text.Contains($lit)) {
+                $violations += ("{0}: contains status literal '{1}'" -f $file.FullName, $lit)
+            }
+        }
+    }
+    if ($violations.Count -gt 0) {
+        $violations | ForEach-Object { Write-Host "[status-literal-gate] FAIL: $_" -ForegroundColor Red }
+        throw "Assert-StatusLiteralOwnership: $($violations.Count) violation(s). Use PlanStatus/PlanStatusText instead."
+    }
+    Write-Host "[status-literal-gate] PASS: status literals confined to PlanStatusText.cs / PlanStatus.cs / Tests"
+}
+
 function Invoke-TestGate {
     # Hard gate: runs the self-test and smoke test through the dev loader and
     # aborts unless each prints its exact OK marker (frozen contract #7).

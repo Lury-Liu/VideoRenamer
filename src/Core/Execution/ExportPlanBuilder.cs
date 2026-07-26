@@ -25,7 +25,7 @@ namespace VideoMaterialRenamer
                 {
                     entry.TargetPath = RenamePlanBuilder.GetUniquePathWithSuffix(entry.TargetPath, "_1080p");
                     entry.NewName = Path.GetFileName(entry.TargetPath);
-                    entry.Status = "另存为新文件";
+                    entry.Status = PlanStatus.SaveAsNewFile;
                 }
 
                 if (outputMode == ExportOutputMode.SaveAsNewFile &&
@@ -37,7 +37,7 @@ namespace VideoMaterialRenamer
 
                 if (targets.ContainsKey(entry.TargetPath))
                 {
-                    throw new IOException("新文件名重复：" + entry.NewName);
+                    throw new IOException(PlanStatusText.For(PlanStatus.DuplicateNewName) + "：" + entry.NewName);
                 }
 
                 targets[entry.TargetPath] = true;
