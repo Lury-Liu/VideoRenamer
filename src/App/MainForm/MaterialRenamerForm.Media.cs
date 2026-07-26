@@ -46,19 +46,6 @@ namespace VideoMaterialRenamer
             }
         }
 
-        private void StartStaBackground(ThreadStart action)
-        {
-            if (action == null)
-            {
-                return;
-            }
-
-            Thread thread = new Thread(action);
-            thread.IsBackground = true;
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-        }
-
         private VideoFileInfo GetFastVideoInfo(string path)
         {
             VideoFileInfo info = new VideoFileInfo();
@@ -96,7 +83,7 @@ namespace VideoMaterialRenamer
             }
 
             pendingVideoInfoLoads.Add(path);
-            StartStaBackground(delegate
+            mediaScheduler.QueueFast(delegate
             {
                 VideoFileInfo info = VideoMetadataReader.Read(path);
                 QueueOnUi(delegate
@@ -112,79 +99,6 @@ namespace VideoMaterialRenamer
             });
         }
 
-        private bool TryGetThumbnailFromCache(string path, out Image image)
-        {
-            image = null;
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return false;
-            }
-
-            if (!thumbnailCache.TryGetValue(path, out image))
-            {
-                return false;
-            }
-
-            TouchThumbnailCacheNode(path);
-            return image != null;
-        }
-
-        private void TouchThumbnailCacheNode(string path)
-        {
-            LinkedListNode<string> node;
-            if (!thumbnailCacheNodes.TryGetValue(path, out node))
-            {
-                node = thumbnailCacheOrder.AddLast(path);
-                thumbnailCacheNodes[path] = node;
-                return;
-            }
-
-            thumbnailCacheOrder.Remove(node);
-            thumbnailCacheOrder.AddLast(node);
-        }
-
-        private void AddThumbnailToCache(string path, Image image)
-        {
-            if (string.IsNullOrWhiteSpace(path) || image == null)
-            {
-                if (image != null)
-                {
-                    image.Dispose();
-                }
-                return;
-            }
-
-            Image existing;
-            if (thumbnailCache.TryGetValue(path, out existing) && !object.ReferenceEquals(existing, image))
-            {
-                existing.Dispose();
-            }
-
-            thumbnailCache[path] = image;
-            TouchThumbnailCacheNode(path);
-            TrimThumbnailCache();
-        }
-
-        private void TrimThumbnailCache()
-        {
-            while (thumbnailCache.Count > ThumbnailCacheLimit && thumbnailCacheOrder.First != null)
-            {
-                string path = thumbnailCacheOrder.First.Value;
-                thumbnailCacheOrder.RemoveFirst();
-                thumbnailCacheNodes.Remove(path);
-
-                Image image;
-                if (thumbnailCache.TryGetValue(path, out image))
-                {
-                    thumbnailCache.Remove(path);
-                    if (image != null)
-                    {
-                        image.Dispose();
-                    }
-                }
-            }
-        }
-
         private void QueueThumbnailLoad(string path)
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path) || pendingThumbnailLoads.Contains(path))
@@ -193,13 +107,13 @@ namespace VideoMaterialRenamer
             }
 
             Image cached;
-            if (TryGetThumbnailFromCache(path, out cached))
+            if (thumbnailCache.TryGet(path, out cached))
             {
                 return;
             }
 
             pendingThumbnailLoads.Add(path);
-            StartStaBackground(delegate
+            mediaScheduler.QueueFast(delegate
             {
                 Image image = VideoThumbnailProvider.GetThumbnail(path, new Size(300, 166));
                 bool queued = QueueOnUi(delegate
@@ -207,7 +121,7 @@ namespace VideoMaterialRenamer
                     pendingThumbnailLoads.Remove(path);
                     if (image != null)
                     {
-                        AddThumbnailToCache(path, image);
+                        thumbnailCache.Add(path, image);
                     }
 
                     if (IsCurrentDetailPath(path))
@@ -285,7 +199,7 @@ namespace VideoMaterialRenamer
             frameStripPath = path;
             ClearFrameStrip();
 
-            StartStaBackground(delegate
+            mediaScheduler.QueueSlow(delegate
             {
                 string ffmpegPath = FfmpegLocator.Resolve();
                 List<Image> frames = VideoFrameStripProvider.Extract(ffmpegPath, path, 16);
@@ -322,7 +236,7 @@ namespace VideoMaterialRenamer
         private void RestoreStaticThumbnail()
         {
             Image cached;
-            if (TryGetThumbnailFromCache(currentDetailPath, out cached) && cached != null)
+            if (thumbnailCache.TryGet(currentDetailPath, out cached) && cached != null)
             {
                 SetDetailImage(cached, false);
             }

@@ -36,9 +36,8 @@ namespace VideoMaterialRenamer
         private readonly List<RenamePlan> currentPlan = new List<RenamePlan>();
         private readonly Stack<List<RenameOperation>> undoStack = new Stack<List<RenameOperation>>();
         private readonly Dictionary<string, VideoFileInfo> videoInfoCache = new Dictionary<string, VideoFileInfo>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, Image> thumbnailCache = new Dictionary<string, Image>(StringComparer.OrdinalIgnoreCase);
-        private readonly LinkedList<string> thumbnailCacheOrder = new LinkedList<string>();
-        private readonly Dictionary<string, LinkedListNode<string>> thumbnailCacheNodes = new Dictionary<string, LinkedListNode<string>>(StringComparer.OrdinalIgnoreCase);
+        private readonly ThumbnailCache thumbnailCache = new ThumbnailCache(ThumbnailCacheLimit);
+        private readonly MediaLoadScheduler mediaScheduler = new MediaLoadScheduler();
         private readonly HashSet<string> pendingVideoInfoLoads = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> pendingThumbnailLoads = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly LicenseInfo activeLicenseInfo;
@@ -158,13 +157,6 @@ namespace VideoMaterialRenamer
                 ownedDetailImage = null;
             }
 
-            foreach (Image image in thumbnailCache.Values)
-            {
-                if (image != null)
-                {
-                    image.Dispose();
-                }
-            }
             ClearFrameStrip();
             if (previewGroupFont != null)
             {
@@ -172,9 +164,8 @@ namespace VideoMaterialRenamer
                 previewGroupFont = null;
             }
 
-            thumbnailCache.Clear();
-            thumbnailCacheOrder.Clear();
-            thumbnailCacheNodes.Clear();
+            mediaScheduler.Dispose();
+            thumbnailCache.Dispose();
 
             base.OnFormClosed(e);
         }

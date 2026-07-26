@@ -113,7 +113,7 @@ namespace VideoMaterialRenamer
 
             RenderVideoInfo(info, currentDetailNewName, currentDetailContext);
             Image thumbnail;
-            if (TryGetThumbnailFromCache(path, out thumbnail))
+            if (thumbnailCache.TryGet(path, out thumbnail))
             {
                 SetDetailImage(thumbnail, false);
             }
