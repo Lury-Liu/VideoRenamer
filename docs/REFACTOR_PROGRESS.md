@@ -86,7 +86,30 @@ Each phase lists its acceptance criteria and the **actual verification evidence*
 | G1/G2/G3 | SelfTest 53/53; SmokeTest OK; verify-artifact PASS |
 
 **Outstanding (documented):** no dotnet SDK/MSBuild on this machine → the shadow csproj has never been actually built; validate on an SDK machine before relying on it (structural parity is gated, binary parity is not).
-## Phase 5 — Form decomposition (5 releasable cuts) ⏳
-## Phase 6 — Services decoupling ⏳
-## Phase 7 — Performance pass ⏳
-## Health assessment ⏳
+## Phase 5 — Form decomposition ✅ (commits 9684e00, 25c57ee, 7924dc7, 3bebb3c, 736a08f, a5b1357)
+
+| Cut | Evidence |
+|---|---|
+| 5a MediaLoadScheduler + ThumbnailCache | thread-per-request → 2 persistent STA workers (fast/slow lanes, newest-first); LRU cache as owning class; SelfTest 53/53 |
+| 5b ExportController + VideoExportService | orchestration out of the form (`.vmr_`→`File.Replace` contract verbatim); **new behavior (own commits):** FfmpegCancellation kill-on-cancel, OnFormClosing confirm-abort guard, orphan temp sweeps (1h age filter) |
+| 5c PlanExecutor + RenameController | File.Move loop off the UI thread; `PatchRowFileList` = the single write-back implementation (was 3 copies); 55/55 incl. 2 new executor cases |
+| 5d/5e | `PopulateGridRow` dedup; export accessors re-homed; probe-loop in-loop cancellation |
+
+**Documented scope decision:** grid/preview rendering stays in form partials (full presenter classes over the same live controls = re-sharding); the extracted classes carry the real state+logic. `currentPlan` single-ownership deferred (gap list).
+**Process note:** commit 7924dc7 landed with a compile error because the gate output wasn't checked before committing (fixed same-session in 3bebb3c); all later commits gate in-script.
+
+## Phase 6 — Services decoupling (update side) ✅ (commit 826bffc)
+
+| Check | Evidence |
+|---|---|
+| Async startup check | fetch overlaps the 4s splash; offline cold start ~24s invisible hang → 4s; accept-update semantics verbatim |
+| Download hardening | cancel button + 60s stall detection (WaitOne() was unbounded behind ControlBox=false); progress throttled; themed once |
+| Dead code | CheckForUpdatesManually (~50 lines, 0 callers) deleted; TLS 1.2 once, by name |
+
+**Documented scope decision:** LicenseManager split deferred — requires old-binary DPAPI fixtures capturable only on a machine with a real activation (gap list #1).
+
+## Phase 7 — Performance pass ✅ (commits 900b1cc, b2b7484)
+
+Measured (headless harness, 120-clip fixture): spinner-tick refresh 52.7→25.6 ms (2.1×); metadata read 249→17 ms/file (14.6×, values verified identical); GetUniqueCustomTail worst-case 0.24 ms/call. Golden masters byte-identical throughout. Fixes: stale-cache eviction, stale group headers, double-BuildPlan, O(n²) backfill, double buffering, static brushes, thumbnail retained-guard (use-after-dispose).
+
+## Health assessment ✅ — see [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md): **85/100** (baseline ≈38), gap list to ~90 enumerated.
