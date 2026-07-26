@@ -27,6 +27,12 @@ namespace VideoMaterialRenamer
         // 照常入撤销历史）；applyOverallProgress 驱动执行栏进度条。
         public void ExecuteAsync(List<RenamePlan> plan, Func<bool> cancelRequested, Action<int> applyOverallProgress, Action<PlanExecutor.ExecutionResult> completed)
         {
+            ExecuteAsync(plan, cancelRequested, applyOverallProgress, null, completed);
+        }
+
+        // 阶段10h：applyCurrentFile 驱动执行中条的"N% · 文件名"文案。
+        public void ExecuteAsync(List<RenamePlan> plan, Func<bool> cancelRequested, Action<int> applyOverallProgress, Action<string> applyCurrentFile, Action<PlanExecutor.ExecutionResult> completed)
+        {
             int total = plan == null ? 0 : plan.Count;
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -37,6 +43,10 @@ namespace VideoMaterialRenamer
                     dispatcher.Post(delegate
                     {
                         status.SetStatus(string.Format("正在重命名 {0}/{1}：{2}", currentIndex, total, currentEntry.OldName));
+                        if (applyCurrentFile != null)
+                        {
+                            applyCurrentFile(currentEntry.OldName);
+                        }
                         if (applyOverallProgress != null)
                         {
                             applyOverallProgress((currentIndex - 1) * 100 / Math.Max(1, total));

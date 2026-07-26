@@ -11,7 +11,6 @@ namespace VideoMaterialRenamer
         // 启动前的界面锁定、逐行进度渲染回调、完成后的写回+刷新+对话框。
         private void StartExport1080p(List<RenamePlan> plan, string ffmpegPath, ExportOutputMode outputMode, bool watermarkEnabled)
         {
-            SetProgressColumnVisible(true);
             ResetProgressBars();
             SetOperationUiEnabled(false);
             SetOperationProgressVisible(true);
@@ -28,6 +27,9 @@ namespace VideoMaterialRenamer
                 {
                     entry.Row.ProgressPercent = rowPercent;
                     RenderGridProgress(entry.RowIndex - 1);
+                    // 执行中条的"N% · 文件名"（阶段10h）：行进度回调携带的
+                    // entry 即当前正在导出的文件。
+                    SetOperationProgressFile(entry.NewName);
                 },
                 delegate(int overallPercent)
                 {
@@ -47,7 +49,6 @@ namespace VideoMaterialRenamer
                     }
 
                     RenderAll();
-                    SetProgressColumnVisible(false);
                     SetOperationProgressVisible(false);
                     SetOperationUiEnabled(true);
 

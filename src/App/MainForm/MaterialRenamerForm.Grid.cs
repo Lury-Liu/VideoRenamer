@@ -127,7 +127,8 @@ namespace VideoMaterialRenamer
             gridRow.Tag = row;
             gridRow.Height = grid.RowTemplate.Height;
             gridRow.Resizable = DataGridViewTriState.False;
-            gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
+            // 场号列常显（阶段10h）：显示有效场号——逐行场号关闭时即全局值。
+            gridRow.Cells[GridSceneColumn].Value = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), IsRowSceneEnabled());
             gridRow.Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
             string mainSummary = RenamePlanBuilder.GetCellSummary(row.MainFiles);
             string backupSummary = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
@@ -257,17 +258,14 @@ namespace VideoMaterialRenamer
             grid.InvalidateCell(GridProgressColumn, rowIndex);
         }
 
-        private void SetProgressColumnVisible(bool visible)
-        {
-            progressColumnVisible = visible;
-            ApplyGridColumnLayout();
-        }
-
         private int GetDefaultGridFocusColumn()
         {
             return IsRowSceneEnabled() ? GridSceneColumn : GridShotColumn;
         }
 
+        // 阶段10h（与设计稿一致）：场号/进度列常显、列头无字母前缀后，这里
+        // 只剩场号列的可编辑性——逐行场号关闭时列显示全局场号，就地编辑无
+        // 意义，设为只读。
         private void ApplyGridColumnLayout()
         {
             if (grid == null || grid.Columns.Count <= GridProgressColumn)
@@ -275,25 +273,55 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            bool rowScene = IsRowSceneEnabled();
-            if (grid.CurrentCell != null)
+            grid.Columns[GridSceneColumn].ReadOnly = !IsRowSceneEnabled();
+        }
+
+        // 全局场号变化时就地刷新常显的场号列（逐行场号开启时列由行模型
+        // 驱动并整表重建，不在此处理）。
+        private void RefreshGridSceneCells()
+        {
+            if (grid == null || IsRowSceneEnabled())
             {
-                int currentColumn = grid.CurrentCell.ColumnIndex;
-                bool currentColumnWillHide =
-                    (!rowScene && currentColumn == GridSceneColumn) ||
-                    (!progressColumnVisible && currentColumn == GridProgressColumn);
-                if (currentColumnWillHide)
-                {
-                    SelectGridCell(grid.CurrentCell.RowIndex, GetDefaultGridFocusColumn());
-                }
+                return;
             }
 
-            grid.Columns[GridSceneColumn].Visible = rowScene;
-            grid.Columns[GridShotColumn].HeaderText = rowScene ? "B 镜号" : "A 镜号";
-            grid.Columns[GridMainColumn].HeaderText = rowScene ? "C 主要素材" : "B 主要素材";
-            grid.Columns[GridBackupColumn].HeaderText = rowScene ? "D 备用素材" : "C 备用素材";
-            grid.Columns[GridProgressColumn].HeaderText = rowScene ? "E 进度" : "D 进度";
-            grid.Columns[GridProgressColumn].Visible = progressColumnVisible;
+            int scene = GetDefaultScene();
+            rendering = true;
+            try
+            {
+                foreach (DataGridViewRow gridRow in grid.Rows)
+                {
+                    gridRow.Cells[GridSceneColumn].Value = scene;
+                }
+            }
+            finally
+            {
+                rendering = false;
+            }
+        }
+
+        // 空素材格占位提示（阶段10h，与设计稿一致）：仅替换显示文本并转为
+        // 弱化色，不动底层 Value（冒烟的网格等价性转储读 Value，不受影响）。
+        private void OnGridCellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e == null || e.RowIndex < 0 || (e.ColumnIndex != GridMainColumn && e.ColumnIndex != GridBackupColumn))
+            {
+                return;
+            }
+
+            if (e.RowIndex == dragHighlightRow && e.ColumnIndex == dragHighlightColumn)
+            {
+                return;
+            }
+
+            string text = e.Value == null ? "" : e.Value.ToString();
+            if (text.Length == 0)
+            {
+                e.Value = "拖入视频...";
+                e.CellStyle.ForeColor = UiTheme.MutedText(darkMode);
+                e.CellStyle.SelectionForeColor = UiTheme.MutedText(darkMode);
+                e.FormattingApplied = true;
+            }
         }
 
         private void ResetProgressBars()
@@ -496,7 +524,7 @@ namespace VideoMaterialRenamer
                 {
                     row.Scene = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
                     grid.Rows[e.RowIndex].Cells[GridSceneColumn].Value = row.Scene;
-                    StatusText = "A 列场号必须是大于 0 的整数，已保留原场号。";
+                    StatusText = "场号必须是大于 0 的整数，已保留原场号。";
                 }
             }
             else if (e.ColumnIndex == GridShotColumn)
@@ -514,7 +542,7 @@ namespace VideoMaterialRenamer
                 {
                     row.Sequence = Math.Max(1, row.Sequence);
                     grid.Rows[e.RowIndex].Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
-                    StatusText = (IsRowSceneEnabled() ? "B" : "A") + " 列镜号可填正整数，或整数+字母（如 28A，用于两镜之间补插衔接镜）。";
+                    StatusText = "镜号可填正整数，或整数+字母（如 28A，用于两镜之间补插衔接镜）。";
                 }
             }
             else if (e.ColumnIndex == GridProgressColumn)

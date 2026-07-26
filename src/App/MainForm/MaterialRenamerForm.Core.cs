@@ -66,9 +66,11 @@ namespace VideoMaterialRenamer
         private Button btnAbout;
         private Panel footerBar;
         private Panel operationStrip;
-        private ProgressBar operationProgress;
+        private SlimProgressBar operationProgress;
         private Label operationPercentLabel;
         private Button btnCancelOperation;
+        private int operationPercentValue;
+        private string operationCurrentFile = "";
         private Panel detailHost;
         private Control detailPanelBody;
         private Button detailExpandButton;
@@ -90,7 +92,6 @@ namespace VideoMaterialRenamer
         private bool darkMode;
         private bool operationRunning;
         private bool rendering;
-        private bool progressColumnVisible;
         private bool rowSceneModeInitialized;
 
         public MaterialRenamerForm()
@@ -182,6 +183,31 @@ namespace VideoMaterialRenamer
                 if (form.detailPanelCollapsed || form.detailHost.Width != 320)
                 {
                     throw new Exception("详情面板展开测试失败。");
+                }
+
+                // 阶段10h 设计稿锁定：列头无字母前缀、场号/进度列常显且场号
+                // 默认只读（逐行场号关闭）、无行头列。
+                if (form.grid.RowHeadersVisible ||
+                    !form.grid.Columns[GridSceneColumn].Visible ||
+                    !form.grid.Columns[GridSceneColumn].ReadOnly ||
+                    form.grid.Columns[GridSceneColumn].HeaderText != "场号" ||
+                    form.grid.Columns[GridShotColumn].HeaderText != "镜号" ||
+                    !form.grid.Columns[GridProgressColumn].Visible)
+                {
+                    throw new Exception("设计稿网格结构测试失败。");
+                }
+
+                // 阶段10h 执行中条文案锁定："N% · 文件名"，复位后回到 "0%"。
+                form.SetOperationProgressFile("clip003.mp4");
+                form.SetOperationProgressValue(62);
+                if (form.operationPercentLabel.Text != "62% · clip003.mp4" || form.operationProgress.Value != 62)
+                {
+                    throw new Exception("执行中条文案测试失败。");
+                }
+                form.SetOperationProgressVisible(false);
+                if (form.operationPercentLabel.Text != "0%" || form.operationProgress.Value != 0)
+                {
+                    throw new Exception("执行中条复位测试失败。");
                 }
 
                 // 阶段11c 等价性：一串增/移/删增量操作后的网格内容必须与

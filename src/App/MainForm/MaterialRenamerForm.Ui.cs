@@ -96,7 +96,7 @@ namespace VideoMaterialRenamer
             numEpisode.Minimum = 1;
             numEpisode.Maximum = 9999;
             numEpisode.Value = 5;
-            numEpisode.Width = 78;
+            numEpisode.Width = 64;
             numEpisode.Margin = new Padding(0, 4, 14, 0);
             // 集数只影响文件名文本，不影响分组标题/项目数——走防抖的增量
             // 刷新（计数不一致时该路径自带整表重建回退）。
@@ -114,11 +114,12 @@ namespace VideoMaterialRenamer
             numScene.Minimum = 1;
             numScene.Maximum = 9999;
             numScene.Value = 1;
-            numScene.Width = 78;
+            numScene.Width = 64;
             numScene.Margin = new Padding(0, 4, 14, 0);
             // 场号/各选项只改名字与状态列文本，不改项目数——走防抖的增量
             // 刷新（该路径会同步分组标题，计数不一致时自带整表重建回退）。
-            numScene.ValueChanged += delegate { ScheduleNamesOnlyRefresh(); };
+            // 场号列常显（阶段10h）：逐行场号关闭时列显示全局值，需就地同步。
+            numScene.ValueChanged += delegate { RefreshGridSceneCells(); ScheduleNamesOnlyRefresh(); };
             settingsPanel.Controls.Add(numScene);
 
             chkRowScene = new CheckBox();
@@ -217,7 +218,7 @@ namespace VideoMaterialRenamer
             footerRight.Margin = new Padding(0);
 
             chkExport1080p = new CheckBox();
-            chkExport1080p.Text = "导出1080x1920";
+            chkExport1080p.Text = "导出1080×1920";
             chkExport1080p.AutoSize = true;
             chkExport1080p.Margin = new Padding(0, 8, 12, 0);
             chkExport1080p.CheckedChanged += OnExport1080pCheckedChanged;
@@ -231,8 +232,6 @@ namespace VideoMaterialRenamer
             chkExportWatermark.CheckedChanged += OnExportWatermarkCheckedChanged;
             footerRight.Controls.Add(chkExportWatermark);
             UpdateWatermarkOptionState();
-
-            footerRight.Controls.Add(NewActionSeparator());
 
             btnUndo = NewButton("取消命名", 85);
             btnUndo.Click += delegate { RestoreLastRename(); };
@@ -250,7 +249,7 @@ namespace VideoMaterialRenamer
             statusLabel.TextAlign = ContentAlignment.MiddleLeft;
             statusLabel.AutoEllipsis = true;
             statusLabel.Tag = "Muted";
-            StatusText = "把视频拖到表格 B「主要素材」或 C「备用素材」单元格。";
+            StatusText = "把视频拖到表格「主要素材」或「备用素材」单元格。";
 
             // 序号徽章 ④：状态即"执行"分区的反馈（后添加者先停靠 → 徽章在最左）。
             Panel badgeHost = new Panel();
@@ -277,14 +276,15 @@ namespace VideoMaterialRenamer
             operationStrip.Visible = false;
             Controls.Add(operationStrip);
 
-            operationProgress = new ProgressBar();
+            operationProgress = new SlimProgressBar();
             operationProgress.Dock = DockStyle.Fill;
-            operationProgress.Style = ProgressBarStyle.Continuous;
 
             operationPercentLabel = new Label();
             operationPercentLabel.Dock = DockStyle.Right;
-            operationPercentLabel.Width = 64;
+            operationPercentLabel.Width = 220;
             operationPercentLabel.TextAlign = ContentAlignment.MiddleRight;
+            operationPercentLabel.AutoEllipsis = true;
+            operationPercentLabel.Padding = new Padding(8, 0, 0, 0);
             operationPercentLabel.Text = "0%";
 
             btnCancelOperation = NewButton("取消", 62);
@@ -339,7 +339,8 @@ namespace VideoMaterialRenamer
             grid.BackgroundColor = UiTheme.WindowBack(darkMode);
             grid.BorderStyle = BorderStyle.None;
             grid.ColumnHeadersHeight = 34;
-            grid.RowHeadersVisible = true;
+            // 阶段10h（与设计稿一致）：无行头列，行定位由场号/镜号列承担。
+            grid.RowHeadersVisible = false;
             grid.RowTemplate.Height = 38;
             grid.RowTemplate.Resizable = DataGridViewTriState.False;
             grid.SelectionMode = DataGridViewSelectionMode.CellSelect;
@@ -349,40 +350,41 @@ namespace VideoMaterialRenamer
             grid.DefaultCellStyle.Padding = new Padding(4);
             grid.ColumnHeadersDefaultCellStyle.Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold);
             grid.CellEndEdit += OnGridCellEndEdit;
+            grid.CellFormatting += OnGridCellFormatting;
             grid.SelectionChanged += delegate { UpdateSelectedCellDetails(); };
             grid.DragEnter += OnGridDragEnterOrOver;
             grid.DragOver += OnGridDragEnterOrOver;
             grid.DragLeave += delegate { ClearDragHighlight(); };
             grid.DragDrop += OnGridDragDrop;
 
+            // 阶段10h（与设计稿一致）：列头无字母前缀；场号/进度列常显。
             DataGridViewTextBoxColumn colScene = new DataGridViewTextBoxColumn();
-            colScene.HeaderText = "A 场号";
+            colScene.HeaderText = "场号";
             colScene.Width = 72;
             colScene.SortMode = DataGridViewColumnSortMode.NotSortable;
 
             DataGridViewTextBoxColumn colSeq = new DataGridViewTextBoxColumn();
-            colSeq.HeaderText = "B 镜号";
+            colSeq.HeaderText = "镜号";
             colSeq.Width = 82;
             colSeq.SortMode = DataGridViewColumnSortMode.NotSortable;
 
             DataGridViewTextBoxColumn colMain = new DataGridViewTextBoxColumn();
-            colMain.HeaderText = "C 主要素材";
+            colMain.HeaderText = "主要素材";
             colMain.Width = 310;
             colMain.ReadOnly = true;
             colMain.SortMode = DataGridViewColumnSortMode.NotSortable;
 
             DataGridViewTextBoxColumn colBackup = new DataGridViewTextBoxColumn();
-            colBackup.HeaderText = "D 备用素材";
+            colBackup.HeaderText = "备用素材";
             colBackup.Width = 310;
             colBackup.ReadOnly = true;
             colBackup.SortMode = DataGridViewColumnSortMode.NotSortable;
 
             DataGridViewProgressColumn colProgress = new DataGridViewProgressColumn();
-            colProgress.HeaderText = "E 进度";
+            colProgress.HeaderText = "进度";
             colProgress.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             colProgress.MinimumWidth = 130;
             colProgress.SortMode = DataGridViewColumnSortMode.NotSortable;
-            colProgress.Visible = false;
 
             grid.Columns.Add(colScene);
             grid.Columns.Add(colSeq);
@@ -440,9 +442,12 @@ namespace VideoMaterialRenamer
             previewList.SelectedIndexChanged += delegate { UpdateSelectedPreviewDetails(); };
             previewList.SizeChanged += delegate { SchedulePreviewColumnResize(); };
             previewList.KeyDown += OnPreviewListKeyDown;
+            // 阶段10h：Fill 停靠的列表保持最前（最后布局）——右侧信息面板
+            // 真正占据自己的 320px，而不是悬浮在列表右缘之上（旧写法在
+            // 屏幕上靠 Z 序遮挡"看起来正确"，但列表最右列与滚动条被压在
+            // 面板底下，DrawToBitmap 截图也会反序漏画面板）。
             previewBody.Controls.Add(previewList);
             previewBody.Controls.Add(detailHost);
-            detailHost.BringToFront();
             detailPanelBody = BuildVideoDetailsPanel();
             detailHost.Controls.Add(detailPanelBody);
             detailHost.Controls.Add(detailExpandButton);
@@ -530,7 +535,7 @@ namespace VideoMaterialRenamer
             titleRow.Margin = new Padding(0);
 
             Label title = new Label();
-            title.Text = "素材信息预览";
+            title.Text = "素材信息";
             title.Dock = DockStyle.Fill;
             title.Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
             title.Padding = new Padding(0, 4, 0, 0);
@@ -620,7 +625,7 @@ namespace VideoMaterialRenamer
             panel.Controls.Add(chkCustomTail);
 
             txtCustomTail = new TextBox();
-            txtCustomTail.Width = 230;
+            txtCustomTail.Width = 120;
             txtCustomTail.Margin = new Padding(0, 2, 8, 0);
             txtCustomTail.KeyDown += OnCustomTailKeyDown;
             panel.Controls.Add(txtCustomTail);
@@ -749,17 +754,17 @@ namespace VideoMaterialRenamer
             }
         }
 
-        // 执行中条显隐与数值（导出/重命名共用）。
+        // 执行中条显隐与数值（导出/重命名共用）。文案与设计稿一致：
+        // "N% · 当前文件名"（导出=目标名，重命名=原名）。
         private void SetOperationProgressVisible(bool visible)
         {
+            operationPercentValue = 0;
+            operationCurrentFile = "";
             if (operationProgress != null)
             {
                 operationProgress.Value = 0;
             }
-            if (operationPercentLabel != null)
-            {
-                operationPercentLabel.Text = "0%";
-            }
+            UpdateOperationPercentText();
             if (btnCancelOperation != null)
             {
                 btnCancelOperation.Enabled = visible;
@@ -772,14 +777,31 @@ namespace VideoMaterialRenamer
 
         private void SetOperationProgressValue(int percent)
         {
-            int clamped = Math.Max(0, Math.Min(100, percent));
+            operationPercentValue = Math.Max(0, Math.Min(100, percent));
             if (operationProgress != null)
             {
-                operationProgress.Value = clamped;
+                operationProgress.Value = operationPercentValue;
             }
+            UpdateOperationPercentText();
+        }
+
+        private void SetOperationProgressFile(string fileName)
+        {
+            string name = fileName == null ? "" : fileName;
+            if (name != operationCurrentFile)
+            {
+                operationCurrentFile = name;
+                UpdateOperationPercentText();
+            }
+        }
+
+        private void UpdateOperationPercentText()
+        {
             if (operationPercentLabel != null)
             {
-                operationPercentLabel.Text = clamped + "%";
+                operationPercentLabel.Text = operationCurrentFile.Length == 0
+                    ? operationPercentValue + "%"
+                    : operationPercentValue + "% · " + operationCurrentFile;
             }
         }
 

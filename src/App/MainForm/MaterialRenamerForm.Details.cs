@@ -344,7 +344,7 @@ namespace VideoMaterialRenamer
             currentDetailNewName = "";
             currentDetailContext = "";
             detailTitleLabel.Text = "未选择素材";
-            detailInfoLabel.Text = "选中底部预览记录，或选中 B/C 中已有素材的单元格，可查看缩略图、分辨率和文件大小。";
+            detailInfoLabel.Text = "选中底部预览记录，或选中已有素材的主要/备用素材单元格，可查看缩略图、分辨率和文件大小。";
             detailPathLabel.Text = "";
             UpdateCustomTailControls(null);
             SetDetailImage(CreatePlaceholderImage("视频预览"), true);

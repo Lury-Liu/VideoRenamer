@@ -30,7 +30,7 @@ namespace VideoMaterialRenamer
             RefreshPreview();
             if (currentPlan.Count == 0)
             {
-                MessageBox.Show(this, "请先把视频拖到 " + GetMainColumnLetter() + " 或 " + GetBackupColumnLetter() + " 列。", "没有素材", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "请先把视频拖到「主要素材」或「备用素材」列。", "没有素材", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -122,6 +122,7 @@ namespace VideoMaterialRenamer
                 executionPlan,
                 delegate { return renameCancelRequested; },
                 delegate(int overallPercent) { SetOperationProgressValue(overallPercent); },
+                delegate(string fileName) { SetOperationProgressFile(fileName); },
                 delegate(PlanExecutor.ExecutionResult result)
             {
                 // 行模型写回统一走 PlanExecutor.PatchRowFileList，且发生在

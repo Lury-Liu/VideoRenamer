@@ -98,8 +98,8 @@ namespace VideoMaterialRenamer
             RefreshPreview();
             SelectGridCell(insertIndex, GetDefaultGridFocusColumn());
             StatusText = IsRowSceneEnabled()
-                ? "已新增一条空记录；A 列场号、B 列镜号可直接改成任意正整数。"
-                : "已新增一条空记录；A 列镜号可直接改成任意正整数。";
+                ? "已新增一条空记录；场号、镜号可直接改成任意正整数。"
+                : "已新增一条空记录；镜号可直接改成任意正整数。";
         }
 
         private void MoveCurrentRow(int direction)
@@ -126,8 +126,8 @@ namespace VideoMaterialRenamer
             RefreshPreview();
             SelectGridCell(targetIndex, columnIndex);
             StatusText = IsRowSceneEnabled()
-                ? "已移动当前行；A 列场号、B 列镜号保持不变。"
-                : "已移动当前行；A 列镜号保持不变。";
+                ? "已移动当前行；场号、镜号保持不变。"
+                : "已移动当前行；镜号保持不变。";
         }
 
         private void DeleteCurrentRow()
@@ -175,8 +175,8 @@ namespace VideoMaterialRenamer
             int nextRowIndex = Math.Min(currentRowIndex, rows.Count - 1);
             SelectGridCell(nextRowIndex, columnIndex);
             StatusText = IsRowSceneEnabled()
-                ? "已删除当前行，下方行已上移；A 列场号、B 列镜号保持不变。"
-                : "已删除当前行，下方行已上移；A 列镜号保持不变。";
+                ? "已删除当前行，下方行已上移；场号、镜号保持不变。"
+                : "已删除当前行，下方行已上移；镜号保持不变。";
         }
 
         private void ClearSelectedCellFiles()
@@ -239,8 +239,8 @@ namespace VideoMaterialRenamer
 
             RenderAll();
             StatusText = IsRowSceneEnabled()
-                ? "已删除尾部空白行；A 列场号、B 列镜号保持不变。"
-                : "已删除尾部空白行；A 列镜号保持不变。";
+                ? "已删除尾部空白行；场号、镜号保持不变。"
+                : "已删除尾部空白行；镜号保持不变。";
         }
 
         private void ClearAllMaterials()

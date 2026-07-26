@@ -250,6 +250,12 @@ namespace VideoMaterialRenamer
                 return;
             }
 
+            if (control is SlimProgressBar)
+            {
+                ((SlimProgressBar)control).ApplyBarTheme(dark);
+                return;
+            }
+
             if (control is ToolStrip)
             {
                 ApplyToolStrip((ToolStrip)control, dark);

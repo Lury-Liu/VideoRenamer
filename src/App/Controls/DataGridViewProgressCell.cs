@@ -73,6 +73,13 @@ namespace VideoMaterialRenamer
                 advancedBorderStyle,
                 paintParts & ~DataGridViewPaintParts.ContentForeground);
 
+            // 阶段10h（与设计稿一致）：进度列常显后，0% 单元格留白——
+            // 空闲表格不再排满 "0%" 进度条。
+            if (progress <= 0)
+            {
+                return;
+            }
+
             bool selected = (cellState & DataGridViewElementStates.Selected) == DataGridViewElementStates.Selected;
             Color textColor = selected ? cellStyle.SelectionForeColor : cellStyle.ForeColor;
             Color trackColor = ControlPaint.Light(selected ? cellStyle.SelectionBackColor : cellStyle.BackColor);

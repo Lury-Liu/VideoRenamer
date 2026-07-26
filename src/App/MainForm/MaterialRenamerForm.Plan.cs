@@ -84,24 +84,15 @@ namespace VideoMaterialRenamer
             rowSceneModeInitialized = true;
         }
 
+        // 阶段10h：列头去掉字母前缀（与设计稿一致）后，提示文案直接用列名。
         private string GetMainColumnDisplayName()
         {
-            return IsRowSceneEnabled() ? "C「主要素材」" : "B「主要素材」";
+            return "「主要素材」";
         }
 
         private string GetBackupColumnDisplayName()
         {
-            return IsRowSceneEnabled() ? "D「备用素材」" : "C「备用素材」";
-        }
-
-        private string GetMainColumnLetter()
-        {
-            return IsRowSceneEnabled() ? "C" : "B";
-        }
-
-        private string GetBackupColumnLetter()
-        {
-            return IsRowSceneEnabled() ? "D" : "C";
+            return "「备用素材」";
         }
 
         private static List<string> GetVideoFilePaths(string[] paths)

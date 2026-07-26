@@ -269,7 +269,8 @@ namespace VideoMaterialRenamer
             }
             else
             {
-                StatusText = string.Format("共 {0} 个视频，预览无冲突。{1} 列先编号，{2} 列接着编号。", currentPlan.Count, GetMainColumnLetter(), GetBackupColumnLetter());
+                // 阶段10h（与设计稿一致）：空闲就绪态用紧凑摘要。
+                StatusText = string.Format("就绪 · {0} 条待重命名", currentPlan.Count);
             }
         }
 
