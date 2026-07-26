@@ -18,10 +18,7 @@ namespace VideoMaterialRenamer
 {
     public static class LicenseManager
     {
-        private const string KeyPrefix = "VMR2";
-        private const string PayloadVersion = "RSA-SHA256";
         private const string StateVersion = "LicenseStateV2";
-        private const string PublicKeyXml = @"<RSAKeyValue><Modulus>wulgLKdZu8gG3znaPiWEoPD6VoMAyW7yMM3BqEStw/ajSwba89/IlUK+aTiILfzvwnCTCz5lnA9OzBGFpjwvUjl5GquNxKE44ff2a+0eu+FPbu04JzM/ArbM8Amk+KcYRUTXUY7H8dGkHKbJOrPsu3qFGksOd6cy6qpREl6tkL8P7d1YvA01ptz3dK2Ya3ch5qxqaiSXbCL5OllFH/P3GXOJzUixPWd2ulEHJZZO5kJSt8SkS8BG8XMmVbFj28VeU6xWKOJS8F9ZLmi0nS5VDptwihGIqWLDSuLzglXs8Lt6Jdbji6pkmm7Dr5NAelWiF8ibelOenEX0OEJ7xlsl2Q==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
         private const int RenewalReminderDays = 3;
         private const int ClockRollbackGraceMinutes = 10;
         private const string ClockRollbackMessage = "检测到 Windows 时间倒退。请重新获取新的激活码后再输入，原密钥不能继续解锁。";
@@ -208,84 +205,17 @@ namespace VideoMaterialRenamer
                 DateTime.UtcNow.AddMinutes(ClockRollbackGraceMinutes) < lastSeenUtc;
         }
 
+        // 验证逻辑已抽为纯函数 LicenseValidator（阶段8e）：本机机器码与
+        // 真实时钟仅在这里注入。
         private static bool ValidateLicenseKey(string key, out LicenseInfo info, out string error)
         {
-            info = null;
-            error = "";
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                error = "密钥为空。";
-                return false;
-            }
-
-            string[] parts = key.Trim().Split('.');
-            if (parts.Length != 3 || parts[0] != KeyPrefix)
-            {
-                error = "密钥格式不正确。";
-                return false;
-            }
-
-            byte[] payloadBytes;
-            byte[] signatureBytes;
-            try
-            {
-                payloadBytes = FromBase64Url(parts[1]);
-                signatureBytes = FromBase64Url(parts[2]);
-            }
-            catch
-            {
-                error = "密钥编码不正确。";
-                return false;
-            }
-
-            if (!VerifySignature(payloadBytes, signatureBytes))
-            {
-                error = "密钥签名无效。";
-                return false;
-            }
-
-            string payload = Encoding.UTF8.GetString(payloadBytes);
-            string[] fields = payload.Split('|');
-            if (fields.Length != 4 || fields[3] != PayloadVersion)
-            {
-                error = "密钥内容不完整。";
-                return false;
-            }
-
-            long ticks;
-            if (!long.TryParse(fields[1], out ticks))
-            {
-                error = "密钥日期无效。";
-                return false;
-            }
-
-            DateTime expiresUtc = new DateTime(ticks, DateTimeKind.Utc);
-            string currentMachine = GetMachineCode();
-            if (!StringComparer.OrdinalIgnoreCase.Equals(fields[0], currentMachine))
-            {
-                error = "密钥不属于本机。请把本机机器码发给授权方重新生成密钥。";
-                return false;
-            }
-
-            if (DateTime.UtcNow > expiresUtc)
-            {
-                error = "密钥已过期。";
-                return false;
-            }
-
-            info = new LicenseInfo
-            {
-                MachineCode = fields[0],
-                ExpiresUtc = expiresUtc,
-                Nonce = fields[2]
-            };
-            return true;
+            return LicenseValidator.Validate(key, GetMachineCode(), DateTime.UtcNow, out info, out error);
         }
 
         private static void SaveState(string key, DateTime lastSeenUtc)
         {
             Directory.CreateDirectory(LicenseDirectory);
-            string keyHash = ToBase64Url(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(key)));
+            string keyHash = Base64Url.To(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(key)));
             string payload = StateVersion + "|" + GetMachineCode() + "|" + keyHash + "|" + lastSeenUtc.Ticks.ToString();
             WriteProtectedText(StatePath, payload, "license-state");
         }
@@ -307,7 +237,7 @@ namespace VideoMaterialRenamer
                     return false;
                 }
 
-                string keyHash = ToBase64Url(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(key)));
+                string keyHash = Base64Url.To(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(key)));
                 if (!StringComparer.Ordinal.Equals(parts[0], StateVersion) ||
                     !StringComparer.Ordinal.Equals(parts[1], GetMachineCode()) ||
                     !StringComparer.Ordinal.Equals(parts[2], keyHash))
@@ -330,34 +260,17 @@ namespace VideoMaterialRenamer
             }
         }
 
-        private static bool VerifySignature(byte[] payloadBytes, byte[] signatureBytes)
-        {
-            using (RSACryptoServiceProvider rsa = CreateRsaProvider())
-            {
-                rsa.FromXmlString(PublicKeyXml);
-                return rsa.VerifyData(payloadBytes, CryptoConfig.MapNameToOID("SHA256"), signatureBytes);
-            }
-        }
-
-        private static RSACryptoServiceProvider CreateRsaProvider()
-        {
-            CspParameters parameters = new CspParameters();
-            parameters.ProviderType = 24;
-            parameters.ProviderName = "Microsoft Enhanced RSA and AES Cryptographic Provider";
-            return new RSACryptoServiceProvider(parameters);
-        }
-
         private static void WriteProtectedText(string path, string text, string purpose)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             byte[] clearBytes = Encoding.UTF8.GetBytes(text ?? "");
             byte[] protectedBytes = ProtectedData.Protect(clearBytes, GetDpapiEntropy(purpose), DataProtectionScope.CurrentUser);
-            File.WriteAllText(path, ToBase64Url(protectedBytes), Encoding.UTF8);
+            File.WriteAllText(path, Base64Url.To(protectedBytes), Encoding.UTF8);
         }
 
         private static string ReadProtectedText(string path, string purpose)
         {
-            byte[] protectedBytes = FromBase64Url(File.ReadAllText(path, Encoding.UTF8).Trim());
+            byte[] protectedBytes = Base64Url.From(File.ReadAllText(path, Encoding.UTF8).Trim());
             byte[] clearBytes = ProtectedData.Unprotect(protectedBytes, GetDpapiEntropy(purpose), DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(clearBytes);
         }
@@ -365,26 +278,6 @@ namespace VideoMaterialRenamer
         private static byte[] GetDpapiEntropy(string purpose)
         {
             return SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes("VideoMaterialRenamer|" + purpose + "|" + GetMachineCode()));
-        }
-
-        private static string ToBase64Url(byte[] bytes)
-        {
-            return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        }
-
-        private static byte[] FromBase64Url(string value)
-        {
-            string base64 = value.Replace('-', '+').Replace('_', '/');
-            switch (base64.Length % 4)
-            {
-                case 2:
-                    base64 += "==";
-                    break;
-                case 3:
-                    base64 += "=";
-                    break;
-            }
-            return Convert.FromBase64String(base64);
         }
     }
 }

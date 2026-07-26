@@ -29,6 +29,7 @@ namespace VideoMaterialRenamer.Tests
             cases.AddRange(CoreTests.Cases());
             cases.AddRange(MediaTests.Cases());
             cases.AddRange(ServicesTests.Cases());
+            cases.AddRange(LicensingTests.Cases());
             cases.AddRange(GoldenMasterTests.Cases());
             return cases;
         }
