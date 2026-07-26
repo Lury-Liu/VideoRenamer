@@ -287,7 +287,7 @@ namespace VideoMaterialRenamer
                 "expansion=none";
         }
 
-        private static string BuildFfmpegArguments(string inputPath, string outputPath, bool copyAudio, string watermarkText)
+        internal static string BuildFfmpegArguments(string inputPath, string outputPath, bool copyAudio, string watermarkText)
         {
             List<string> args = new List<string>();
             args.Add("-hide_banner");

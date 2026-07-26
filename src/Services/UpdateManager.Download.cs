@@ -317,7 +317,7 @@ namespace VideoMaterialRenamer
             return "\"" + (value ?? "").Replace("\"", "\\\"") + "\"";
         }
 
-        private static string GetReleaseAssetApiUrl(string releaseJson, string assetName)
+        internal static string GetReleaseAssetApiUrl(string releaseJson, string assetName)
         {
             if (string.IsNullOrWhiteSpace(releaseJson) || string.IsNullOrWhiteSpace(assetName))
             {

@@ -19,12 +19,12 @@ namespace VideoMaterialRenamer
     public partial class MaterialRenamerForm
     {
 
-        private static string EncodeHistoryValue(string value)
+        internal static string EncodeHistoryValue(string value)
         {
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(value ?? ""));
         }
 
-        private static string DecodeHistoryValue(string value)
+        internal static string DecodeHistoryValue(string value)
         {
             return Encoding.UTF8.GetString(Convert.FromBase64String(value ?? ""));
         }

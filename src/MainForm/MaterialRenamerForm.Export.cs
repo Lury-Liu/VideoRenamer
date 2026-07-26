@@ -19,7 +19,7 @@ namespace VideoMaterialRenamer
     public partial class MaterialRenamerForm
     {
 
-        private static RenamePlan CloneRenamePlan(RenamePlan entry)
+        internal static RenamePlan CloneRenamePlan(RenamePlan entry)
         {
             if (entry == null)
             {
@@ -47,7 +47,7 @@ namespace VideoMaterialRenamer
             };
         }
 
-        private static List<RenamePlan> PrepareExportPlan(List<RenamePlan> sourcePlan, ExportOutputMode outputMode)
+        internal static List<RenamePlan> PrepareExportPlan(List<RenamePlan> sourcePlan, ExportOutputMode outputMode)
         {
             List<RenamePlan> prepared = new List<RenamePlan>();
             Dictionary<string, bool> targets = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);

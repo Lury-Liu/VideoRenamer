@@ -129,28 +129,6 @@ namespace VideoMaterialRenamer
             }
         }
 
-        public static void RunSelfTest()
-        {
-            string json = "{\"appId\":\"VideoMaterialRenamer\",\"version\":\"1.0.5.99\",\"displayVersion\":\"V1.0.5.99\",\"downloadUrl\":\"https://example.com/app.exe\",\"sha256\":\"ABCDEF\",\"fileName\":\"视频素材镜头表命名工具.exe\",\"notes\":\"测试更新\"}";
-            UpdateInfo info = ParseManifest(json);
-            if (info == null || info.Version != "1.0.5.99" || info.DownloadUrl != "https://example.com/app.exe" || info.Notes != "测试更新")
-            {
-                throw new Exception("更新清单解析测试失败。");
-            }
-
-            if (!IsNewerVersion("1.0.5.99", "V1.0.5.26") || IsNewerVersion("1.0.5.1", "V1.0.5.26"))
-            {
-                throw new Exception("更新版本比较测试失败。");
-            }
-
-            string apiJson = "{\"assets\":[{\"name\":\"VideoRenamer-v1.0.5.99.exe\",\"url\":\"https://api.github.com/repos/Lury-Liu/VideoRenamer/releases/assets/1\"},{\"name\":\"latest.json\",\"url\":\"https://api.github.com/repos/Lury-Liu/VideoRenamer/releases/assets/2\"}]}";
-            string manifestAssetUrl = GetReleaseAssetApiUrl(apiJson, "latest.json");
-            if (manifestAssetUrl != "https://api.github.com/repos/Lury-Liu/VideoRenamer/releases/assets/2")
-            {
-                throw new Exception("GitHub Release 资产解析测试失败：" + manifestAssetUrl);
-            }
-        }
-
         private static bool IsRunningPackagedExecutable()
         {
             try
@@ -257,7 +235,7 @@ namespace VideoMaterialRenamer
             return client;
         }
 
-        private static UpdateInfo ParseManifest(string json)
+        internal static UpdateInfo ParseManifest(string json)
         {
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -326,7 +304,7 @@ namespace VideoMaterialRenamer
             });
         }
 
-        private static bool IsNewerVersion(string remoteVersionText, string currentVersionText)
+        internal static bool IsNewerVersion(string remoteVersionText, string currentVersionText)
         {
             Version remoteVersion;
             Version currentVersion;
