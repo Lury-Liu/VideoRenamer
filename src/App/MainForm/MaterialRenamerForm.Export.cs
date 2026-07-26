@@ -32,24 +32,7 @@ namespace VideoMaterialRenamer
                 {
                     foreach (RenameOperation op in outcome.Successes)
                     {
-                        if (op.Row == null)
-                        {
-                            continue;
-                        }
-
-                        List<string> files = op.IsMain ? op.Row.MainFiles : op.Row.BackupFiles;
-                        if (op.FileIndex >= 0 && op.FileIndex < files.Count && StringComparer.OrdinalIgnoreCase.Equals(files[op.FileIndex], op.OriginalPath))
-                        {
-                            files[op.FileIndex] = op.RenamedPath;
-                        }
-                        else
-                        {
-                            int currentIndex = files.FindIndex(p => StringComparer.OrdinalIgnoreCase.Equals(p, op.OriginalPath));
-                            if (currentIndex >= 0)
-                            {
-                                files[currentIndex] = op.RenamedPath;
-                            }
-                        }
+                        PlanExecutor.PatchRowFileList(op);
                     }
 
                     RenderAll();

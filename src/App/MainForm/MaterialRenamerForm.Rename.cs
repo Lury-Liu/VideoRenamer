@@ -111,63 +111,38 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            List<string> failures = new List<string>();
-            List<RenameOperation> successfulOperations = new List<RenameOperation>();
-            foreach (RenamePlan entry in currentPlan)
+            // 行为变化（阶段5c）：File.Move 循环移入工作线程执行——大批量或
+            // 网络盘素材不再冻结整个窗口；执行期间界面整体锁定并逐文件报进度。
+            List<RenamePlan> executionPlan = currentPlan.ToList();
+            SetOperationUiEnabled(false);
+            StatusText = "正在重命名，请等待...";
+            renameController.ExecuteAsync(executionPlan, delegate(PlanExecutor.ExecutionResult result)
             {
-                try
+                // 行模型写回统一走 PlanExecutor.PatchRowFileList，且发生在
+                // UI 线程（工作线程决不并发改行列表）。
+                foreach (RenameOperation op in result.Successes)
                 {
-                    string originalPath = entry.OldPath;
-                    string renamedPath = entry.TargetPath;
-                    if (!StringComparer.OrdinalIgnoreCase.Equals(entry.OldPath, entry.TargetPath))
-                    {
-                        File.Move(entry.OldPath, entry.TargetPath);
-                    }
-
-                    if (entry.IsMain)
-                    {
-                        entry.Row.MainFiles[entry.FileIndex] = entry.TargetPath;
-                    }
-                    else
-                    {
-                        entry.Row.BackupFiles[entry.FileIndex] = entry.TargetPath;
-                    }
-
-                    if (!StringComparer.OrdinalIgnoreCase.Equals(originalPath, renamedPath))
-                    {
-                        successfulOperations.Add(new RenameOperation
-                        {
-                            Row = entry.Row,
-                            RowIndex = entry.RowIndex,
-                            IsMain = entry.IsMain,
-                            FileIndex = entry.FileIndex,
-                            OriginalPath = originalPath,
-                            RenamedPath = renamedPath
-                        });
-                    }
+                    PlanExecutor.PatchRowFileList(op);
                 }
-                catch (Exception ex)
+
+                if (result.Successes.Count > 0)
                 {
-                    failures.Add(entry.OldName + ": " + ex.Message);
+                    undoStack.Push(result.Successes);
+                    SaveRenameHistory(result.Successes);
                 }
-            }
 
-            if (successfulOperations.Count > 0)
-            {
-                undoStack.Push(successfulOperations);
-                SaveRenameHistory(successfulOperations);
-            }
+                SetOperationUiEnabled(true);
+                RenderAll();
 
-            RenderAll();
-
-            if (failures.Count > 0)
-            {
-                MessageBox.Show(this, string.Join("\r\n", failures.Take(8).ToArray()), "部分文件重命名失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            else
-            {
-                MessageBox.Show(this, "已处理 " + currentPlan.Count + " 个视频文件。", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+                if (result.Failures.Count > 0)
+                {
+                    MessageBox.Show(this, string.Join("\r\n", result.Failures.Take(8).ToArray()), "部分文件重命名失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                else
+                {
+                    MessageBox.Show(this, "已处理 " + executionPlan.Count + " 个视频文件。", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            });
         }
     }
 }

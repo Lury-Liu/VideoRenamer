@@ -52,6 +52,8 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("history_value_roundtrip", HistoryValueRoundtrip));
             cases.Add(new TestCase("history_encode_golden", HistoryEncodeGolden));
             cases.Add(new TestCase("history_tsv_save_load_roundtrip", HistoryTsvSaveLoadRoundtrip));
+            cases.Add(new TestCase("plan_executor_moves_and_reports", PlanExecutorMovesAndReports));
+            cases.Add(new TestCase("patch_row_file_list_variants", PatchRowFileListVariants));
             cases.Add(new TestCase("unique_path_with_suffix_first_candidate", UniquePathWithSuffixFirstCandidate));
             cases.Add(new TestCase("unique_path_with_suffix_counter_and_default", UniquePathWithSuffixCounterAndDefault));
             return cases;
@@ -634,6 +636,57 @@ namespace VideoMaterialRenamer.Tests
                 File.WriteAllText(path, "WrongHeader\r\n1\t1\t0\ta\tb");
                 TestAssert.AreEqual(0, RenameHistoryStore.Load(path).Count, "wrong header loads empty");
             });
+        }
+
+        private static void PlanExecutorMovesAndReports()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string source = Path.Combine(dir, "a.mp4");
+                string target = Path.Combine(dir, "E1-S1-1-T1.mp4");
+                string unchanged = Path.Combine(dir, "same.mp4");
+                File.WriteAllText(source, "x");
+                File.WriteAllText(unchanged, "y");
+
+                ShotRow row = new ShotRow { Sequence = 1 };
+                List<RenamePlan> plan = new List<RenamePlan>();
+                plan.Add(new RenamePlan { Row = row, RowIndex = 1, IsMain = true, FileIndex = 0, OldPath = source, TargetPath = target, OldName = "a.mp4", NewName = "E1-S1-1-T1.mp4" });
+                plan.Add(new RenamePlan { Row = row, RowIndex = 1, IsMain = true, FileIndex = 1, OldPath = unchanged, TargetPath = unchanged, OldName = "same.mp4", NewName = "same.mp4" });
+                plan.Add(new RenamePlan { Row = row, RowIndex = 1, IsMain = true, FileIndex = 2, OldPath = Path.Combine(dir, "missing.mp4"), TargetPath = Path.Combine(dir, "E1-S1-1-T3.mp4"), OldName = "missing.mp4", NewName = "E1-S1-1-T3.mp4" });
+
+                int started = 0;
+                PlanExecutor.ExecutionResult result = PlanExecutor.Execute(plan, delegate(RenamePlan entry, int index) { started++; });
+
+                TestAssert.AreEqual(3, started, "per-file callback fired for every entry");
+                TestAssert.AreEqual(1, result.Successes.Count, "only the real move counts as success");
+                TestAssert.AreEqual(source, result.Successes[0].OriginalPath, "success original path");
+                TestAssert.AreEqual(1, result.Failures.Count, "missing source reported as failure");
+                TestAssert.IsTrue(File.Exists(target), "file physically renamed");
+                TestAssert.IsFalse(File.Exists(source), "source gone after rename");
+                TestAssert.IsTrue(File.Exists(unchanged), "unchanged file untouched");
+            });
+        }
+
+        private static void PatchRowFileListVariants()
+        {
+            ShotRow row = new ShotRow();
+            row.MainFiles.Add(@"C:\V\a.mp4");
+            row.MainFiles.Add(@"C:\V\b.mp4");
+
+            // 1. 索引+路径匹配：原位写回。
+            PlanExecutor.PatchRowFileList(row, true, 0, @"C:\V\a.mp4", @"C:\V\a2.mp4");
+            TestAssert.AreEqual(@"C:\V\a2.mp4", row.MainFiles[0], "index-match patch");
+
+            // 2. 索引失配：按路径 FindIndex 兜底。
+            PlanExecutor.PatchRowFileList(row, true, 0, @"C:\V\b.mp4", @"C:\V\b2.mp4");
+            TestAssert.AreEqual(@"C:\V\b2.mp4", row.MainFiles[1], "fallback FindIndex patch");
+
+            // 3. 路径不存在：不动任何项。
+            PlanExecutor.PatchRowFileList(row, true, 0, @"C:\V\nope.mp4", @"C:\V\x.mp4");
+            TestAssert.AreEqual(@"C:\V\a2.mp4", row.MainFiles[0], "missing path leaves list untouched");
+
+            // 4. null 行：安全无操作。
+            PlanExecutor.PatchRowFileList(null, true, 0, "a", "b");
         }
 
         private static void UniquePathWithSuffixFirstCandidate()

@@ -78,22 +78,8 @@ namespace VideoMaterialRenamer
                         File.Move(op.RenamedPath, op.OriginalPath);
                     }
 
-                    if (op.Row != null)
-                    {
-                        List<string> files = op.IsMain ? op.Row.MainFiles : op.Row.BackupFiles;
-                        if (op.FileIndex >= 0 && op.FileIndex < files.Count && StringComparer.OrdinalIgnoreCase.Equals(files[op.FileIndex], op.RenamedPath))
-                        {
-                            files[op.FileIndex] = op.OriginalPath;
-                        }
-                        else
-                        {
-                            int currentIndex = files.FindIndex(p => StringComparer.OrdinalIgnoreCase.Equals(p, op.RenamedPath));
-                            if (currentIndex >= 0)
-                            {
-                                files[currentIndex] = op.OriginalPath;
-                            }
-                        }
-                    }
+                    // 还原方向的写回：RenamedPath → OriginalPath（统一实现）。
+                    PlanExecutor.PatchRowFileList(op.Row, op.IsMain, op.FileIndex, op.RenamedPath, op.OriginalPath);
                 }
                 catch (Exception ex)
                 {

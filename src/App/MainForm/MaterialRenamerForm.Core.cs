@@ -39,6 +39,7 @@ namespace VideoMaterialRenamer
         private readonly ThumbnailCache thumbnailCache = new ThumbnailCache(ThumbnailCacheLimit);
         private readonly MediaLoadScheduler mediaScheduler = new MediaLoadScheduler();
         private readonly ExportController exportController;
+        private readonly RenameController renameController;
         private readonly HashSet<string> pendingVideoInfoLoads = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> pendingThumbnailLoads = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly LicenseInfo activeLicenseInfo;
@@ -89,6 +90,7 @@ namespace VideoMaterialRenamer
         {
             activeLicenseInfo = licenseInfo;
             exportController = new ExportController(this, this);
+            renameController = new RenameController(this, this);
             darkMode = UiTheme.DetectWindowsDarkMode();
             for (int i = 1; i <= AppInfo.DefaultRowCount; i++)
             {
