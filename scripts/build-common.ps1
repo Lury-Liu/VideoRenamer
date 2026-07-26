@@ -55,7 +55,7 @@ function Get-ReferenceAssemblies {
 function Get-AppVersion {
     # Numeric version from src/AppInfo.cs (display form "V1.0.6.0" -> returns "1.0.6.0").
     param([string]$Root = $script:RepoRoot)
-    $appInfoPath = Join-Path $Root "src\AppInfo.cs"
+    $appInfoPath = Join-Path $Root "src\App\AppInfo.cs"
     if (!(Test-Path -LiteralPath $appInfoPath)) {
         throw "AppInfo.cs not found: $appInfoPath"
     }
@@ -69,7 +69,7 @@ function Get-AppVersion {
 
 function Get-AssemblyFileVersion {
     param([string]$Root = $script:RepoRoot)
-    $asmInfoPath = Join-Path $Root "src\AssemblyInfo.cs"
+    $asmInfoPath = Join-Path $Root "src\App\AssemblyInfo.cs"
     if (!(Test-Path -LiteralPath $asmInfoPath)) {
         throw "AssemblyInfo.cs not found: $asmInfoPath"
     }
