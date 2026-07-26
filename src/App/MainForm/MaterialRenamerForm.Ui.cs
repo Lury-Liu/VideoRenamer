@@ -38,11 +38,12 @@ namespace VideoMaterialRenamer
             AppIcon.Apply(this);
         }
 
+        // 阶段10b：动作按钮迁往各自作用区的工具条后，头部只剩命名设置一行。
         private void BuildHeaderArea()
         {
             Panel headerHost = new Panel();
             headerHost.Dock = DockStyle.Top;
-            headerHost.Height = 100;
+            headerHost.Height = 52;
             Controls.Add(headerHost);
 
             Panel topPanel = new Panel();
@@ -52,7 +53,6 @@ namespace VideoMaterialRenamer
             headerHost.Controls.Add(topPanel);
 
             BuildSettingsRow(topPanel);
-            BuildActionBar(topPanel);
         }
 
         private void BuildSettingsRow(Panel topPanel)
@@ -128,55 +128,57 @@ namespace VideoMaterialRenamer
             settingsPanel.Controls.Add(btnAbout);
         }
 
-        private void BuildActionBar(Panel topPanel)
+        // 镜头表工具条（阶段10b）：行结构操作与素材操作紧挨其作用对象——表格。
+        private Control BuildShotTableToolbar()
         {
-            FlowLayoutPanel actionBar = new FlowLayoutPanel();
-            actionBar.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            actionBar.BackColor = UiTheme.PanelBack(darkMode);
-            actionBar.FlowDirection = FlowDirection.LeftToRight;
-            actionBar.WrapContents = false;
-            actionBar.Location = new Point(14, 48);
-            actionBar.Size = new Size(1196, 36);
-            actionBar.Padding = new Padding(0);
-            actionBar.Margin = new Padding(0);
-            topPanel.Controls.Add(actionBar);
+            FlowLayoutPanel toolbar = new FlowLayoutPanel();
+            toolbar.Dock = DockStyle.Fill;
+            toolbar.FlowDirection = FlowDirection.LeftToRight;
+            toolbar.WrapContents = false;
+            toolbar.Padding = new Padding(4, 0, 4, 0);
+            toolbar.Margin = new Padding(0);
+
+            Label zoneTitle = new Label();
+            zoneTitle.Text = "镜头表";
+            zoneTitle.AutoSize = true;
+            zoneTitle.Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
+            zoneTitle.Margin = new Padding(0, 7, 12, 0);
+            toolbar.Controls.Add(zoneTitle);
 
             Button btnAddRow = NewButton("新增行", 72);
             btnAddRow.Click += delegate { AddEmptyRow(); };
-            actionBar.Controls.Add(btnAddRow);
+            toolbar.Controls.Add(btnAddRow);
 
             Button btnMoveRowUp = NewButton("上移", 58);
             btnMoveRowUp.Click += delegate { MoveCurrentRow(-1); };
-            actionBar.Controls.Add(btnMoveRowUp);
+            toolbar.Controls.Add(btnMoveRowUp);
 
             Button btnMoveRowDown = NewButton("下移", 58);
             btnMoveRowDown.Click += delegate { MoveCurrentRow(1); };
-            actionBar.Controls.Add(btnMoveRowDown);
+            toolbar.Controls.Add(btnMoveRowDown);
 
             Button btnDeleteRow = NewButton("删除行", 72);
             btnDeleteRow.Click += delegate { DeleteCurrentRow(); };
-            actionBar.Controls.Add(btnDeleteRow);
-            actionBar.Controls.Add(NewActionSeparator());
-
-            Button btnImportCell = NewButton("导入素材", 82);
-            btnImportCell.Click += delegate { ImportSelectedCell(); };
-            actionBar.Controls.Add(btnImportCell);
-
-            Button btnDeleteRecord = NewButton("删除记录", 82);
-            btnDeleteRecord.Click += delegate { DeleteSelectedPreviewRecord(); };
-            actionBar.Controls.Add(btnDeleteRecord);
-
-            Button btnClearCell = NewButton("清空格", 72);
-            btnClearCell.Click += delegate { ClearSelectedCellFiles(); };
-            actionBar.Controls.Add(btnClearCell);
+            toolbar.Controls.Add(btnDeleteRow);
 
             Button btnRemoveTail = NewButton("删除空尾行", 100);
             btnRemoveTail.Click += delegate { RemoveEmptyTailRows(); };
-            actionBar.Controls.Add(btnRemoveTail);
+            toolbar.Controls.Add(btnRemoveTail);
+            toolbar.Controls.Add(NewActionSeparator());
+
+            Button btnImportCell = NewButton("导入素材", 82);
+            btnImportCell.Click += delegate { ImportSelectedCell(); };
+            toolbar.Controls.Add(btnImportCell);
+
+            Button btnClearCell = NewButton("清空格", 72);
+            btnClearCell.Click += delegate { ClearSelectedCellFiles(); };
+            toolbar.Controls.Add(btnClearCell);
 
             Button btnClearAll = NewButton("全局清空", 88);
             btnClearAll.Click += delegate { ClearAllMaterials(); };
-            actionBar.Controls.Add(btnClearAll);
+            toolbar.Controls.Add(btnClearAll);
+
+            return toolbar;
         }
 
         // 底部执行栏（阶段10a，标注：布局变更）：状态文本、导出选项、
@@ -267,6 +269,15 @@ namespace VideoMaterialRenamer
 
         private void BuildShotGrid(SplitterPanel host)
         {
+            TableLayoutPanel gridShell = new TableLayoutPanel();
+            gridShell.Dock = DockStyle.Fill;
+            gridShell.ColumnCount = 1;
+            gridShell.RowCount = 2;
+            gridShell.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+            gridShell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            host.Controls.Add(gridShell);
+            gridShell.Controls.Add(BuildShotTableToolbar(), 0, 0);
+
             grid = new DoubleBufferedGridView();
             grid.Dock = DockStyle.Fill;
             grid.AllowDrop = true;
@@ -329,7 +340,7 @@ namespace VideoMaterialRenamer
             grid.Columns.Add(colBackup);
             grid.Columns.Add(colProgress);
             ApplyGridColumnLayout();
-            host.Controls.Add(grid);
+            gridShell.Controls.Add(grid, 0, 1);
         }
 
         private void BuildPreviewArea(SplitterPanel host)
@@ -350,7 +361,7 @@ namespace VideoMaterialRenamer
             previewTitle.Padding = new Padding(4, 6, 0, 0);
             previewShell.Controls.Add(previewTitle, 0, 0);
 
-            previewShell.Controls.Add(BuildCustomTailPanel(), 0, 1);
+            previewShell.Controls.Add(BuildPreviewToolbar(), 0, 1);
 
             Panel previewBody = new Panel();
             previewBody.Dock = DockStyle.Fill;
@@ -481,7 +492,9 @@ namespace VideoMaterialRenamer
             return panel;
         }
 
-        private Control BuildCustomTailPanel()
+        // 预览工具条（阶段10b）：删除记录作用于预览选中项，随自定义末尾
+        // 工具一起紧挨预览列表。
+        private Control BuildPreviewToolbar()
         {
             FlowLayoutPanel panel = new FlowLayoutPanel();
             panel.Dock = DockStyle.Fill;
@@ -489,6 +502,12 @@ namespace VideoMaterialRenamer
             panel.WrapContents = false;
             panel.Padding = new Padding(6, 6, 6, 4);
             panel.Margin = new Padding(0);
+
+            Button btnDeleteRecord = NewButton("删除记录", 82);
+            btnDeleteRecord.Click += delegate { DeleteSelectedPreviewRecord(); };
+            btnDeleteRecord.Margin = new Padding(0, 0, 4, 0);
+            panel.Controls.Add(btnDeleteRecord);
+            panel.Controls.Add(NewActionSeparator());
 
             Label label = new Label();
             label.Text = "新文件名末尾";
