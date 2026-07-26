@@ -8,18 +8,16 @@ if ($PSScriptRoot) {
     Set-Location -LiteralPath $PSScriptRoot
 }
 
-# Source is now modularized under src/. All *.cs files are compiled together
+# Source is modularized under src/. All *.cs files are compiled together
 # into a single in-memory assembly (equivalent to the former single here-string).
-$srcDir = Join-Path $PSScriptRoot "src"
-if (!(Test-Path -LiteralPath $srcDir)) {
-    throw "找不到源码目录：$srcDir（从源码运行需要 src\ 文件夹与本脚本放在一起）。"
-}
+# NOTE: this dev loop has no embedded ffmpeg resource, so media features
+# (thumbnails / hover-scrub / export) silently no-op unless a loose ffmpeg.exe
+# is found on the runtime search path. Build the EXE for full functionality.
+. (Join-Path $PSScriptRoot "scripts\build-common.ps1")
 
-$sourceFiles = Get-ChildItem -LiteralPath $srcDir -Recurse -Filter *.cs |
-    Sort-Object FullName |
-    Select-Object -ExpandProperty FullName
+$sourceFiles = Get-SourceFiles
 
-Add-Type -Path $sourceFiles -ReferencedAssemblies @("System.Windows.Forms.dll", "System.Drawing.dll", "System.Core.dll", "System.Security.dll")
+Add-Type -Path $sourceFiles -ReferencedAssemblies (Get-ReferenceAssemblies)
 
 if ($SelfTest) {
     [VideoMaterialRenamer.MaterialRenamerForm]::RunSelfTest()

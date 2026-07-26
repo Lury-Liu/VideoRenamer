@@ -1,14 +1,17 @@
-param(
+﻿param(
     [string]$Owner = "Lury-Liu",
     [string]$Repo = "VideoRenamer",
     [string]$ExePath = "",
-    [string]$Notes = "Improve user experience and fix known issues."
+    [string]$Notes = "Improve user experience and fix known issues.",
+    [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
 if ($PSScriptRoot) {
     Set-Location -LiteralPath $PSScriptRoot
 }
+
+. (Join-Path $PSScriptRoot "scripts\build-common.ps1")
 
 Add-Type -AssemblyName System.Windows.Forms
 
@@ -138,31 +141,18 @@ function Resolve-DefaultExePath {
     throw "No EXE found in dist."
 }
 
-function Get-SourceVersion {
-    $sourcePath = Join-Path (Get-Location).Path "video_material_renamer.ps1"
-    if (!(Test-Path -LiteralPath $sourcePath)) {
-        return ""
+if (-not $DryRun) {
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+    if ($null -eq $gh) {
+        throw "GitHub CLI was not found. Install GitHub CLI and run: gh auth login"
     }
 
-    $text = Get-Content -Raw -LiteralPath $sourcePath
-    $match = [regex]::Match($text, 'public\s+const\s+string\s+Version\s*=\s*"V(?<version>\d+(?:\.\d+){1,3})"')
-    if ($match.Success) {
-        return $match.Groups["version"].Value
+    $authToken = & gh auth token 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($authToken)) {
+        throw "GitHub CLI is not logged in. Run this first: gh auth login"
     }
-
-    return ""
+    $authToken = $null
 }
-
-$gh = Get-Command gh -ErrorAction SilentlyContinue
-if ($null -eq $gh) {
-    throw "GitHub CLI was not found. Install GitHub CLI and run: gh auth login"
-}
-
-$authToken = & gh auth token 2>$null
-if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($authToken)) {
-    throw "GitHub CLI is not logged in. Run this first: gh auth login"
-}
-$authToken = $null
 
 if ([string]::IsNullOrWhiteSpace($ExePath)) {
     $resolvedExe = Resolve-DefaultExePath
@@ -177,10 +167,16 @@ if ([string]::IsNullOrWhiteSpace($version)) {
     throw "Cannot read EXE file version: $resolvedExe"
 }
 
-$sourceVersion = Get-SourceVersion
-if (![string]::IsNullOrWhiteSpace($sourceVersion) -and $version -ne $sourceVersion) {
+# Hard version guard: the EXE being published must match src/AppInfo.cs exactly.
+# (Get-AppVersion throws if the constant cannot be parsed - no silent skip.)
+$sourceVersion = Get-AppVersion
+if ($version -ne $sourceVersion) {
     throw "Selected EXE version is $version, but source version is $sourceVersion. Build the current version before publishing."
 }
+Assert-VersionConsistency | Out-Null
+
+# Hard test gate: refuse to publish unless self-test and smoke test pass.
+Invoke-TestGate
 
 $tag = "v$version"
 $displayVersion = "V$version"
@@ -210,6 +206,16 @@ $manifest = [ordered]@{
 $json = $manifest | ConvertTo-Json -Depth 4
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($manifestPath, $json, $utf8NoBom)
+
+if ($DryRun) {
+    Write-Host ""
+    Write-Host "[DryRun] All publish gates passed. Stopping before upload." -ForegroundColor Green
+    Write-Host "[DryRun] Would publish: $displayVersion to $fullRepo"
+    Write-Host "[DryRun] Asset: $uploadExePath"
+    Write-Host "[DryRun] Manifest: $manifestPath"
+    Write-Host "[DryRun] sha256: $sha256"
+    return
+}
 
 $confirmText = @"
 Ready to upload update to GitHub.

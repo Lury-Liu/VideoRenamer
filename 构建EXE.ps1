@@ -1,5 +1,6 @@
 ﻿param(
-    [string]$OutputName = "视频素材镜头表命名工具.exe"
+    [string]$OutputName = "视频素材镜头表命名工具.exe",
+    [switch]$AllowNoFfmpeg
 )
 
 $ErrorActionPreference = "Stop"
@@ -8,11 +9,10 @@ if ($PSScriptRoot) {
     Set-Location -LiteralPath $PSScriptRoot
 }
 
+. (Join-Path $PSScriptRoot "scripts\build-common.ps1")
+
 $root = (Get-Location).Path
-$mainScript = Join-Path $root "video_material_renamer.ps1"
-$buildDir = Join-Path $root "build"
 $distDir = Join-Path $root "dist"
-$generatedSource = Join-Path $buildDir "VideoMaterialRenamer.generated.cs"
 $outputExe = Join-Path $distDir $OutputName
 $iconPath = Join-Path $root "assets\app.ico"
 $ffmpegResourceCandidates = @(
@@ -20,20 +20,11 @@ $ffmpegResourceCandidates = @(
     (Join-Path $root "dist\tools\ffmpeg.exe")
 )
 
-if (!(Test-Path -LiteralPath $mainScript)) {
-    throw "找不到主程序脚本：$mainScript"
-}
+# 版本一致性检查：src/AppInfo.cs 与 src/AssemblyInfo.cs 必须一致（发布脚本依赖 EXE FileVersion）
+$version = Assert-VersionConsistency
+Write-Host "版本号：$version"
 
-$srcDir = Join-Path $root "src"
-if (!(Test-Path -LiteralPath $srcDir)) {
-    throw "找不到源码目录：$srcDir"
-}
-$sourceFiles = Get-ChildItem -LiteralPath $srcDir -Recurse -Filter *.cs |
-    Sort-Object FullName |
-    Select-Object -ExpandProperty FullName
-if (!$sourceFiles) {
-    throw "src 目录下没有找到任何 .cs 源码文件。"
-}
+$sourceFiles = Get-SourceFiles
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
@@ -60,20 +51,25 @@ if (Test-Path -LiteralPath $iconPath) {
 
 $ffmpegResource = $ffmpegResourceCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if (![string]::IsNullOrWhiteSpace($ffmpegResource)) {
-    $arguments += "/resource:$ffmpegResource,VideoMaterialRenamer.ffmpeg.exe"
+    $arguments += "/resource:$ffmpegResource,$($script:FfmpegResourceName)"
+}
+elseif ($AllowNoFfmpeg) {
+    Write-Warning "未找到 ffmpeg.exe，生成的 EXE 将不包含内置 FFmpeg（-AllowNoFfmpeg 已指定）。"
 }
 else {
-    Write-Warning "未找到 ffmpeg.exe，生成的 EXE 将不包含内置 FFmpeg。"
+    throw "未找到 tools\ffmpeg.exe。缺少内置 FFmpeg 的 EXE 会静默失去媒体功能，禁止发布。开发构建请使用 -AllowNoFfmpeg。"
 }
 
-$arguments += @(
-    "/out:$outputExe",
-    "/reference:System.Windows.Forms.dll",
-    "/reference:System.Drawing.dll",
-    "/reference:System.Core.dll",
-    "/reference:System.Security.dll"
-)
+$arguments += "/out:$outputExe"
+foreach ($ref in (Get-ReferenceAssemblies)) {
+    $arguments += "/reference:$ref"
+}
 $arguments += $sourceFiles
+
+# 输出编译命令行到 dist\csc-cmdline.txt，供重构阶段做“无操作等价”对比验证
+$cmdlineDump = Join-Path $distDir "csc-cmdline.txt"
+($arguments -join "`n") | Set-Content -LiteralPath $cmdlineDump -Encoding UTF8
+Write-Host "CSC: $csc"
 
 & $csc @arguments
 if ($LASTEXITCODE -ne 0) {
@@ -89,6 +85,9 @@ $changelog = Join-Path $root "CHANGELOG.md"
 if (Test-Path -LiteralPath $changelog) {
     Copy-Item -LiteralPath $changelog -Destination (Join-Path $distDir "CHANGELOG.md") -Force
 }
+
+# 构建产物验证：内置 FFmpeg 资源名、版本一致、单一 EXE、无多余 DLL
+& (Join-Path $root "scripts\verify-artifact.ps1") -ExePath $outputExe -AllowNoFfmpeg:$AllowNoFfmpeg
 
 Write-Host ""
 Write-Host "已生成 EXE："
