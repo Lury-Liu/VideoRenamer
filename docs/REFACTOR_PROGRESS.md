@@ -75,7 +75,17 @@ Each phase lists its acceptance criteria and the **actual verification evidence*
 
 **Note on the side-by-side conflict walkthrough:** the interactive portion (visual row-color comparison against a pre-phase build) is replaced by automated equivalents — status text pinned per-state by `plan_status_text_goldens` + golden masters, and styling logic untouched except the compile-checked comparison. A human visual pass over the five conflict types remains on the outstanding-verification list.
 
-## Phase 4 — Directory restructure + purity gate + parity csproj ⏳
+## Phase 4 — Directory restructure + purity gate + parity csproj ✅ (commits b0e2bcd, ee850c6, 928c2dc)
+
+| Check | Evidence |
+|---|---|
+| 4a pure moves | 40 files `git mv`, **all at 100% similarity** (provably no text edits); target tree App/Core/Media/Services/Tests; only script change: version-parse paths follow AppInfo/AssemblyInfo into src/App |
+| 4b header trims | 9 Core/Media files trimmed from the 15-line copy-pasted header to actual needs (pure models now zero usings) |
+| Core-purity gate | `Assert-CorePurity` full-text scan (catches fully-qualified refs): Core = no WinForms/Drawing, Media = no WinForms → PASS, enforced in every build |
+| 4c shadow csproj | LangVersion 5-pinned, GenerateAssemblyInfo=false, frozen LogicalName, same file glob; `Assert-CsprojParity` structural gate PASS |
+| G1/G2/G3 | SelfTest 53/53; SmokeTest OK; verify-artifact PASS |
+
+**Outstanding (documented):** no dotnet SDK/MSBuild on this machine → the shadow csproj has never been actually built; validate on an SDK machine before relying on it (structural parity is gated, binary parity is not).
 ## Phase 5 — Form decomposition (5 releasable cuts) ⏳
 ## Phase 6 — Services decoupling ⏳
 ## Phase 7 — Performance pass ⏳
