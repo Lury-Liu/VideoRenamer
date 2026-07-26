@@ -33,7 +33,6 @@ namespace VideoMaterialRenamer
         };
 
         private readonly List<ShotRow> rows = new List<ShotRow>();
-        private readonly List<RenamePlan> currentPlan = new List<RenamePlan>();
         private readonly Dictionary<string, List<ListViewItem>> previewItemsByPath = new Dictionary<string, List<ListViewItem>>(StringComparer.OrdinalIgnoreCase);
         private readonly Stack<List<RenameOperation>> undoStack = new Stack<List<RenameOperation>>();
         private readonly Dictionary<string, VideoFileInfo> videoInfoCache = new Dictionary<string, VideoFileInfo>(StringComparer.OrdinalIgnoreCase);

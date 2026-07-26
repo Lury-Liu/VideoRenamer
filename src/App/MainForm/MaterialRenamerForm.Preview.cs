@@ -40,8 +40,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            currentPlan.Clear();
-            currentPlan.AddRange(prebuiltPlan ?? RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance));
+            ReplaceCurrentPlan(prebuiltPlan ?? RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance));
 
             previewList.BeginUpdate();
             try
@@ -289,8 +288,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            currentPlan.Clear();
-            currentPlan.AddRange(rebuilt);
+            ReplaceCurrentPlan(rebuilt);
 
             previewList.BeginUpdate();
             try

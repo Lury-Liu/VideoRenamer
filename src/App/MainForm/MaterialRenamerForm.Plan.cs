@@ -18,6 +18,18 @@ namespace VideoMaterialRenamer
 {
     public partial class MaterialRenamerForm
     {
+        // 当前命名计划：字段与唯一写入点同驻本分部（阶段8a——状态单一所有者）。
+        // 其余分部只读；两条刷新路径（整表/增量）都经 ReplaceCurrentPlan 换内容。
+        private readonly List<RenamePlan> currentPlan = new List<RenamePlan>();
+
+        private void ReplaceCurrentPlan(List<RenamePlan> plan)
+        {
+            currentPlan.Clear();
+            if (plan != null)
+            {
+                currentPlan.AddRange(plan);
+            }
+        }
 
         private int GetDefaultScene()
         {
