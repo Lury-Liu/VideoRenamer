@@ -367,10 +367,16 @@ namespace VideoMaterialRenamer
             previewBody.Dock = DockStyle.Fill;
             previewShell.Controls.Add(previewBody, 0, 2);
 
-            Panel detailHost = new Panel();
+            detailHost = new Panel();
             detailHost.Dock = DockStyle.Right;
             detailHost.Width = 320;
-            detailHost.MinimumSize = new Size(280, 0);
+
+            detailExpandButton = new Button();
+            detailExpandButton.Text = "«";
+            detailExpandButton.Dock = DockStyle.Fill;
+            detailExpandButton.Visible = false;
+            detailExpandButton.Margin = new Padding(0);
+            detailExpandButton.Click += delegate { ToggleDetailPanel(); };
 
             previewList = new DoubleBufferedListView();
             previewList.Dock = DockStyle.Fill;
@@ -394,7 +400,9 @@ namespace VideoMaterialRenamer
             previewBody.Controls.Add(previewList);
             previewBody.Controls.Add(detailHost);
             detailHost.BringToFront();
-            detailHost.Controls.Add(BuildVideoDetailsPanel());
+            detailPanelBody = BuildVideoDetailsPanel();
+            detailHost.Controls.Add(detailPanelBody);
+            detailHost.Controls.Add(detailExpandButton);
         }
 
         private void OnRowSceneCheckedChanged(object sender, EventArgs e)
@@ -453,12 +461,25 @@ namespace VideoMaterialRenamer
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
+            Panel titleRow = new Panel();
+            titleRow.Dock = DockStyle.Fill;
+            titleRow.Margin = new Padding(0);
+
             Label title = new Label();
             title.Text = "素材信息预览";
             title.Dock = DockStyle.Fill;
             title.Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
             title.Padding = new Padding(0, 4, 0, 0);
-            panel.Controls.Add(title, 0, 0);
+
+            Button collapseButton = new Button();
+            collapseButton.Text = "»";
+            collapseButton.Width = 26;
+            collapseButton.Dock = DockStyle.Right;
+            collapseButton.Click += delegate { ToggleDetailPanel(); };
+
+            titleRow.Controls.Add(title);
+            titleRow.Controls.Add(collapseButton);
+            panel.Controls.Add(titleRow, 0, 0);
 
             thumbnailBox = new PictureBox();
             thumbnailBox.Dock = DockStyle.Fill;
@@ -654,15 +675,65 @@ namespace VideoMaterialRenamer
             }
         }
 
-        // 执行中的取消：导出批次经 FfmpegCancellation 立即杀活动进程并
-        // 清理临时文件（完整可见性接线在 10d）。
+        // 执行中的取消（阶段10d）：导出批次经 FfmpegCancellation 立即杀掉
+        // 活动 ffmpeg 进程；重命名批次在文件间停下。两条路径都保留已完成
+        // 的文件（重命名的已完成部分照常写入撤销历史）。
         private void CancelRunningOperation()
         {
+            renameCancelRequested = true;
             exportController.CancelActive();
             StatusText = "正在取消当前任务...";
             if (btnCancelOperation != null)
             {
                 btnCancelOperation.Enabled = false;
+            }
+        }
+
+        // 执行栏进度显隐与数值（导出/重命名共用）。
+        private void SetOperationProgressVisible(bool visible)
+        {
+            if (operationProgress != null)
+            {
+                operationProgress.Value = 0;
+                operationProgress.Visible = visible;
+            }
+            if (btnCancelOperation != null)
+            {
+                btnCancelOperation.Visible = visible;
+                btnCancelOperation.Enabled = visible;
+            }
+        }
+
+        private void SetOperationProgressValue(int percent)
+        {
+            if (operationProgress != null)
+            {
+                operationProgress.Value = Math.Max(0, Math.Min(100, percent));
+            }
+        }
+
+        // 详情面板折叠/展开（阶段10c）：折叠成 28px 细条，仅留展开按钮。
+        // 状态用显式字段跟踪——Control.Visible 在窗体未显示时恒为 false，
+        // 不能当状态用（冒烟门禁抓出的坑）。
+        private void ToggleDetailPanel()
+        {
+            if (detailHost == null || detailPanelBody == null || detailExpandButton == null)
+            {
+                return;
+            }
+
+            detailPanelCollapsed = !detailPanelCollapsed;
+            if (detailPanelCollapsed)
+            {
+                detailPanelBody.Visible = false;
+                detailExpandButton.Visible = true;
+                detailHost.Width = 28;
+            }
+            else
+            {
+                detailHost.Width = 320;
+                detailPanelBody.Visible = true;
+                detailExpandButton.Visible = false;
             }
         }
     }

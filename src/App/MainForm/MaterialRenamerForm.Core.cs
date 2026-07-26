@@ -67,6 +67,11 @@ namespace VideoMaterialRenamer
         private Panel footerBar;
         private ProgressBar operationProgress;
         private Button btnCancelOperation;
+        private Panel detailHost;
+        private Control detailPanelBody;
+        private Button detailExpandButton;
+        private bool detailPanelCollapsed;
+        private volatile bool renameCancelRequested;
         private System.Windows.Forms.Timer previewColumnResizeTimer;
         private Image ownedDetailImage;
         private Font previewGroupFont;
@@ -151,6 +156,30 @@ namespace VideoMaterialRenamer
                 {
                     throw new Exception("护眼模式水印复选框颜色测试失败。");
                 }
+
+                // 阶段10 结构锁定：主按钮驻底部执行栏；进度/取消初始隐藏；
+                // 详情面板可折叠且能恢复。
+                if (form.footerBar == null || form.btnRename == null ||
+                    form.btnRename.Parent == null || !object.ReferenceEquals(form.btnRename.Parent.Parent, form.footerBar))
+                {
+                    throw new Exception("执行栏结构测试失败。");
+                }
+                if (form.operationProgress == null || form.operationProgress.Visible ||
+                    form.btnCancelOperation == null || form.btnCancelOperation.Visible)
+                {
+                    throw new Exception("执行栏进度初始隐藏测试失败。");
+                }
+                // Visible 在未显示的窗体上恒为 false，这里以显式状态+宽度断言。
+                form.ToggleDetailPanel();
+                if (!form.detailPanelCollapsed || form.detailHost.Width != 28)
+                {
+                    throw new Exception("详情面板折叠测试失败。");
+                }
+                form.ToggleDetailPanel();
+                if (form.detailPanelCollapsed || form.detailHost.Width != 320)
+                {
+                    throw new Exception("详情面板展开测试失败。");
+                }
             }
 
             return "SmokeTest OK";
@@ -180,6 +209,44 @@ namespace VideoMaterialRenamer
             }
 
             base.OnFormClosing(e);
+        }
+
+        // 键盘捷径（阶段10e，新行为）：Ctrl+Z 取消命名、Ctrl+Enter 执行主
+        // 操作——仅在非文本编辑上下文且空闲时接管，编辑框里的 Ctrl+Z 仍是
+        // 文本撤销。
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == (Keys.Control | Keys.Z) && !operationRunning && !IsTextEditingContext())
+            {
+                RestoreLastRename();
+                return true;
+            }
+
+            if (keyData == (Keys.Control | Keys.Enter) && !operationRunning && !IsTextEditingContext())
+            {
+                RenameFiles();
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private bool IsTextEditingContext()
+        {
+            if (grid != null && grid.IsCurrentCellInEditMode)
+            {
+                return true;
+            }
+
+            Control active = ActiveControl;
+            ContainerControl container = active as ContainerControl;
+            while (container != null && container.ActiveControl != null)
+            {
+                active = container.ActiveControl;
+                container = active as ContainerControl;
+            }
+
+            return active is TextBoxBase || active is UpDownBase;
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)

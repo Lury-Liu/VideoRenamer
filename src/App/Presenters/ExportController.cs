@@ -15,6 +15,8 @@ namespace VideoMaterialRenamer
         {
             public readonly List<RenameOperation> Successes = new List<RenameOperation>();
             public readonly List<string> Failures = new List<string>();
+            // 阶段10d：批次被取消（已完成的文件保持完成，其余未开始）。
+            public bool Cancelled;
         }
 
         private readonly IUiDispatcher dispatcher;
@@ -45,6 +47,7 @@ namespace VideoMaterialRenamer
             ExportOutputMode outputMode,
             bool watermarkEnabled,
             Action<RenamePlan, int> applyRowProgress,
+            Action<int> applyOverallProgress,
             Action<ExportOutcome> completed)
         {
             FfmpegCancellation cancellation = new FfmpegCancellation();
@@ -88,6 +91,7 @@ namespace VideoMaterialRenamer
                 {
                     if (cancellation.IsCancelled)
                     {
+                        outcome.Cancelled = true;
                         break;
                     }
 
@@ -97,6 +101,10 @@ namespace VideoMaterialRenamer
                     dispatcher.Post(delegate
                     {
                         status.SetStatus(string.Format("正在导出 {0}/{1}：{2}", currentIndex, total, currentEntry.NewName));
+                        if (applyOverallProgress != null)
+                        {
+                            applyOverallProgress((currentIndex - 1) * 100 / Math.Max(1, total));
+                        }
                     });
 
                     try
@@ -116,6 +124,10 @@ namespace VideoMaterialRenamer
                             {
                                 applyRowProgress(currentEntry, rowPercent);
                                 status.SetStatus(string.Format("正在导出 {0}/{1}：{2}（{3}%）", currentIndex, total, currentEntry.NewName, safePercent));
+                                if (applyOverallProgress != null)
+                                {
+                                    applyOverallProgress((int)Math.Max(0, Math.Min(100, Math.Round(((currentIndex - 1) + safePercent / 100.0) * 100.0 / Math.Max(1, total)))));
+                                }
                             });
                         };
 
@@ -137,6 +149,7 @@ namespace VideoMaterialRenamer
                     }
                     catch (OperationCanceledException)
                     {
+                        outcome.Cancelled = true;
                         break;
                     }
                     catch (Exception ex)

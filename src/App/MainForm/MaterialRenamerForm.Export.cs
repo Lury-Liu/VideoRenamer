@@ -14,6 +14,7 @@ namespace VideoMaterialRenamer
             SetProgressColumnVisible(true);
             ResetProgressBars();
             SetOperationUiEnabled(false);
+            SetOperationProgressVisible(true);
             StatusText = outputMode == ExportOutputMode.OverwriteOriginal
                 ? (watermarkEnabled ? "正在导出并添加文件名水印，请等待..." : "正在导出并覆盖原文件，请等待...")
                 : (watermarkEnabled ? "正在导出 1080x1920 新文件并添加文件名水印，请等待..." : "正在导出 1080x1920 新文件，请等待...");
@@ -27,6 +28,10 @@ namespace VideoMaterialRenamer
                 {
                     entry.Row.ProgressPercent = rowPercent;
                     RenderGridProgress(entry.RowIndex - 1);
+                },
+                delegate(int overallPercent)
+                {
+                    SetOperationProgressValue(overallPercent);
                 },
                 delegate(ExportController.ExportOutcome outcome)
                 {
@@ -43,13 +48,26 @@ namespace VideoMaterialRenamer
 
                     RenderAll();
                     SetProgressColumnVisible(false);
+                    SetOperationProgressVisible(false);
                     SetOperationUiEnabled(true);
 
                     if (outcome.Failures.Count > 0)
                     {
                         MessageBox.Show(this, string.Join("\r\n", outcome.Failures.Take(8).ToArray()), "部分视频导出失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
-                    else
+
+                    if (outcome.Cancelled)
+                    {
+                        // 阶段10d 新行为：取消后如实汇报——已完成的保持完成。
+                        StatusText = string.Format("导出已取消：已完成 {0} 个，其余未处理。", outcome.Successes.Count);
+                        MessageBox.Show(
+                            this,
+                            string.Format("导出已取消。\r\n\r\n已完成 {0} 个视频（保持完成状态），其余未处理。", outcome.Successes.Count),
+                            "导出已取消",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                    }
+                    else if (outcome.Failures.Count == 0)
                     {
                         string finishMessage = outputMode == ExportOutputMode.OverwriteOriginal
                             ? "已处理 " + outcome.Successes.Count + " 个视频，并覆盖原文件。"

@@ -115,8 +115,14 @@ namespace VideoMaterialRenamer
             // 网络盘素材不再冻结整个窗口；执行期间界面整体锁定并逐文件报进度。
             List<RenamePlan> executionPlan = currentPlan.ToList();
             SetOperationUiEnabled(false);
+            SetOperationProgressVisible(true);
+            renameCancelRequested = false;
             StatusText = "正在重命名，请等待...";
-            renameController.ExecuteAsync(executionPlan, delegate(PlanExecutor.ExecutionResult result)
+            renameController.ExecuteAsync(
+                executionPlan,
+                delegate { return renameCancelRequested; },
+                delegate(int overallPercent) { SetOperationProgressValue(overallPercent); },
+                delegate(PlanExecutor.ExecutionResult result)
             {
                 // 行模型写回统一走 PlanExecutor.PatchRowFileList，且发生在
                 // UI 线程（工作线程决不并发改行列表）。
@@ -136,6 +142,7 @@ namespace VideoMaterialRenamer
                     SaveRenameHistory(result.Successes);
                 }
 
+                SetOperationProgressVisible(false);
                 SetOperationUiEnabled(true);
                 RenderAll();
 
@@ -143,7 +150,19 @@ namespace VideoMaterialRenamer
                 {
                     MessageBox.Show(this, string.Join("\r\n", result.Failures.Take(8).ToArray()), "部分文件重命名失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                else
+
+                if (result.Cancelled)
+                {
+                    // 阶段10d 新行为：文件间取消——已改名的已入撤销历史。
+                    StatusText = string.Format("重命名已取消：已完成 {0} 个（可用取消命名还原），其余未处理。", result.Successes.Count);
+                    MessageBox.Show(
+                        this,
+                        string.Format("重命名已取消。\r\n\r\n已完成 {0} 个文件（已计入撤销历史，可用「取消命名」还原），其余未处理。", result.Successes.Count),
+                        "重命名已取消",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                else if (result.Failures.Count == 0)
                 {
                     MessageBox.Show(this, "已处理 " + executionPlan.Count + " 个视频文件。", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }

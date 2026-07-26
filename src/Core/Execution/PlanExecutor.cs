@@ -14,11 +14,19 @@ namespace VideoMaterialRenamer
         {
             public readonly List<RenameOperation> Successes = new List<RenameOperation>();
             public readonly List<string> Failures = new List<string>();
+            // 阶段10d：文件间取消——已完成的移动保持完成（并由调用方照常
+            // 写入撤销历史），其余条目不再开始。
+            public bool Cancelled;
         }
 
         // 只做磁盘改名，不动行模型（写回由调用方在 UI 线程用
         // PatchRowFileList 统一执行，避免工作线程并发改行列表）。
         public static ExecutionResult Execute(List<RenamePlan> plan, Action<RenamePlan, int> perFileStarted)
+        {
+            return Execute(plan, perFileStarted, null);
+        }
+
+        public static ExecutionResult Execute(List<RenamePlan> plan, Action<RenamePlan, int> perFileStarted, Func<bool> shouldStop)
         {
             ExecutionResult result = new ExecutionResult();
             if (plan == null)
@@ -29,6 +37,12 @@ namespace VideoMaterialRenamer
             int index = 0;
             foreach (RenamePlan entry in plan)
             {
+                if (shouldStop != null && shouldStop())
+                {
+                    result.Cancelled = true;
+                    break;
+                }
+
                 index++;
                 if (perFileStarted != null)
                 {

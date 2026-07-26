@@ -20,6 +20,13 @@ namespace VideoMaterialRenamer
 
         public void ExecuteAsync(List<RenamePlan> plan, Action<PlanExecutor.ExecutionResult> completed)
         {
+            ExecuteAsync(plan, null, null, completed);
+        }
+
+        // 阶段10d：cancelRequested 在文件间检查（已完成的移动保持完成并
+        // 照常入撤销历史）；applyOverallProgress 驱动执行栏进度条。
+        public void ExecuteAsync(List<RenamePlan> plan, Func<bool> cancelRequested, Action<int> applyOverallProgress, Action<PlanExecutor.ExecutionResult> completed)
+        {
             int total = plan == null ? 0 : plan.Count;
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -30,8 +37,12 @@ namespace VideoMaterialRenamer
                     dispatcher.Post(delegate
                     {
                         status.SetStatus(string.Format("正在重命名 {0}/{1}：{2}", currentIndex, total, currentEntry.OldName));
+                        if (applyOverallProgress != null)
+                        {
+                            applyOverallProgress((currentIndex - 1) * 100 / Math.Max(1, total));
+                        }
                     });
-                });
+                }, cancelRequested);
 
                 dispatcher.Post(delegate
                 {
