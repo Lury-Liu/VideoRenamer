@@ -30,7 +30,40 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("manifest_parse_missing_version_returns_null", ManifestParseMissingVersionReturnsNull));
             cases.Add(new TestCase("version_compare_table", VersionCompareTable));
             cases.Add(new TestCase("release_asset_api_url_pairing", ReleaseAssetApiUrlPairing));
+            cases.Add(new TestCase("updater_script_shape", UpdaterScriptShape));
+            cases.Add(new TestCase("updater_script_quote_escaping", UpdaterScriptQuoteEscaping));
             return cases;
+        }
+
+        // 阶段12b：替换脚本形态锁定——加固语义（try/catch/finally、失败标记、
+        // 旧版重启兜底、下载文件必清）不允许悄悄退化。
+        private static void UpdaterScriptShape()
+        {
+            string script = UpdateManager.BuildUpdaterScript(
+                @"C:\Program Files\VideoMaterialRenamer\视频素材镜头表命名工具.exe",
+                @"C:\Temp\VideoMaterialRenamer_Update\update_abc.exe",
+                1234,
+                @"C:\Users\u\AppData\Local\VideoMaterialRenamer\update-failed.txt");
+
+            TestAssert.IsTrue(script.Contains("$pidToWait = 1234"), "pid embedded");
+            TestAssert.IsTrue(script.Contains("$ErrorActionPreference = 'Stop'"), "stop preference");
+            TestAssert.IsTrue(script.Contains("try {"), "try block present");
+            TestAssert.IsTrue(script.Contains("catch {"), "catch block present");
+            TestAssert.IsTrue(script.Contains("finally {"), "finally block present");
+            TestAssert.IsTrue(script.Contains("Copy-Item -LiteralPath $source -Destination $target -Force"), "copy step");
+            TestAssert.IsTrue(script.Contains("Set-Content -LiteralPath $marker"), "failure marker written on error");
+            int relaunchCount = script.Split(new string[] { "Start-Process -FilePath $target" }, StringSplitOptions.None).Length - 1;
+            TestAssert.AreEqual(2, relaunchCount, "relaunch on success AND on failure recovery");
+            TestAssert.IsTrue(script.Contains("Remove-Item -LiteralPath $source -Force"), "downloaded file always cleaned");
+            TestAssert.IsTrue(script.Contains("Remove-Item -LiteralPath $MyInvocation.MyCommand.Path"), "script self-deletes");
+            TestAssert.IsTrue(script.IndexOf("finally") > script.IndexOf("catch"), "finally after catch");
+        }
+
+        private static void UpdaterScriptQuoteEscaping()
+        {
+            string script = UpdateManager.BuildUpdaterScript(@"C:\it's\app.exe", @"C:\tmp\u.exe", 1, @"C:\m't.txt");
+            TestAssert.IsTrue(script.Contains(@"'C:\it''s\app.exe'"), "single quote doubled in target");
+            TestAssert.IsTrue(script.Contains(@"'C:\m''t.txt'"), "single quote doubled in marker");
         }
 
         private static void ManifestParseSample()

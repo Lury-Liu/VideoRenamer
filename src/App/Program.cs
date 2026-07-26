@@ -110,6 +110,40 @@ namespace VideoMaterialRenamer
                 return;
             }
 
+            // 阶段12b：上次自动更新失败的标记（替换脚本在 Copy 失败时写入）
+            // → 提示一次原因并删除，用户不再面对"接受了更新却什么都没发生"。
+            try
+            {
+                string marker = UpdateManager.UpdateFailureMarkerPath;
+                if (File.Exists(marker))
+                {
+                    string reason = "";
+                    try
+                    {
+                        reason = File.ReadAllText(marker).Trim();
+                    }
+                    catch
+                    {
+                    }
+                    try
+                    {
+                        File.Delete(marker);
+                    }
+                    catch
+                    {
+                    }
+                    AppLog.Write("update", "检测到上次更新失败标记：" + reason);
+                    MessageBox.Show(
+                        "上次自动更新未能完成：\r\n" + reason + "\r\n\r\n如软件安装在 Program Files，请以管理员身份运行一次后重试更新，或重新下载安装。",
+                        "更新未完成",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            }
+            catch
+            {
+            }
+
             Application.Run(new MaterialRenamerForm(licenseInfo));
         }
     }

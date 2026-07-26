@@ -239,23 +239,71 @@ namespace VideoMaterialRenamer
             }
         }
 
-        internal static void StartUpdaterProcess(string currentExe, string downloadedExe)
+        // 阶段12b（标注：行为加固）：替换脚本从"一路 Stop 直行"改为
+        // try/catch/finally——Copy-Item 失败（典型：装在 Program Files 且
+        // 未提权）不再让用户"窗口关了、什么都没发生"：写失败标记（下次
+        // 启动提示原因）、重启旧版本，下载文件必清。脚本文本可测。
+        public static string UpdateFailureMarkerPath
         {
-            string scriptPath = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update", "apply_update_" + Guid.NewGuid().ToString("N") + ".ps1");
-            Directory.CreateDirectory(Path.GetDirectoryName(scriptPath));
-            string script =
+            get { return Path.Combine(AppInfo.AppDataDirectory, "update-failed.txt"); }
+        }
+
+        internal static string BuildUpdaterScript(string currentExe, string downloadedExe, int processId, string failureMarkerPath)
+        {
+            return
                 "$ErrorActionPreference = 'Stop'\r\n" +
-                "$pidToWait = " + Process.GetCurrentProcess().Id.ToString() + "\r\n" +
+                "$pidToWait = " + processId.ToString() + "\r\n" +
                 "$source = " + QuotePowerShellString(downloadedExe) + "\r\n" +
                 "$target = " + QuotePowerShellString(currentExe) + "\r\n" +
+                "$marker = " + QuotePowerShellString(failureMarkerPath) + "\r\n" +
                 "for ($i = 0; $i -lt 120; $i++) {\r\n" +
                 "    if (-not (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue)) { break }\r\n" +
                 "    Start-Sleep -Milliseconds 500\r\n" +
                 "}\r\n" +
-                "Copy-Item -LiteralPath $source -Destination $target -Force\r\n" +
-                "Start-Process -FilePath $target\r\n" +
-                "Remove-Item -LiteralPath $source -Force -ErrorAction SilentlyContinue\r\n" +
-                "Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue\r\n";
+                "try {\r\n" +
+                "    Copy-Item -LiteralPath $source -Destination $target -Force\r\n" +
+                "    Start-Process -FilePath $target\r\n" +
+                "}\r\n" +
+                "catch {\r\n" +
+                "    try { Set-Content -LiteralPath $marker -Value $_.Exception.Message -Encoding UTF8 } catch {}\r\n" +
+                "    try { Start-Process -FilePath $target } catch {}\r\n" +
+                "}\r\n" +
+                "finally {\r\n" +
+                "    Remove-Item -LiteralPath $source -Force -ErrorAction SilentlyContinue\r\n" +
+                "    Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue\r\n" +
+                "}\r\n";
+        }
+
+        // 目录可写性探测：决定替换脚本是否需要提权（Program Files 场景）。
+        internal static bool IsDirectoryWritable(string directory)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(directory))
+                {
+                    return false;
+                }
+
+                string probe = Path.Combine(directory, ".vmr_write_probe_" + Guid.NewGuid().ToString("N"));
+                using (FileStream stream = File.Create(probe))
+                {
+                }
+                File.Delete(probe);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // 返回 false = 脚本未能启动（典型：用户在 UAC 拒绝提权）——调用方
+        // 决不能在此情况下退出进程。
+        internal static bool StartUpdaterProcess(string currentExe, string downloadedExe, bool elevated)
+        {
+            string scriptPath = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update", "apply_update_" + Guid.NewGuid().ToString("N") + ".ps1");
+            Directory.CreateDirectory(Path.GetDirectoryName(scriptPath));
+            string script = BuildUpdaterScript(currentExe, downloadedExe, Process.GetCurrentProcess().Id, UpdateFailureMarkerPath);
             File.WriteAllText(scriptPath, script, new UTF8Encoding(false));
 
             string powershell = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
@@ -267,9 +315,36 @@ namespace VideoMaterialRenamer
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = powershell;
             startInfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -File " + ProcessArguments.Quote(scriptPath);
-            startInfo.UseShellExecute = false;
-            startInfo.CreateNoWindow = true;
-            Process.Start(startInfo);
+            if (elevated)
+            {
+                // 触发 UAC 必须 UseShellExecute + runas。
+                startInfo.UseShellExecute = true;
+                startInfo.Verb = "runas";
+                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            }
+            else
+            {
+                startInfo.UseShellExecute = false;
+                startInfo.CreateNoWindow = true;
+            }
+
+            try
+            {
+                Process.Start(startInfo);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Write("update", "启动更新脚本失败" + (elevated ? "（提权被拒绝？）" : ""), ex);
+                try
+                {
+                    File.Delete(scriptPath);
+                }
+                catch
+                {
+                }
+                return false;
+            }
         }
 
         private static string QuotePowerShellString(string value)

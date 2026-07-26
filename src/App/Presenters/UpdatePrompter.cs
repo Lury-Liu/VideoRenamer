@@ -164,7 +164,16 @@ namespace VideoMaterialRenamer
                 }
 
                 UpdateManager.ReportUpdateProgress(progress, "正在准备重启软件...", 100, 0, 0);
-                UpdateManager.StartUpdaterProcess(currentExe, downloadPath);
+                // 阶段12b：安装目录不可写（典型：Program Files）→ 提权启动
+                // 替换脚本（一次 UAC）；脚本启动失败（如拒绝提权）绝不退出
+                // 进程——报错并回到可用状态。
+                bool elevate = !UpdateManager.IsDirectoryWritable(Path.GetDirectoryName(currentExe));
+                if (!UpdateManager.StartUpdaterProcess(currentExe, downloadPath, elevate))
+                {
+                    throw new IOException(elevate
+                        ? "更新需要管理员权限，但提权被拒绝或失败；本次未更新。"
+                        : "启动更新脚本失败；本次未更新。");
+                }
                 Application.Exit();
                 Environment.Exit(0);
                 return true;
