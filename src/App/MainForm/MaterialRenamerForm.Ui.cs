@@ -18,8 +18,17 @@ namespace VideoMaterialRenamer
 {
     public partial class MaterialRenamerForm : IStatusSink
     {
-
+        // BuildUi 拆分为具名 Build* 方法（阶段8b，纯代码搬移）：语句顺序与原
+        // 单体实现逐条一致——Dock 布局依赖控件添加次序与 BringToFront 调用。
         private void BuildUi()
+        {
+            ConfigureFormShell();
+            BuildHeaderArea();
+            BuildStatusBar();
+            BuildWorkspaceSplit();
+        }
+
+        private void ConfigureFormShell()
         {
             Text = "视频素材镜头表命名工具";
             StartPosition = FormStartPosition.CenterScreen;
@@ -27,7 +36,10 @@ namespace VideoMaterialRenamer
             MinimumSize = new Size(820, 680);
             Font = new Font("Microsoft YaHei UI", 9f);
             AppIcon.Apply(this);
+        }
 
+        private void BuildHeaderArea()
+        {
             Panel headerHost = new Panel();
             headerHost.Dock = DockStyle.Top;
             headerHost.Height = 100;
@@ -39,6 +51,12 @@ namespace VideoMaterialRenamer
             topPanel.BackColor = Color.FromArgb(246, 247, 249);
             headerHost.Controls.Add(topPanel);
 
+            BuildSettingsRow(topPanel);
+            BuildActionBar(topPanel);
+        }
+
+        private void BuildSettingsRow(Panel topPanel)
+        {
             FlowLayoutPanel settingsPanel = new FlowLayoutPanel();
             settingsPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             settingsPanel.FlowDirection = FlowDirection.LeftToRight;
@@ -62,8 +80,7 @@ namespace VideoMaterialRenamer
             numEpisode.Width = 78;
             numEpisode.Margin = new Padding(0, 4, 14, 0);
             // 集数只影响文件名文本，不影响分组标题/项目数——走增量刷新路径
-            // （计数不一致时该路径自带整表重建回退）。场号会出现在分组标题里，
-            // 仍走整表刷新，待阶段7 扩展增量路径同步分组标题后再切换。
+            // （计数不一致时该路径自带整表重建回退）。
             numEpisode.ValueChanged += delegate { RefreshPreviewNamesOnly(); };
             settingsPanel.Controls.Add(numEpisode);
 
@@ -89,17 +106,7 @@ namespace VideoMaterialRenamer
             chkRowScene.Text = "逐行场号";
             chkRowScene.AutoSize = true;
             chkRowScene.Margin = new Padding(0, 7, 14, 0);
-            chkRowScene.CheckedChanged += delegate
-            {
-                if (chkRowScene.Checked)
-                {
-                    InitializeRowScenesFromDefaultIfNeeded();
-                }
-
-                RenderGrid();
-                RefreshPreview();
-                UpdateSelectedCellDetails();
-            };
+            chkRowScene.CheckedChanged += OnRowSceneCheckedChanged;
             settingsPanel.Controls.Add(chkRowScene);
 
             chkKeepExtension = new CheckBox();
@@ -114,12 +121,7 @@ namespace VideoMaterialRenamer
             chkExport1080p.Text = "导出1080x1920";
             chkExport1080p.AutoSize = true;
             chkExport1080p.Margin = new Padding(0, 7, 14, 0);
-            chkExport1080p.CheckedChanged += delegate
-            {
-                RefreshPreviewNamesOnly();
-                UpdateRenameButtonText();
-                UpdateWatermarkOptionState();
-            };
+            chkExport1080p.CheckedChanged += OnExport1080pCheckedChanged;
             settingsPanel.Controls.Add(chkExport1080p);
 
             chkExportWatermark = new CheckBox();
@@ -127,11 +129,7 @@ namespace VideoMaterialRenamer
             chkExportWatermark.Checked = false;
             chkExportWatermark.AutoSize = true;
             chkExportWatermark.Margin = new Padding(0, 7, 14, 0);
-            chkExportWatermark.CheckedChanged += delegate
-            {
-                UpdateWatermarkOptionState();
-                RefreshPreviewNamesOnly();
-            };
+            chkExportWatermark.CheckedChanged += OnExportWatermarkCheckedChanged;
             settingsPanel.Controls.Add(chkExportWatermark);
             UpdateWatermarkOptionState();
 
@@ -144,7 +142,10 @@ namespace VideoMaterialRenamer
             btnAbout.Click += delegate { ShowAboutInfo(); };
             btnAbout.Margin = new Padding(0, 2, 0, 2);
             settingsPanel.Controls.Add(btnAbout);
+        }
 
+        private void BuildActionBar(Panel topPanel)
+        {
             FlowLayoutPanel actionBar = new FlowLayoutPanel();
             actionBar.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             actionBar.BackColor = Color.FromArgb(246, 247, 249);
@@ -198,11 +199,14 @@ namespace VideoMaterialRenamer
             btnUndo.Click += delegate { RestoreLastRename(); };
             actionBar.Controls.Add(btnUndo);
 
-            btnRename = NewButton("执行重命名",100);
+            btnRename = NewButton("执行重命名", 100);
             btnRename.Tag = "Primary";
             btnRename.Click += delegate { RenameFiles(); };
             actionBar.Controls.Add(btnRename);
+        }
 
+        private void BuildStatusBar()
+        {
             statusLabel = new Label();
             statusLabel.Dock = DockStyle.Bottom;
             statusLabel.Height = 28;
@@ -210,13 +214,22 @@ namespace VideoMaterialRenamer
             statusLabel.Tag = "Muted";
             StatusText = "把视频拖到表格 B「主要素材」或 C「备用素材」单元格。";
             Controls.Add(statusLabel);
+        }
 
+        private void BuildWorkspaceSplit()
+        {
             SplitContainer split = new SplitContainer();
             split.Dock = DockStyle.Fill;
             split.Orientation = Orientation.Horizontal;
             Controls.Add(split);
             split.BringToFront();
 
+            BuildShotGrid(split.Panel1);
+            BuildPreviewArea(split.Panel2);
+        }
+
+        private void BuildShotGrid(SplitterPanel host)
+        {
             grid = new DoubleBufferedGridView();
             grid.Dock = DockStyle.Fill;
             grid.AllowDrop = true;
@@ -279,8 +292,11 @@ namespace VideoMaterialRenamer
             grid.Columns.Add(colBackup);
             grid.Columns.Add(colProgress);
             ApplyGridColumnLayout();
-            split.Panel1.Controls.Add(grid);
+            host.Controls.Add(grid);
+        }
 
+        private void BuildPreviewArea(SplitterPanel host)
+        {
             TableLayoutPanel previewShell = new TableLayoutPanel();
             previewShell.Dock = DockStyle.Fill;
             previewShell.ColumnCount = 1;
@@ -288,7 +304,7 @@ namespace VideoMaterialRenamer
             previewShell.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
             previewShell.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
             previewShell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            split.Panel2.Controls.Add(previewShell);
+            host.Controls.Add(previewShell);
 
             Label previewTitle = new Label();
             previewTitle.Text = "重命名预览";
@@ -326,18 +342,54 @@ namespace VideoMaterialRenamer
             previewList.Columns.Add("信息", 160);
             previewList.SelectedIndexChanged += delegate { UpdateSelectedPreviewDetails(); };
             previewList.SizeChanged += delegate { SchedulePreviewColumnResize(); };
-            previewList.KeyDown += delegate(object sender, KeyEventArgs e)
-            {
-                if (e.KeyCode == Keys.Delete)
-                {
-                    DeleteSelectedPreviewRecord();
-                    e.Handled = true;
-                }
-            };
+            previewList.KeyDown += OnPreviewListKeyDown;
             previewBody.Controls.Add(previewList);
             previewBody.Controls.Add(detailHost);
             detailHost.BringToFront();
             detailHost.Controls.Add(BuildVideoDetailsPanel());
+        }
+
+        private void OnRowSceneCheckedChanged(object sender, EventArgs e)
+        {
+            if (chkRowScene.Checked)
+            {
+                InitializeRowScenesFromDefaultIfNeeded();
+            }
+
+            RenderGrid();
+            RefreshPreview();
+            UpdateSelectedCellDetails();
+        }
+
+        private void OnExport1080pCheckedChanged(object sender, EventArgs e)
+        {
+            RefreshPreviewNamesOnly();
+            UpdateRenameButtonText();
+            UpdateWatermarkOptionState();
+        }
+
+        private void OnExportWatermarkCheckedChanged(object sender, EventArgs e)
+        {
+            UpdateWatermarkOptionState();
+            RefreshPreviewNamesOnly();
+        }
+
+        private void OnPreviewListKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete)
+            {
+                DeleteSelectedPreviewRecord();
+                e.Handled = true;
+            }
+        }
+
+        private void OnThumbnailMouseMove(object sender, MouseEventArgs e)
+        {
+            if (thumbnailBox.Width > 1)
+            {
+                double ratio = Math.Max(0.0, Math.Min(1.0, (double)e.X / thumbnailBox.Width));
+                ShowFrameAtRatio(ratio);
+            }
         }
 
         private Control BuildVideoDetailsPanel()
@@ -364,14 +416,7 @@ namespace VideoMaterialRenamer
             thumbnailBox.Dock = DockStyle.Fill;
             thumbnailBox.SizeMode = PictureBoxSizeMode.Zoom;
             thumbnailBox.BorderStyle = BorderStyle.FixedSingle;
-            thumbnailBox.MouseMove += delegate(object sender, MouseEventArgs e)
-            {
-                if (thumbnailBox.Width > 1)
-                {
-                    double ratio = Math.Max(0.0, Math.Min(1.0, (double)e.X / thumbnailBox.Width));
-                    ShowFrameAtRatio(ratio);
-                }
-            };
+            thumbnailBox.MouseMove += OnThumbnailMouseMove;
             thumbnailBox.MouseLeave += delegate { RestoreStaticThumbnail(); };
             panel.Controls.Add(thumbnailBox, 0, 1);
 
@@ -440,15 +485,7 @@ namespace VideoMaterialRenamer
             txtCustomTail = new TextBox();
             txtCustomTail.Width = 230;
             txtCustomTail.Margin = new Padding(0, 2, 8, 0);
-            txtCustomTail.KeyDown += delegate(object sender, KeyEventArgs e)
-            {
-                if (e.KeyCode == Keys.Enter)
-                {
-                    ApplySelectedCustomTail(true);
-                    e.Handled = true;
-                    e.SuppressKeyPress = true;
-                }
-            };
+            txtCustomTail.KeyDown += OnCustomTailKeyDown;
             panel.Controls.Add(txtCustomTail);
 
             Button btnBatchTail = NewButton("批量应用", 82);
@@ -457,6 +494,16 @@ namespace VideoMaterialRenamer
             panel.Controls.Add(btnBatchTail);
 
             return panel;
+        }
+
+        private void OnCustomTailKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                ApplySelectedCustomTail(true);
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+            }
         }
 
         private static Button NewButton(string text, int width)
