@@ -4,6 +4,8 @@
 **Date:** 2026-07-26
 **Scope:** Full architectural assessment + phased refactoring plan. Goals, in priority order: (1) reduce coupling, (2) reorganize structure, (3) improve maintainability, (4) improve performance — while preserving all existing functionality with zero regressions.
 
+> **Status (2026-07-26): COMPLETED.** Executed as `refactor/architecture-v2` (27 commits, health 38→85/100), then extended by the V3 modernization (`refactor/modernization-v3`, 89/100, source now V1.0.7.0). This document is the historical plan — see [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md) for verification evidence and [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md) for the current state.
+
 **How this plan was produced:** six parallel subsystem assessments (main form, domain logic, media pipeline, services/startup, UI rendering, build/release), three independently designed candidate architectures (conservative in-place, toolchain-first modernization, gated strangler-fig), and a three-lens adversarial judge panel (regression safety, decoupling/maintainability, performance/correctness). The winning plan below is the strangler-fig migration (won 2 of 3 lenses: regression safety 9/10, performance correctness 8/10) with mandatory transplants from the other two, and the toolchain modernization retained as the explicit follow-on phase (it won the end-state maintainability lens 8/10).
 
 ---

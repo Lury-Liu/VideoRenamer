@@ -1,6 +1,6 @@
 # Refactor Progress & Verification Record
 
-Branch: `refactor/architecture-v2` · Plan: [ARCHITECTURE_REDESIGN_PLAN.md](ARCHITECTURE_REDESIGN_PLAN.md)
+Branches: Phases 0–7 on `refactor/architecture-v2` · Phases 8+ on `refactor/modernization-v3` (pushed to `origin`) · Plans: [ARCHITECTURE_REDESIGN_PLAN.md](ARCHITECTURE_REDESIGN_PLAN.md) · [MODERNIZATION_V3_PLAN.md](MODERNIZATION_V3_PLAN.md)
 
 Each phase lists its acceptance criteria and the **actual verification evidence** recorded when the phase gate was run. A phase is only marked ✅ when every gate produced the stated evidence.
 
@@ -178,4 +178,10 @@ Gates: SelfTest 55→65, SmokeTest OK, G3 PASS.
 
 ## V3 final verification ✅
 
-SelfTest **70/70** · SmokeTest OK（含结构/等价性/折叠断言）· 全部 **6 门禁** PASS（status-literal / core-purity / services-purity / palette / csproj-parity / verify-artifact）· 发布 DryRun 全绿 · 实测性能复测通过（见健康评估 v2）。V3 共 **19 提交**，每个提交可发布。
+SelfTest **70/70** · SmokeTest OK（含结构/等价性/折叠断言）· 全部 **6 门禁** PASS（status-literal / core-purity / services-purity / palette / csproj-parity / verify-artifact）· 发布 DryRun 全绿 · 实测性能复测通过（见健康评估 v2）。V3 共 **23 提交**（`git rev-list --count refactor/architecture-v2..HEAD`，含收尾的版本号/文档提交；此前手数的 17/18/19 偏低），每个提交可发布。
+
+## 发布状态（2026-07-26）
+
+- 版本号已升 **V1.0.7.0**（AppInfo / AssemblyInfo / installer.iss / README 四处一致，`b1dcc27`）；升版后全套验证复跑：SelfTest 70/70、SmokeTest OK、6 门禁 + verify-artifact PASS（version=1.0.7.0，101,696,000 字节）。
+- 分支 `refactor/modernization-v3` 已推送 `origin`（远端尖 `6a1da4c`）；README 已重写为 V3 现状并入库；私钥工具确认从未入任何提交。
+- **线上仍是 v1.0.6.0**：远端 tag `v1.0.6.0` 挂在 `main`，应用内更新器当前照常服务 1.0.6.0。V1.0.7.0 的 tag / GitHub Release / latest.json **尚未发布**——需合并回 `main` 后跑 `发布更新到GitHub.ps1`（资产必须仍是裸 EXE `VideoRenamer-v1.0.7.0.exe` + latest.json，冻结契约）。

@@ -3,6 +3,8 @@
 Branch: `refactor/modernization-v3` (from `refactor/architecture-v2` @ 65068a8, health 85/100)
 Predecessor docs: [ARCHITECTURE_REDESIGN_PLAN.md](ARCHITECTURE_REDESIGN_PLAN.md) · [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md) · [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md)
 
+> **Status (2026-07-26): COMPLETED.** All phases (8–14) plus the post-plan mockup-alignment phases 10g/10h/10i were delivered; final health **89/100**; source at **V1.0.7.0**; branch pushed to `origin`. This document is the historical plan — see [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md) for per-phase verification evidence and [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md) for the final assessment.
+
 Scope approved by the user (2026-07-26): warm paper-like visual system, layout/workflow redesign, continued structural reorganization, code-quality debt (oversized builders, duplication, hardcoded styling, silent catches, unclear state ownership), explicit module boundaries, remaining performance items, and an evidence-backed final health score. Update hardening and the 30-day key default were evaluated and approved in the preceding exchange and are included as flagged phases.
 
 ## 0. Standing invariants (every commit, all phases)
