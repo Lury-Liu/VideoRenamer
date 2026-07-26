@@ -61,8 +61,12 @@ namespace VideoMaterialRenamer
         private TextBox txtCustomTail;
         private Label statusLabel;
         private Button btnRename;
+        private Button btnUndo;
         private Button btnTheme;
         private Button btnAbout;
+        private Panel footerBar;
+        private ProgressBar operationProgress;
+        private Button btnCancelOperation;
         private System.Windows.Forms.Timer previewColumnResizeTimer;
         private Image ownedDetailImage;
         private Font previewGroupFont;

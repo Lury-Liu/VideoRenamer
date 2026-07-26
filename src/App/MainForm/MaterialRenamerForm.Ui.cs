@@ -24,7 +24,7 @@ namespace VideoMaterialRenamer
         {
             ConfigureFormShell();
             BuildHeaderArea();
-            BuildStatusBar();
+            BuildFooterBar();
             BuildWorkspaceSplit();
         }
 
@@ -117,22 +117,6 @@ namespace VideoMaterialRenamer
             chkKeepExtension.CheckedChanged += delegate { RefreshPreviewNamesOnly(); };
             settingsPanel.Controls.Add(chkKeepExtension);
 
-            chkExport1080p = new CheckBox();
-            chkExport1080p.Text = "导出1080x1920";
-            chkExport1080p.AutoSize = true;
-            chkExport1080p.Margin = new Padding(0, 7, 14, 0);
-            chkExport1080p.CheckedChanged += OnExport1080pCheckedChanged;
-            settingsPanel.Controls.Add(chkExport1080p);
-
-            chkExportWatermark = new CheckBox();
-            chkExportWatermark.Text = "文件名水印";
-            chkExportWatermark.Checked = false;
-            chkExportWatermark.AutoSize = true;
-            chkExportWatermark.Margin = new Padding(0, 7, 14, 0);
-            chkExportWatermark.CheckedChanged += OnExportWatermarkCheckedChanged;
-            settingsPanel.Controls.Add(chkExportWatermark);
-            UpdateWatermarkOptionState();
-
             btnTheme = NewButton("", 112);
             btnTheme.Click += delegate { ToggleTheme(); };
             btnTheme.Margin = new Padding(0, 2, 6, 2);
@@ -193,27 +177,80 @@ namespace VideoMaterialRenamer
             Button btnClearAll = NewButton("全局清空", 88);
             btnClearAll.Click += delegate { ClearAllMaterials(); };
             actionBar.Controls.Add(btnClearAll);
-            actionBar.Controls.Add(NewActionSeparator());
+        }
 
-            Button btnUndo = NewButton("取消命名", 85);
+        // 底部执行栏（阶段10a，标注：布局变更）：状态文本、导出选项、
+        // 取消命名与主按钮同驻一处——改变主按钮含义的开关紧挨按钮本身，
+        // 执行反馈出现在用户点击的地方。执行期间由 10d 在此显示进度与取消。
+        private void BuildFooterBar()
+        {
+            footerBar = new Panel();
+            footerBar.Dock = DockStyle.Bottom;
+            footerBar.Height = 46;
+            footerBar.Padding = new Padding(12, 5, 12, 5);
+            Controls.Add(footerBar);
+
+            FlowLayoutPanel footerRight = new FlowLayoutPanel();
+            footerRight.FlowDirection = FlowDirection.LeftToRight;
+            footerRight.WrapContents = false;
+            footerRight.AutoSize = true;
+            footerRight.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            footerRight.Dock = DockStyle.Right;
+            footerRight.Padding = new Padding(0);
+            footerRight.Margin = new Padding(0);
+
+            operationProgress = new ProgressBar();
+            operationProgress.Width = 150;
+            operationProgress.Height = 20;
+            operationProgress.Margin = new Padding(0, 8, 10, 0);
+            operationProgress.Style = ProgressBarStyle.Continuous;
+            operationProgress.Visible = false;
+            footerRight.Controls.Add(operationProgress);
+
+            btnCancelOperation = NewButton("取消", 58);
+            btnCancelOperation.Margin = new Padding(0, 3, 10, 3);
+            btnCancelOperation.Visible = false;
+            btnCancelOperation.Click += delegate { CancelRunningOperation(); };
+            footerRight.Controls.Add(btnCancelOperation);
+
+            chkExport1080p = new CheckBox();
+            chkExport1080p.Text = "导出1080x1920";
+            chkExport1080p.AutoSize = true;
+            chkExport1080p.Margin = new Padding(0, 8, 12, 0);
+            chkExport1080p.CheckedChanged += OnExport1080pCheckedChanged;
+            footerRight.Controls.Add(chkExport1080p);
+
+            chkExportWatermark = new CheckBox();
+            chkExportWatermark.Text = "文件名水印";
+            chkExportWatermark.Checked = false;
+            chkExportWatermark.AutoSize = true;
+            chkExportWatermark.Margin = new Padding(0, 8, 12, 0);
+            chkExportWatermark.CheckedChanged += OnExportWatermarkCheckedChanged;
+            footerRight.Controls.Add(chkExportWatermark);
+            UpdateWatermarkOptionState();
+
+            footerRight.Controls.Add(NewActionSeparator());
+
+            btnUndo = NewButton("取消命名", 85);
             btnUndo.Click += delegate { RestoreLastRename(); };
-            actionBar.Controls.Add(btnUndo);
+            btnUndo.Margin = new Padding(0, 3, 6, 3);
+            footerRight.Controls.Add(btnUndo);
 
             btnRename = NewButton("执行重命名", 100);
             btnRename.Tag = "Primary";
             btnRename.Click += delegate { RenameFiles(); };
-            actionBar.Controls.Add(btnRename);
-        }
+            btnRename.Margin = new Padding(0, 3, 0, 3);
+            footerRight.Controls.Add(btnRename);
 
-        private void BuildStatusBar()
-        {
             statusLabel = new Label();
-            statusLabel.Dock = DockStyle.Bottom;
-            statusLabel.Height = 28;
-            statusLabel.Padding = new Padding(12, 6, 12, 0);
+            statusLabel.Dock = DockStyle.Fill;
+            statusLabel.TextAlign = ContentAlignment.MiddleLeft;
+            statusLabel.AutoEllipsis = true;
             statusLabel.Tag = "Muted";
             StatusText = "把视频拖到表格 B「主要素材」或 C「备用素材」单元格。";
-            Controls.Add(statusLabel);
+
+            footerBar.Controls.Add(statusLabel);
+            footerBar.Controls.Add(footerRight);
         }
 
         private void BuildWorkspaceSplit()
@@ -560,23 +597,53 @@ namespace VideoMaterialRenamer
             set { SetStatus(value); }
         }
 
-        // 操作期间整窗锁定（重命名/导出共用）。原先误放在 History 分部文件里。
+        // 操作期间整窗锁定（重命名/导出共用）。执行栏整体保持可用——状态
+        // 文本持续更新，取消按钮（10d 接线）必须在锁定期间可点；栏内的
+        // 选项与主按钮逐项禁用。
         private void SetOperationUiEnabled(bool enabled)
         {
             operationRunning = !enabled;
             UseWaitCursor = !enabled;
             foreach (Control control in Controls)
             {
-                if (object.ReferenceEquals(control, statusLabel))
+                if (object.ReferenceEquals(control, footerBar))
                 {
                     continue;
                 }
                 control.Enabled = enabled;
             }
 
+            if (chkExport1080p != null)
+            {
+                chkExport1080p.Enabled = enabled;
+            }
+            if (chkExportWatermark != null)
+            {
+                chkExportWatermark.Enabled = enabled;
+            }
+            if (btnUndo != null)
+            {
+                btnUndo.Enabled = enabled;
+            }
+            if (btnRename != null)
+            {
+                btnRename.Enabled = enabled;
+            }
             if (statusLabel != null)
             {
                 statusLabel.Enabled = true;
+            }
+        }
+
+        // 执行中的取消：导出批次经 FfmpegCancellation 立即杀活动进程并
+        // 清理临时文件（完整可见性接线在 10d）。
+        private void CancelRunningOperation()
+        {
+            exportController.CancelActive();
+            StatusText = "正在取消当前任务...";
+            if (btnCancelOperation != null)
+            {
+                btnCancelOperation.Enabled = false;
             }
         }
     }
