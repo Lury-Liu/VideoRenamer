@@ -110,6 +110,32 @@ function Get-EmbeddedResourceNames {
     return @($names | Where-Object { $_ })
 }
 
+function Assert-CsprojParity {
+    # Structural parity between the shadow csproj and the csc release path.
+    # (Binary parity validation requires a dotnet SDK, absent on this machine -
+    # documented as an outstanding verification item.)
+    param([string]$Root = $script:RepoRoot)
+    $csprojPath = Join-Path $Root "VideoRenamer.csproj"
+    if (!(Test-Path -LiteralPath $csprojPath)) {
+        throw "Assert-CsprojParity: VideoRenamer.csproj not found"
+    }
+    $xml = [xml](Get-Content -LiteralPath $csprojPath -Raw)
+    $props = $xml.Project.PropertyGroup
+    $failures = @()
+    if ($props.LangVersion -ne "5") { $failures += "LangVersion must stay 5 (csc is the release compiler)" }
+    if ($props.GenerateAssemblyInfo -ne "false") { $failures += "GenerateAssemblyInfo must be false (AssemblyInfo.cs is the FileVersion source)" }
+    if ($props.AssemblyName -ne $script:AppExeName.Replace(".exe", "")) { $failures += "AssemblyName drifted from the frozen EXE base name" }
+    $compileInclude = @($xml.Project.ItemGroup.Compile) | Where-Object { $_ } | Select-Object -First 1
+    if ($compileInclude.Include -ne "src\**\*.cs") { $failures += "Compile glob must match Get-SourceFiles (src\**\*.cs)" }
+    $resource = @($xml.Project.ItemGroup.EmbeddedResource) | Where-Object { $_ } | Select-Object -First 1
+    if ($resource.LogicalName -ne $script:FfmpegResourceName) { $failures += "EmbeddedResource LogicalName drifted from '$($script:FfmpegResourceName)'" }
+    if ($failures.Count -gt 0) {
+        $failures | ForEach-Object { Write-Host "[csproj-parity] FAIL: $_" -ForegroundColor Red }
+        throw "Assert-CsprojParity: $($failures.Count) drift(s) between shadow csproj and release path."
+    }
+    Write-Host "[csproj-parity] PASS: shadow csproj structurally matches the csc release path"
+}
+
 function Assert-CorePurity {
     # Layering gate (full-text scan, so fully-qualified references are caught too):
     #   src/Core/**  : must not mention System.Windows.Forms or System.Drawing

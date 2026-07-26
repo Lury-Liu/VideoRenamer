@@ -30,6 +30,9 @@ Assert-StatusLiteralOwnership
 # 分层纯净检查：Core 不得引用 WinForms/Drawing；Media 不得引用 WinForms（全文匹配，限定名也逃不掉）
 Assert-CorePurity
 
+# 影子 csproj 结构一致性检查（LangVersion 5 / 资源名 / 文件集合 / 版本来源）
+Assert-CsprojParity
+
 $sourceFiles = Get-SourceFiles
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null

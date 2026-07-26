@@ -38,3 +38,7 @@ rename_history.tsv
 # OS metadata
 Thumbs.db
 Desktop.ini
+
+# Shadow csproj build output
+/bin/
+/obj/

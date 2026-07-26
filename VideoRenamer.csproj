@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ============================================================
+       影子构建（IDE 支持 / 未来 CI 用），不是发布路径。
+       发布路径仍然且只能是：构建EXE.ps1（in-box csc.exe，C#5）。
+       LangVersion 固定为 5，保证 IDE 红线与 csc 现实一致。
+
+       状态：本机没有 dotnet SDK / MSBuild，此工程尚未经过实际
+       构建验证（结构断言见 scripts/build-common.ps1 的
+       Assert-CsprojParity）。首次在装有 .NET SDK 的机器上使用时，
+       请先 dotnet build 并对照 dist EXE 校验 FileVersion 与
+       内置资源名后再信任。
+       ============================================================ -->
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>5</LangVersion>
+    <AssemblyName>视频素材镜头表命名工具</AssemblyName>
+    <RootNamespace>VideoMaterialRenamer</RootNamespace>
+    <!-- 承重：FileVersion 的唯一来源是 src/App/AssemblyInfo.cs（发布脚本据此定 tag） -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ApplicationIcon>assets\app.ico</ApplicationIcon>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 与 构建EXE.ps1 的 Get-SourceFiles 相同的文件集合：src 下全部 .cs -->
+    <Compile Include="src\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Security" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 承重：LogicalName 必须逐字节等于 "VideoMaterialRenamer.ffmpeg.exe"，
+         SDK 默认资源命名会静默破坏 ExtractEmbeddedFfmpeg -->
+    <EmbeddedResource Include="tools\ffmpeg.exe" LogicalName="VideoMaterialRenamer.ffmpeg.exe" Condition="Exists('tools\ffmpeg.exe')" />
+  </ItemGroup>
+
+</Project>
