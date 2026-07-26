@@ -110,6 +110,28 @@ function Get-EmbeddedResourceNames {
     return @($names | Where-Object { $_ })
 }
 
+function Assert-CorePurity {
+    # Layering gate (full-text scan, so fully-qualified references are caught too):
+    #   src/Core/**  : must not mention System.Windows.Forms or System.Drawing
+    #   src/Media/** : must not mention System.Windows.Forms
+    param([string]$Root = $script:RepoRoot)
+    $violations = @()
+    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $Root "src\Core") -Recurse -Filter *.cs) {
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        if ($text.Contains("System.Windows.Forms")) { $violations += "$($file.FullName): Core references System.Windows.Forms" }
+        if ($text.Contains("System.Drawing")) { $violations += "$($file.FullName): Core references System.Drawing" }
+    }
+    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $Root "src\Media") -Recurse -Filter *.cs) {
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        if ($text.Contains("System.Windows.Forms")) { $violations += "$($file.FullName): Media references System.Windows.Forms" }
+    }
+    if ($violations.Count -gt 0) {
+        $violations | ForEach-Object { Write-Host "[core-purity-gate] FAIL: $_" -ForegroundColor Red }
+        throw "Assert-CorePurity: $($violations.Count) layering violation(s)."
+    }
+    Write-Host "[core-purity-gate] PASS: Core is WinForms/Drawing-free; Media is WinForms-free"
+}
+
 function Assert-StatusLiteralOwnership {
     # Compile-checked-seam guard: the plan-status Chinese literals may only
     # appear in PlanStatusText.cs (the mapper), PlanStatus.cs (enum doc

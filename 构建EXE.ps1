@@ -27,6 +27,9 @@ Write-Host "版本号：$version"
 # 状态字面量所有权检查：状态中文串只允许在 PlanStatusText/PlanStatus/Tests 中出现
 Assert-StatusLiteralOwnership
 
+# 分层纯净检查：Core 不得引用 WinForms/Drawing；Media 不得引用 WinForms（全文匹配，限定名也逃不掉）
+Assert-CorePurity
+
 $sourceFiles = Get-SourceFiles
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
