@@ -8,7 +8,7 @@
 #define AppPublisher "@寒松"
 #define AppExeName "视频素材镜头表命名工具.exe"
 #ifndef AppVersion
-  #define AppVersion "1.0.6.0"
+  #define AppVersion "1.0.7.0"
 #endif
 
 [Setup]
