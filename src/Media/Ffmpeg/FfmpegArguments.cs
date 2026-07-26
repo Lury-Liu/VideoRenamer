@@ -10,7 +10,7 @@ namespace VideoMaterialRenamer
     {
         internal static string QuoteArgument(string value)
         {
-            return "\"" + (value ?? "").Replace("\"", "\\\"") + "\"";
+            return ProcessArguments.Quote(value);
         }
 
         private static string NormalizeWatermarkText(string text)

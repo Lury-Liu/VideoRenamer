@@ -32,6 +32,7 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("material_file_name_clamps_episode_scene", MaterialFileNameClampsEpisodeScene));
             cases.Add(new TestCase("normalize_custom_tail_invalid_chars", NormalizeCustomTailInvalidChars));
             cases.Add(new TestCase("normalize_custom_tail_80_char_truncation", NormalizeCustomTail80CharTruncation));
+            cases.Add(new TestCase("process_arguments_quote_table", ProcessArgumentsQuoteTable));
             cases.Add(new TestCase("status_ready", StatusReady));
             cases.Add(new TestCase("status_unchanged", StatusUnchanged));
             cases.Add(new TestCase("status_target_exists", StatusTargetExists));
@@ -687,6 +688,16 @@ namespace VideoMaterialRenamer.Tests
 
             // 4. null 行：安全无操作。
             PlanExecutor.PatchRowFileList(null, true, 0, "a", "b");
+        }
+
+        private static void ProcessArgumentsQuoteTable()
+        {
+            TestAssert.AreEqual("\"\"", ProcessArguments.Quote(null), "null quotes to empty");
+            TestAssert.AreEqual("\"\"", ProcessArguments.Quote(""), "empty quotes to empty");
+            TestAssert.AreEqual("\"C:\\a b\\v.mp4\"", ProcessArguments.Quote(@"C:\a b\v.mp4"), "plain path wrapped");
+            TestAssert.AreEqual("\"a\\\"b\"", ProcessArguments.Quote("a\"b"), "embedded quote escaped");
+            // FfmpegArguments 委托后行为逐字节一致（导出参数黄金值另有整串锁定）。
+            TestAssert.AreEqual(ProcessArguments.Quote(@"D:\素材\v.mp4"), FfmpegArguments.QuoteArgument(@"D:\素材\v.mp4"), "ffmpeg delegate identical");
         }
 
         private static void UniquePathWithSuffixFirstCandidate()

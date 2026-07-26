@@ -361,7 +361,7 @@ namespace VideoMaterialRenamer
 
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = powershell;
-            startInfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -File " + QuoteArgument(scriptPath);
+            startInfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -File " + ProcessArguments.Quote(scriptPath);
             startInfo.UseShellExecute = false;
             startInfo.CreateNoWindow = true;
             Process.Start(startInfo);
@@ -370,11 +370,6 @@ namespace VideoMaterialRenamer
         private static string QuotePowerShellString(string value)
         {
             return "'" + (value ?? "").Replace("'", "''") + "'";
-        }
-
-        private static string QuoteArgument(string value)
-        {
-            return "\"" + (value ?? "").Replace("\"", "\\\"") + "\"";
         }
 
         internal static string GetReleaseAssetApiUrl(string releaseJson, string assetName)
