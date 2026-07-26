@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$OutputName = "视频素材镜头表命名工具.exe",
+    [string]$OutputName = "VideoRenamer.exe",
     [switch]$AllowNoFfmpeg
 )
 
@@ -24,6 +24,9 @@ $ffmpegResourceCandidates = @(
 $version = Assert-VersionConsistency
 Write-Host "版本号：$version"
 
+# 全局应用标识必须在运行时、构建、安装器和产物名称之间保持一致。
+Assert-AppIdentity
+
 # 状态字面量所有权检查：状态中文串只允许在 PlanStatusText/PlanStatus/Tests 中出现
 Assert-StatusLiteralOwnership
 
@@ -40,6 +43,7 @@ Assert-PaletteOwnership
 Assert-CsprojParity
 
 $sourceFiles = Get-SourceFiles
+$startupIconResources = Get-StartupIconResourceFiles -Root $root
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
@@ -82,6 +86,11 @@ else {
     throw "未找到 tools\ffmpeg.exe。缺少内置 FFmpeg 的 EXE 会静默失去媒体功能，禁止发布。开发构建请使用 -AllowNoFfmpeg。"
 }
 
+foreach ($startupIconResource in $startupIconResources) {
+    $resourceName = $script:StartupIconResourcePrefix + $startupIconResource.Name
+    $arguments += "/resource:$($startupIconResource.FullName),$resourceName"
+}
+
 $arguments += "/out:$outputExe"
 foreach ($ref in (Get-ReferenceAssemblies)) {
     $arguments += "/reference:$ref"
@@ -98,9 +107,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "EXE 编译失败。"
 }
 
-$readme = Join-Path $root "README_视频素材重命名工具.md"
+$readme = Join-Path $root "README.md"
 if (Test-Path -LiteralPath $readme) {
-    Copy-Item -LiteralPath $readme -Destination (Join-Path $distDir "README_视频素材重命名工具.md") -Force
+    Copy-Item -LiteralPath $readme -Destination (Join-Path $distDir "README.md") -Force
 }
 
 $changelog = Join-Path $root "CHANGELOG.md"

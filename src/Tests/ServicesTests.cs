@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace VideoMaterialRenamer.Tests
+namespace VideoRenamer.Tests
 {
     // Characterization tests for the auto-update contract: manifest parsing,
     // version comparison, and GitHub release asset discovery. The "real published
@@ -9,9 +9,10 @@ namespace VideoMaterialRenamer.Tests
     // 发布更新到GitHub.ps1 - producer and consumer are pinned to the same schema.
     public static class ServicesTests
     {
+        private const string ValidSha256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
         private const string RealPublishedManifestGolden =
             "{\r\n" +
-            "    \"appId\":  \"VideoMaterialRenamer\",\r\n" +
+            "    \"appId\":  \"VideoRenamer\",\r\n" +
             "    \"version\":  \"1.0.6.0\",\r\n" +
             "    \"displayVersion\":  \"V1.0.6.0\",\r\n" +
             "    \"fileName\":  \"VideoRenamer-v1.0.6.0.exe\",\r\n" +
@@ -27,6 +28,9 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("manifest_parse_sample", ManifestParseSample));
             cases.Add(new TestCase("manifest_parse_real_published_golden", ManifestParseRealPublishedGolden));
             cases.Add(new TestCase("manifest_parse_wrong_app_id_returns_null", ManifestParseWrongAppIdReturnsNull));
+            cases.Add(new TestCase("manifest_parse_missing_app_id_returns_null", ManifestParseMissingAppIdReturnsNull));
+            cases.Add(new TestCase("manifest_parse_missing_sha256_returns_null", ManifestParseMissingSha256ReturnsNull));
+            cases.Add(new TestCase("manifest_parse_invalid_sha256_returns_null", ManifestParseInvalidSha256ReturnsNull));
             cases.Add(new TestCase("manifest_parse_missing_version_returns_null", ManifestParseMissingVersionReturnsNull));
             cases.Add(new TestCase("version_compare_table", VersionCompareTable));
             cases.Add(new TestCase("release_asset_api_url_pairing", ReleaseAssetApiUrlPairing));
@@ -40,10 +44,10 @@ namespace VideoMaterialRenamer.Tests
         private static void UpdaterScriptShape()
         {
             string script = UpdateManager.BuildUpdaterScript(
-                @"C:\Program Files\VideoMaterialRenamer\视频素材镜头表命名工具.exe",
-                @"C:\Temp\VideoMaterialRenamer_Update\update_abc.exe",
+                @"C:\Program Files\VideoRenamer\VideoRenamer.exe",
+                @"C:\Temp\VideoRenamer_Update\update_abc.exe",
                 1234,
-                @"C:\Users\u\AppData\Local\VideoMaterialRenamer\update-failed.txt");
+                @"C:\Users\u\AppData\Local\VideoRenamer\update-failed.txt");
 
             TestAssert.IsTrue(script.Contains("$pidToWait = 1234"), "pid embedded");
             TestAssert.IsTrue(script.Contains("$ErrorActionPreference = 'Stop'"), "stop preference");
@@ -68,7 +72,7 @@ namespace VideoMaterialRenamer.Tests
 
         private static void ManifestParseSample()
         {
-            string json = "{\"appId\":\"VideoMaterialRenamer\",\"version\":\"1.0.5.99\",\"displayVersion\":\"V1.0.5.99\",\"downloadUrl\":\"https://example.com/app.exe\",\"sha256\":\"ABCDEF\",\"fileName\":\"视频素材镜头表命名工具.exe\",\"notes\":\"测试更新\"}";
+            string json = "{\"appId\":\"VideoRenamer\",\"version\":\"1.0.5.99\",\"displayVersion\":\"V1.0.5.99\",\"downloadUrl\":\"https://example.com/app.exe\",\"sha256\":\"" + ValidSha256 + "\",\"fileName\":\"VideoRenamer.exe\",\"notes\":\"测试更新\"}";
             UpdateInfo info = UpdateManager.ParseManifest(json);
             TestAssert.IsNotNull(info, "sample manifest parses");
             TestAssert.AreEqual("1.0.5.99", info.Version, "sample version");
@@ -92,13 +96,31 @@ namespace VideoMaterialRenamer.Tests
 
         private static void ManifestParseWrongAppIdReturnsNull()
         {
-            string json = "{\"appId\":\"SomeOtherApp\",\"version\":\"9.9.9.9\",\"downloadUrl\":\"https://example.com/x.exe\"}";
+            string json = "{\"appId\":\"SomeOtherApp\",\"version\":\"9.9.9.9\",\"downloadUrl\":\"https://example.com/x.exe\",\"sha256\":\"" + ValidSha256 + "\"}";
             TestAssert.IsNull(UpdateManager.ParseManifest(json), "foreign appId rejected");
+        }
+
+        private static void ManifestParseMissingAppIdReturnsNull()
+        {
+            string json = "{\"version\":\"9.9.9.9\",\"downloadUrl\":\"https://example.com/x.exe\",\"sha256\":\"" + ValidSha256 + "\"}";
+            TestAssert.IsNull(UpdateManager.ParseManifest(json), "missing appId rejected");
+        }
+
+        private static void ManifestParseMissingSha256ReturnsNull()
+        {
+            string json = "{\"appId\":\"VideoRenamer\",\"version\":\"9.9.9.9\",\"downloadUrl\":\"https://example.com/x.exe\"}";
+            TestAssert.IsNull(UpdateManager.ParseManifest(json), "missing sha256 rejected");
+        }
+
+        private static void ManifestParseInvalidSha256ReturnsNull()
+        {
+            string json = "{\"appId\":\"VideoRenamer\",\"version\":\"9.9.9.9\",\"downloadUrl\":\"https://example.com/x.exe\",\"sha256\":\"not-a-sha256\"}";
+            TestAssert.IsNull(UpdateManager.ParseManifest(json), "invalid sha256 rejected");
         }
 
         private static void ManifestParseMissingVersionReturnsNull()
         {
-            string json = "{\"appId\":\"VideoMaterialRenamer\",\"downloadUrl\":\"https://example.com/x.exe\"}";
+            string json = "{\"appId\":\"VideoRenamer\",\"downloadUrl\":\"https://example.com/x.exe\",\"sha256\":\"" + ValidSha256 + "\"}";
             TestAssert.IsNull(UpdateManager.ParseManifest(json), "missing version rejected");
             TestAssert.IsNull(UpdateManager.ParseManifest(""), "empty json rejected");
             TestAssert.IsNull(UpdateManager.ParseManifest(null), "null json rejected");

@@ -3,7 +3,7 @@
 Branch: `refactor/modernization-v3` (from `refactor/architecture-v2` @ 65068a8, health 85/100)
 Predecessor docs: [ARCHITECTURE_REDESIGN_PLAN.md](ARCHITECTURE_REDESIGN_PLAN.md) · [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md) · [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md)
 
-> **Status (2026-07-26): COMPLETED.** All phases (8–14) plus the post-plan mockup-alignment phases 10g/10h/10i were delivered; final health **89/100**; source at **V1.0.7.0**; branch pushed to `origin`. This document is the historical plan — see [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md) for per-phase verification evidence and [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md) for the final assessment.
+> **Status (2026-07-26): COMPLETED.** All phases (8–14) plus the post-plan mockup-alignment phases 10g/10h/10i were delivered; final health **89/100**. The current release line is **V1.0.8.0** on `main`. This document is the historical plan — see [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md) for per-phase verification evidence and [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md) for the final assessment.
 
 Scope approved by the user (2026-07-26): warm paper-like visual system, layout/workflow redesign, continued structural reorganization, code-quality debt (oversized builders, duplication, hardcoded styling, silent catches, unclear state ownership), explicit module boundaries, remaining performance items, and an evidence-backed final health score. Update hardening and the 30-day key default were evaluated and approved in the preceding exchange and are included as flagged phases.
 
@@ -84,7 +84,7 @@ Order rationale: foundations before visuals (named builders make layout diffs re
 1. **8a `currentPlan` single ownership**: all writers routed through one `ReplaceCurrentPlan` in the Plan partial; grep proves a single mutation site.
 2. **8b `BuildUi` factoring**: ~340-line method → named `Build*` methods + named handlers for non-trivial delegates, *current layout unchanged* (pure code motion).
 3. **8c `ProcessArguments` (Core/Text)**: single quoting implementation; UpdateManager's copy deleted; ffmpeg arg goldens byte-identical.
-4. **8d `AppLog`**: size-capped file log under `%LocalAppData%\VideoMaterialRenamer\logs`; never throws; replaces silent catches on the paths where silence hides real failures (update, license save/load, export cleanup, startup sweeps). UI best-effort catches stay silent by design.
+4. **8d `AppLog`**: size-capped file log under `%LocalAppData%\VideoRenamer\logs`; never throws; replaces silent catches on the paths where silence hides real failures (update, license save/load, export cleanup, startup sweeps). UI best-effort catches stay silent by design.
 5. **8e License validation seam**: pure `LicenseValidator.Validate(key, machineCode, nowUtc)`; `LicenseManager` delegates, DPAPI/storage functions byte-identical (diff-verified). Tests use a **pinned, already-expired key** issued for a dummy machine code — worthless if extracted from the EXE, yet the parameterized clock lets tests exercise the valid path (`nowUtc` before its expiry). Private key never appears in `src/`.
 
 **Acceptance**: G1 grows to ~64 cases (validator table ×8, quoting table); goldens identical; grep gates: 1 currentPlan writer, 0 `QuoteArgument` in Update; G3 PASS.

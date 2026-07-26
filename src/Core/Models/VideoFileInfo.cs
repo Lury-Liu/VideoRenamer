@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public class VideoFileInfo
     {

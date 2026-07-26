@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace VideoMaterialRenamer.Tests
+namespace VideoRenamer.Tests
 {
     // Characterization tests for the naming engine, plan statuses, export plan
     // preparation, and history encoding. These pin CURRENT behavior - including

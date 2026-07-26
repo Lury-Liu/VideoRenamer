@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 重命名执行编排：把 File.Move 循环放到工作线程（原实现在 UI 线程里
     // 同步执行，大批量/网络盘会整窗冻结），逐文件进度经 IStatusSink 报告，

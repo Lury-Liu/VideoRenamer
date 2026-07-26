@@ -2,12 +2,12 @@
 using System.IO;
 using System.Text;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 轻量文件日志（阶段8d）：唯一目的是让"静默失败"留下可诊断的痕迹。
     // 约定：本类绝不抛异常、绝不弹窗（日志失败不得反过来伤害主流程）；
     // 单文件上限 1MB，超限滚动为 app.old.log（只保留一代）。
-    // 位置：%LocalAppData%\VideoMaterialRenamer\logs\app.log
+    // 位置：%LocalAppData%\VideoRenamer\logs\app.log
     public static class AppLog
     {
         private static readonly object Sync = new object();

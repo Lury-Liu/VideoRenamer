@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 1080p 批量导出编排：工作线程调度、逐文件执行、逐行进度聚合、
     // 状态栏文本。UI 专属处置（行模型写回、完成对话框、进度列显隐）

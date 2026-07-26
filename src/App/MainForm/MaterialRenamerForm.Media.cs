@@ -14,7 +14,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public partial class MaterialRenamerForm : IUiDispatcher
     {
@@ -253,6 +253,15 @@ namespace VideoMaterialRenamer
                 }
                 frameStrip.Clear();
             }
+        }
+
+        // 无素材详情是帧预览的终止状态：同时清掉已缓存帧，并让后台尚未
+        // 完成的抽帧回调失效，避免它们在清空后重新把旧视频画面显示出来。
+        private void InvalidateFrameStrip()
+        {
+            frameStripVersion++;
+            frameStripPath = "";
+            ClearFrameStrip();
         }
     }
 }

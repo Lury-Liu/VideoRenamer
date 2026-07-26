@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 跨线程取消令牌：Cancel() 立即杀掉当前活动的 ffmpeg 进程（若有），
     // 之后再启动的进程也会被立刻杀掉。取消后 RunExport 抛

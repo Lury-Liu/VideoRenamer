@@ -14,10 +14,14 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public partial class MaterialRenamerForm : IStatusSink
     {
+        // 所有工作区序号徽章（①②③④）共用同一条左侧基线，避免各工具条
+        // 各自的 Padding 让编号在视觉上错位。
+        private const int ZoneBadgeBaselineLeft = 14;
+
         // BuildUi 拆分为具名 Build* 方法（阶段8b，纯代码搬移）：语句顺序与原
         // 单体实现逐条一致——Dock 布局依赖控件添加次序与 BringToFront 调用。
         private void BuildUi()
@@ -42,7 +46,7 @@ namespace VideoMaterialRenamer
 
         private void ConfigureFormShell()
         {
-            Text = "视频素材镜头表命名工具";
+            Text = AppInfo.Name;
             StartPosition = FormStartPosition.CenterScreen;
             Size = new Size(1240, 820);
             MinimumSize = new Size(820, 680);
@@ -78,7 +82,7 @@ namespace VideoMaterialRenamer
             settingsPanel.FlowDirection = FlowDirection.LeftToRight;
             settingsPanel.WrapContents = false;
             settingsPanel.BackColor = UiTheme.PanelBack(darkMode);
-            settingsPanel.Location = new Point(14, 10);
+            settingsPanel.Location = new Point(ZoneBadgeBaselineLeft, 10);
             settingsPanel.Size = new Size(1196, 34);
             topPanel.Controls.Add(settingsPanel);
 
@@ -155,7 +159,7 @@ namespace VideoMaterialRenamer
             toolbar.Dock = DockStyle.Fill;
             toolbar.FlowDirection = FlowDirection.LeftToRight;
             toolbar.WrapContents = false;
-            toolbar.Padding = new Padding(4, 0, 4, 0);
+            toolbar.Padding = new Padding(ZoneBadgeBaselineLeft, 0, 4, 0);
             toolbar.Margin = new Padding(0);
 
             toolbar.Controls.Add(new ZoneBadge(2));
@@ -254,9 +258,10 @@ namespace VideoMaterialRenamer
             // 序号徽章 ④：状态即"执行"分区的反馈（后添加者先停靠 → 徽章在最左）。
             Panel badgeHost = new Panel();
             badgeHost.Dock = DockStyle.Left;
-            badgeHost.Width = 28;
             ZoneBadge footerBadge = new ZoneBadge(4);
-            footerBadge.Location = new Point(2, 8);
+            int footerBadgeLeft = Math.Max(0, ZoneBadgeBaselineLeft - footerBar.Padding.Left);
+            badgeHost.Width = footerBadgeLeft + footerBadge.Width;
+            footerBadge.Location = new Point(footerBadgeLeft, 8);
             badgeHost.Controls.Add(footerBadge);
 
             footerBar.Controls.Add(statusLabel);
@@ -590,7 +595,7 @@ namespace VideoMaterialRenamer
             panel.Dock = DockStyle.Fill;
             panel.FlowDirection = FlowDirection.LeftToRight;
             panel.WrapContents = false;
-            panel.Padding = new Padding(6, 6, 6, 4);
+            panel.Padding = new Padding(ZoneBadgeBaselineLeft, 6, 6, 4);
             panel.Margin = new Padding(0);
 
             panel.Controls.Add(new ZoneBadge(3));

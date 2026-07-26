@@ -1,51 +1,55 @@
-# Project Status — Video Material Shot-List Renamer
+# Project Status — VideoRenamer
 
 | | |
 | --- | --- |
-| **Source version** | **V1.0.7.0** (bumped `b1dcc27`; EXE built + verify-artifact PASS) |
-| **Published release** | **v1.0.6.0** — remote tag on `main`; this is what the in-app updater currently serves |
-| **Branch** | `refactor/modernization-v3`, pushed to `origin` (tip `6a1da4c`); `main` still at the V1.0.6.0 merge (`7f6855f`) |
+| **Source version** | **V1.0.8.0** |
+| **Published release** | **v1.0.8.0** from `main` |
+| **Branch policy** | `main` is the only remote branch |
 | **Status generated** | 2026-07-26 |
-| **Overall state** | Modernization V2+V3 complete · health **89/100** (evidence-backed) · V1.0.7.0 release publication pending |
+| **Overall state** | Modernization V2+V3 complete · VideoRenamer identity migration complete · release verified |
 
-## Summary
+## Current release
 
-The app was carried through two verified refactor campaigns on top of the V1.0.6.0 baseline: **V2** (`refactor/architecture-v2`, 27 commits, health 38→85/100) rebuilt the structure under a characterization-test net, and **V3** (`refactor/modernization-v3`, 23 commits by `git rev-list --count`, 85→**89/100**) delivered the warm-paper visual system, the mockup-aligned four-zone layout (badges ①–④, letterless grid, always-visible 场号/进度 columns, colored preview statuses, 素材信息 inspector with resolution·duration, themed 执行中 strip), update-subsystem hardening, the **30-day** activation-key default, machine-enforced layer boundaries, and the remaining performance items. A 10-auditor + critic verification workflow checked every requirement against the code with file:line evidence (34/35 confirmed; the two real gaps it found were fixed in phase 10i, the one falsified doc claim corrected).
+V1.0.8.0 completes the project-wide migration to the `VideoRenamer` identity and keeps it centralized across namespaces, assembly metadata, executable/installer names, application-data paths, resources, update manifests, build scripts, and launchers. The prior installed identity is intentionally not migrated; a clean installation is recommended for this release.
 
-## Verification state (re-run at V1.0.7.0, this tree)
+The fixed executable icon remains `assets\app.ico`. Nine ICO-only startup images under `assets\startup-icons` rotate between application sessions through separate state, service, and theme modules, without growing the main entry point. The startup renderer extracts the largest embedded PNG frame from each ICO to avoid the previously corrupted splash image.
+
+## V1.0.8.0 changes
+
+- Fixed stale hover-scrub frames remaining visible after **global clear**.
+- Aligned the numbered workspace badges on the left edge.
+- Added session-to-session rotation for all nine startup ICOs while keeping the EXE icon fixed.
+- Migrated the global application name and durable paths to `VideoRenamer`.
+- Hardened updates: exact `appId` matching, mandatory 64-character SHA-256, and post-download hash enforcement before replacement.
+- Made release SHA-256 generation compatible with the available Windows PowerShell runtime.
+
+## Verification state
 
 | Gate | Result |
 | --- | --- |
-| SelfTest (70 characterization cases incl. golden masters, license table, palette pins) | ✅ 70/70 → `SelfTest OK` |
-| SmokeTest (UI construction + structure/equivalence/collapse/strip locks) | ✅ `SmokeTest OK` |
-| 6 build gates (version / status-literal / Core+Media purity / Services purity / palette ownership / csproj parity) | ✅ all PASS |
-| verify-artifact | ✅ version=1.0.7.0, 101,696,000 bytes, ffmpeg resource present, single hyphen-free EXE, no stray DLLs |
-| Security | ✅ 生成授权密钥工具.ps1 (RSA private key) never tracked in any commit on any branch |
+| SelfTest | ✅ 77/77 → `SelfTest OK` |
+| SmokeTest | ✅ `SmokeTest OK` |
+| Source/architecture gates | ✅ version, app identity, status ownership, layer purity, palette ownership, csproj parity |
+| Package build | ✅ `dist\VideoRenamer.exe` + `installer\VideoRenamer-Setup-v1.0.8.0.exe` |
+| verify-artifact | ✅ version/resource/name/layout checks PASS |
+| Publish rehearsal | ✅ `发布更新到GitHub.ps1 -DryRun` |
 
-## Release checklist — V1.0.7.0
+## Release assets
 
-| Step | State |
-| --- | --- |
-| Source version bumped (`AppInfo.cs` / `AssemblyInfo.cs` / `installer.iss` / README) | ✅ Done |
-| EXE built → `dist\视频素材镜头表命名工具.exe` (1.0.7.0) | ✅ Done |
-| Branch pushed to `origin` | ✅ Done (`refactor/modernization-v3` @ `6a1da4c`) |
-| Merged to `main` | ⚠️ Pending — PR: https://github.com/Lury-Liu/VideoRenamer/pull/new/refactor/modernization-v3 |
-| Tag `v1.0.7.0` + GitHub Release + `latest.json` (`发布更新到GitHub.ps1`) | ⚠️ Pending — updater keeps serving v1.0.6.0 until this runs |
-| Installer repackaged (optional; release asset must stay the raw EXE — frozen contract) | ⚠️ Pending |
+- `VideoRenamer-Setup-v1.0.8.0.exe` — full installer for users.
+- `VideoRenamer-v1.0.8.0.exe` — raw executable consumed by the automatic updater.
+- `latest.json` — hash-pinned update manifest; its `fileName` selects the raw executable even when the installer coexists in the Release.
 
-## Remaining work (from the audit's manual-check list)
+## Remaining manual checks
 
-1. **Publish V1.0.7.0** — merge to `main`, then run `发布更新到GitHub.ps1` (asset must remain raw `VideoRenamer-v1.0.7.0.exe` + `latest.json`; an installer asset would break deployed updaters).
-2. **Human visual pass** — side-by-side with the approved mockup in both themes, plus HiDPI 125%/150% (automation verified 96dpi only).
-3. **Real export run** — 执行中 strip appears/updates (`N% · filename`)/hides; 取消 kills ffmpeg immediately.
-4. **Elevated-update rehearsal** — Program Files install → UAC accept/decline paths; only testable at the next real release.
-5. **`AppInfo` layer move** — Services/Media reference App-layer `AppInfo` (constants only); moving it to Core would make the dependency direction fully hold (task chip filed).
-6. **CI / csproj validation** — the shadow `VideoRenamer.csproj` is parity-gated but never compiled (no dotnet SDK on this machine); validate on a machine that has one.
-7. **`CHANGELOG.md`** — build/installer scripts already bundle it if present; still absent.
+1. Compare both themes at 100%, 125%, and 150% display scaling.
+2. Run a real rename/export/cancel/undo workflow with representative footage.
+3. Rehearse the Program Files update path for both accepted and declined UAC prompts.
+4. Validate the shadow SDK-style project on a machine with a current .NET SDK and add CI when that toolchain is adopted.
 
-## Where the detail lives
+## Detail
 
-- [docs/REFACTOR_PROGRESS.md](docs/REFACTOR_PROGRESS.md) — phase-by-phase log with verification evidence, deliberate mockup deviations, and release status.
-- [docs/HEALTH_ASSESSMENT.md](docs/HEALTH_ASSESSMENT.md) — the 89/100 scoring with per-dimension evidence and honest-scope notes.
-- [docs/ARCHITECTURE_REDESIGN_PLAN.md](docs/ARCHITECTURE_REDESIGN_PLAN.md) / [docs/MODERNIZATION_V3_PLAN.md](docs/MODERNIZATION_V3_PLAN.md) — the historical V2/V3 plans (banner-marked completed).
-- [README.md](README.md) — user/contributor-facing overview, naming scheme, build & publish instructions (rewritten to the V3 tree).
+- [README.md](README.md) — product, build, packaging, and update instructions.
+- [CHANGELOG.md](CHANGELOG.md) — release notes.
+- [docs/REFACTOR_PROGRESS.md](docs/REFACTOR_PROGRESS.md) — phase-by-phase modernization history.
+- [docs/HEALTH_ASSESSMENT.md](docs/HEALTH_ASSESSMENT.md) — evidence-backed architecture and quality assessment.

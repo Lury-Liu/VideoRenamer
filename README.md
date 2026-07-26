@@ -1,10 +1,10 @@
-# 视频素材镜头表命名工具 · Video Material Shot-List Renamer
+# VideoRenamer · Video Material Shot-List Renamer
 
 A Windows desktop tool for batch-renaming raw video footage into a consistent, shot-list–based naming scheme such as `E1-S2-28A-T1.mp4`. It gives you a spreadsheet-style shot list, live rename preview with conflict detection, embedded-FFmpeg thumbnails and hover-scrub frame preview, optional 1080p re-export, undo history, and a built-in auto-updater.
 
 | | |
 | --- | --- |
-| **Version** | V1.0.7.0 |
+| **Version** | V1.0.8.0 |
 | **Author** | @寒松 |
 | **Platform** | Windows · .NET Framework 4.x · WinForms |
 | **Language** | C# 5 (compiled with `csc.exe` / `Add-Type`) |
@@ -55,7 +55,7 @@ Concrete example: `E1-S2-28A-T1.mp4`
 
 ```
 videorenamercopy/
-├─ src/                          # All C# source (namespace VideoMaterialRenamer)
+├─ src/                          # All C# source (namespace VideoRenamer)
 │  ├─ App/                       # WinForms layer
 │  │  ├─ Program.cs              # Entry point: Disclaimer → License → Splash → Update check → MainForm
 │  │  ├─ AppInfo.cs              # Version, author, update URLs, app-data path
@@ -71,23 +71,23 @@ videorenamercopy/
 │  │  └─ Models · Execution · Import · Text · Abstractions
 │  ├─ Media/                     # Embedded-FFmpeg locator/runner, VideoMetadataReader, thumbnail & frame-strip providers
 │  ├─ Services/                  # Licensing, Update, Logging, Net, DisclaimerManager — zero WinForms (build-gated)
-│  └─ Tests/                     # 70 characterization cases, compiled in and run by -SelfTest
+│  └─ Tests/                     # 77 characterization cases, compiled in and run by -SelfTest
 ├─ scripts/                      # build-common.ps1 (6 build gates), verify-artifact.ps1, capture-ui.ps1
 ├─ docs/                         # V3 plan, REFACTOR_PROGRESS.md, HEALTH_ASSESSMENT.md, historical plans
-├─ assets/                       # app.ico, ChineseSimplified.isl (Inno Setup messages)
+├─ assets/                       # fixed EXE icon, rotating startup ICOs, Inno Setup messages
 ├─ tools/                        # ffmpeg.exe (NOT in git — supply locally to build the embedded EXE)
-├─ video_material_renamer.ps1    # Dev loader — compiles src/ in-memory and runs the app
+├─ VideoRenamer.ps1    # Dev loader — compiles src/ in-memory and runs the app
 ├─ 构建EXE.ps1                   # Build the distributable EXE (runs all gates, embeds FFmpeg + icon)
 ├─ 打包安装程序.ps1              # Build EXE, then compile the Inno Setup installer
 ├─ installer.iss                 # Inno Setup script
 ├─ 发布更新到GitHub.ps1          # Publish EXE + latest.json to GitHub Releases (gh CLI)
 ├─ 生成授权密钥工具.ps1          # Dev-only license-key generator (git-ignored — never commit)
-├─ 启动视频素材重命名工具.bat    # Convenience launcher
+├─ 启动VideoRenamer.bat          # Convenience launcher
 ├─ dist/                         # Build output (git-ignored)
 └─ installer/                    # Packaged installers (git-ignored)
 ```
 
-The architecture deliberately keeps all *naming* logic in the pure static class `RenamePlanBuilder` (`src/Core/Naming` — no WinForms dependency, exercised by `RunSelfTest`), while UI wiring lives in the `MaterialRenamerForm` partials (exercised by `RunSmokeTest` plus manual checks). Layer discipline is machine-enforced at every build: `构建EXE.ps1` runs six gates (version consistency, status-literal ownership, Core/Services UI-framework purity, palette ownership, shadow-csproj parity) plus artifact verification.
+The architecture deliberately keeps all *naming* logic in the pure static class `RenamePlanBuilder` (`src/Core/Naming` — no WinForms dependency, exercised by `RunSelfTest`), while UI wiring lives in the `MaterialRenamerForm` partials (exercised by `RunSmokeTest` plus manual checks). Layer discipline is machine-enforced at every build: `构建EXE.ps1` runs six source gates (version consistency, status-literal ownership, Core/Services UI-framework purity, palette ownership, shadow-csproj parity) plus artifact verification and the global app-identity gate.
 
 ## Build & run from source
 
@@ -95,13 +95,13 @@ Requires Windows with .NET Framework 4.x (`csc.exe` at `C:\Windows\Microsoft.NET
 
 ```powershell
 # Run the app straight from source (compiles src/ into memory each launch)
-powershell -ExecutionPolicy Bypass -File "video_material_renamer.ps1"
+powershell -ExecutionPolicy Bypass -File "VideoRenamer.ps1"
 
 # Logic regression gate — must print "SelfTest OK"
-powershell -ExecutionPolicy Bypass -File "video_material_renamer.ps1" -SelfTest
+powershell -ExecutionPolicy Bypass -File "VideoRenamer.ps1" -SelfTest
 
 # UI smoke gate — must print "SmokeTest OK"
-powershell -ExecutionPolicy Bypass -File "video_material_renamer.ps1" -SmokeTest
+powershell -ExecutionPolicy Bypass -File "VideoRenamer.ps1" -SmokeTest
 ```
 
 Running from the loader does not include FFmpeg, so thumbnail / metadata / hover-scrub features stay silent until you build the embedded EXE.
@@ -109,7 +109,7 @@ Running from the loader does not include FFmpeg, so thumbnail / metadata / hover
 ## Package a distributable
 
 ```powershell
-# 1) Build the EXE (embeds tools\ffmpeg.exe and assets\app.ico) → dist\视频素材镜头表命名工具.exe
+# 1) Build the EXE (embeds tools\ffmpeg.exe and assets\app.ico) → dist\VideoRenamer.exe
 powershell -ExecutionPolicy Bypass -File "构建EXE.ps1"
 
 # 2) One-shot: build EXE + compile the Inno Setup installer → installer\...v<version>.exe
@@ -126,7 +126,7 @@ Building the *embedded-FFmpeg* EXE needs `tools\ffmpeg.exe` present (it is git-i
 powershell -ExecutionPolicy Bypass -File "发布更新到GitHub.ps1"
 ```
 
-The script (via the `gh` CLI, which must be logged in) refuses to publish if the EXE's file version doesn't match the source `AppInfo.Version`, computes the asset's SHA-256, and uploads `latest.json` describing the release. Installed copies of the app read that manifest from `releases/latest/download/latest.json` and offer the update. The tag it publishes is `v{version}` (e.g. `v1.0.7.0`).
+The script (via the `gh` CLI, which must be logged in) refuses to publish if the EXE's file version doesn't match the source `AppInfo.Version`, computes the asset's SHA-256, and uploads `latest.json` describing the release. Installed copies of the app read that manifest from `releases/latest/download/latest.json` and offer the update. The tag it publishes is `v{version}` (e.g. `v1.0.8.0`). A full installer may coexist in the same Release; the updater downloads only the raw EXE named by `latest.json`.
 
 ## Requirements at a glance
 
@@ -139,7 +139,7 @@ The script (via the `gh` CLI, which must be logged in) refuses to publish if the
 
 ## Licensing & first-run gates
 
-On first launch the app requires the user to accept a **disclaimer** and then enter a valid **authorization key** (verified by `LicenseManager`). License/disclaimer state is stored under `%LocalAppData%\VideoMaterialRenamer` and intentionally survives uninstall so users don't have to re-activate after an upgrade. The key generator (`生成授权密钥工具.ps1`) is developer-only and excluded from git — do not ship it to end users.
+On first launch the app requires the user to accept a **disclaimer** and then enter a valid **authorization key** (verified by `LicenseManager`). License/disclaimer state is stored under `%LocalAppData%\VideoRenamer` and intentionally survives uninstall so users don't have to re-activate after an upgrade. The key generator (`生成授权密钥工具.ps1`) is developer-only and excluded from git — do not ship it to end users.
 
 ## Conventions for contributors
 

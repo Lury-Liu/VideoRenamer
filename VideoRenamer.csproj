@@ -17,8 +17,8 @@
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
     <LangVersion>5</LangVersion>
-    <AssemblyName>视频素材镜头表命名工具</AssemblyName>
-    <RootNamespace>VideoMaterialRenamer</RootNamespace>
+    <AssemblyName>VideoRenamer</AssemblyName>
+    <RootNamespace>VideoRenamer</RootNamespace>
     <!-- 承重：FileVersion 的唯一来源是 src/App/AssemblyInfo.cs（发布脚本据此定 tag） -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -38,9 +38,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 承重：LogicalName 必须逐字节等于 "VideoMaterialRenamer.ffmpeg.exe"，
+    <!-- 承重：LogicalName 必须逐字节等于 "VideoRenamer.ffmpeg.exe"，
          SDK 默认资源命名会静默破坏 ExtractEmbeddedFfmpeg -->
-    <EmbeddedResource Include="tools\ffmpeg.exe" LogicalName="VideoMaterialRenamer.ffmpeg.exe" Condition="Exists('tools\ffmpeg.exe')" />
+    <EmbeddedResource Include="tools\ffmpeg.exe" LogicalName="VideoRenamer.ffmpeg.exe" Condition="Exists('tools\ffmpeg.exe')" />
+    <EmbeddedResource Include="assets\startup-icons\*.ico" LogicalName="VideoRenamer.StartupIcons.%(Filename).ico" />
   </ItemGroup>
 
 </Project>

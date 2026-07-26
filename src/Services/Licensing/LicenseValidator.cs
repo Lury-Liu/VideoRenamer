@@ -2,7 +2,7 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 纯授权密钥验证（阶段8e）：机器码与时钟均由参数注入，因此可以在任意
     // 机器上用"已过期的样例密钥 + 回拨的 nowUtc"测遍所有分支；DPAPI 存储

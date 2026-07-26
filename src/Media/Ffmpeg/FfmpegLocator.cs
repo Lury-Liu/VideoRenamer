@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // ffmpeg.exe 的定位与内置资源提取。
     // 冻结契约：候选顺序 baseDir > baseDir\tools > cwd > cwd\tools > PATH > 内置资源；
-    // 内置资源名必须是 "VideoMaterialRenamer.ffmpeg.exe"（构建脚本 /resource 写入）。
+    // 内置资源名必须是 "VideoRenamer.ffmpeg.exe"（构建脚本 /resource 写入）。
     public static class FfmpegLocator
     {
         private static readonly object SyncRoot = new object();
@@ -79,7 +79,7 @@ namespace VideoMaterialRenamer
 
         private static string ExtractEmbeddedFfmpeg()
         {
-            const string resourceName = "VideoMaterialRenamer.ffmpeg.exe";
+            const string resourceName = "VideoRenamer.ffmpeg.exe";
             try
             {
                 Assembly assembly = Assembly.GetExecutingAssembly();

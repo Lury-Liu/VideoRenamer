@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 镜号标签的解析与格式化（如 "28A"）。Format 与 TryParse 互为逆运算，
     // 集中在一个文件里以避免两侧规则漂移；由测试用例锁定。

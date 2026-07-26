@@ -1,4 +1,4 @@
-﻿namespace VideoMaterialRenamer
+﻿namespace VideoRenamer
 {
     public class UpdateInfo
     {

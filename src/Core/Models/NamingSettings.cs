@@ -1,4 +1,4 @@
-﻿namespace VideoMaterialRenamer
+﻿namespace VideoRenamer
 {
     // 一次命名计算所需的全部设置快照。原先构建器调用方在 5 个分部文件里
     // 分散地直接读控件（numEpisode.Value、chkKeepExtension.Checked……）；

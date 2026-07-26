@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 免责声明确认记录的存储（阶段13a：对话框编排移至 App/Presenters/
     // DisclaimerGate，本类只剩纯读写，不再触碰 WinForms）。

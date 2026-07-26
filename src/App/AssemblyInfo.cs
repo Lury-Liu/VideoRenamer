@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 
-[assembly: AssemblyTitle("视频素材镜头表命名工具")]
-[assembly: AssemblyProduct("视频素材镜头表命名工具")]
+[assembly: AssemblyTitle("VideoRenamer")]
+[assembly: AssemblyProduct("VideoRenamer")]
 [assembly: AssemblyCompany("@寒松")]
-[assembly: AssemblyVersion("1.0.7.0")]
-[assembly: AssemblyFileVersion("1.0.7.0")]
+[assembly: AssemblyVersion("1.0.8.0")]
+[assembly: AssemblyFileVersion("1.0.8.0")]

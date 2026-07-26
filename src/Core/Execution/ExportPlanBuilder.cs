@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 1080p 导出前的计划派生：克隆条目、另存为模式改名、目标冲突校验。
     public static class ExportPlanBuilder

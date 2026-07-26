@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 工作区序号徽章（阶段10g）：①②③④ 的圆形小标，把"设置→填表→预览→执行"
     // 的工作流顺序画进界面。颜色经 UiTheme 角色取得（主题切换时由

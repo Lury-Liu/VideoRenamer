@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // Pure naming / rename-plan logic, decoupled from the WinForms UI.
     public static class RenamePlanBuilder

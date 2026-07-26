@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public static class LicenseManager
     {
@@ -219,7 +219,7 @@ namespace VideoMaterialRenamer
 
         private static byte[] GetDpapiEntropy(string purpose)
         {
-            return SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes("VideoMaterialRenamer|" + purpose + "|" + GetMachineCode()));
+            return SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes("VideoRenamer|" + purpose + "|" + GetMachineCode()));
         }
     }
 }

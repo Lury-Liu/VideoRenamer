@@ -14,7 +14,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public partial class MaterialRenamerForm : Form
     {
@@ -161,6 +161,27 @@ namespace VideoMaterialRenamer
                     throw new Exception("护眼模式水印复选框颜色测试失败。");
                 }
 
+                // 清空素材后，详情区不能继续保留上一条视频的帧序列；否则鼠标
+                // 划过缩略图会把旧画面重新覆盖到“未选择素材”的占位图上。
+                form.currentDetailPath = "stale.mp4";
+                form.currentDetailNewName = "stale-new.mp4";
+                form.currentDetailContext = "stale-context";
+                form.frameStripPath = "stale.mp4";
+                form.frameStripVersion = 7;
+                form.frameStrip.Add(new Bitmap(1, 1));
+                form.ShowNoVideoDetails();
+                Image noVideoImage = form.thumbnailBox.Image;
+                int clearedFrameStripVersion = form.frameStripVersion;
+                form.ShowFrameAtRatio(0.5);
+                if (form.frameStrip.Count != 0 ||
+                    !string.IsNullOrEmpty(form.frameStripPath) ||
+                    clearedFrameStripVersion <= 7 ||
+                    !string.IsNullOrEmpty(form.currentDetailPath) ||
+                    !object.ReferenceEquals(form.thumbnailBox.Image, noVideoImage))
+                {
+                    throw new Exception("清空素材后详情帧预览状态测试失败。");
+                }
+
                 // 阶段10 结构锁定：主按钮驻底部执行栏；进度/取消初始隐藏；
                 // 详情面板可折叠且能恢复。
                 if (form.footerBar == null || form.btnRename == null ||
@@ -173,6 +194,36 @@ namespace VideoMaterialRenamer
                 {
                     throw new Exception("执行栏进度初始隐藏测试失败。");
                 }
+
+                // 四个工作区序号徽章必须共用同一条左侧基线；不同工具条各自的
+                // Padding 很容易让 ①②③④ 在视觉上参差不齐。
+                form.PerformLayout();
+                List<ZoneBadge> zoneBadges = new List<ZoneBadge>();
+                CollectZoneBadges(form, zoneBadges);
+                if (zoneBadges.Count != 4)
+                {
+                    throw new Exception("工作区序号徽章数量测试失败。");
+                }
+                int zoneBadgeLeft = GetControlLeftForSmoke(zoneBadges[0], form);
+                StringBuilder zoneBadgePositions = new StringBuilder();
+                for (int i = 0; i < zoneBadges.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        zoneBadgePositions.Append(", ");
+                    }
+                    zoneBadgePositions.Append(GetControlLeftForSmoke(zoneBadges[i], form));
+                }
+                for (int i = 1; i < zoneBadges.Count; i++)
+                {
+                    int actualLeft = GetControlLeftForSmoke(zoneBadges[i], form);
+                    if (actualLeft != zoneBadgeLeft)
+                    {
+                        throw new Exception("工作区序号徽章左边界对齐测试失败：" +
+                            zoneBadgePositions + "。");
+                    }
+                }
+
                 // Visible 在未显示的窗体上恒为 false，这里以显式状态+宽度断言。
                 form.ToggleDetailPanel();
                 if (!form.detailPanelCollapsed || form.detailHost.Width != 28)
@@ -227,6 +278,35 @@ namespace VideoMaterialRenamer
             }
 
             return "SmokeTest OK";
+        }
+
+        private static void CollectZoneBadges(Control parent, List<ZoneBadge> badges)
+        {
+            foreach (Control child in parent.Controls)
+            {
+                ZoneBadge badge = child as ZoneBadge;
+                if (badge != null)
+                {
+                    badges.Add(badge);
+                }
+                CollectZoneBadges(child, badges);
+            }
+        }
+
+        private static int GetControlLeftForSmoke(Control control, Control ancestor)
+        {
+            int left = 0;
+            Control current = control;
+            while (current != null && !object.ReferenceEquals(current, ancestor))
+            {
+                left += current.Left;
+                current = current.Parent;
+            }
+            if (current == null)
+            {
+                throw new Exception("工作区序号徽章不在主窗体内。");
+            }
+            return left;
         }
 
         private static string DumpGridForSmoke(MaterialRenamerForm form)

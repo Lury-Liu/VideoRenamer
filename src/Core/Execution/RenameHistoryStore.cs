@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // rename_history.tsv 的编解码与读写（撤销功能的持久化层）。
-    // 冻结契约：首行标记 "VideoMaterialRenamerHistoryV1"，每行 5 个
+    // 冻结契约：首行标记 "VideoRenamerHistoryV1"，每行 5 个
     // 制表符分隔字段（RowIndex、IsMain、FileIndex、Base64 原路径、
     // Base64 新路径），UTF-8。已部署用户的历史文件必须继续可读。
     public static class RenameHistoryStore
     {
-        public const string HeaderLine = "VideoMaterialRenamerHistoryV1";
+        public const string HeaderLine = "VideoRenamerHistoryV1";
 
         internal static string EncodeValue(string value)
         {

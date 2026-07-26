@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 免责声明闸门的 UI 侧（阶段13a，自 DisclaimerManager 逐字迁入）：
     // 对话框展示与保存失败提示。确认记录的读写留在 Services。

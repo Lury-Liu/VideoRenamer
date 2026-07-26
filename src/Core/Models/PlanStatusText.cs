@@ -1,4 +1,4 @@
-﻿namespace VideoMaterialRenamer
+﻿namespace VideoRenamer
 {
     // PlanStatus 的用户可见中文文本。
     // 规则（由构建门禁 grep 强制）：状态中文字面量只允许出现在本文件与

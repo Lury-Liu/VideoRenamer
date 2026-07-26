@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace VideoMaterialRenamer.Tests
+namespace VideoRenamer.Tests
 {
     // Golden-master corpus: a fixed fixture shot table whose complete plan output
     // (column, indices, scene/shot labels, take, tail, new name, status) was

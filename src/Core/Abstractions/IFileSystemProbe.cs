@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 计划构建期间的文件系统探测接口：让 BuildPlan 的状态判定可以在测试中
     // 用假实现驱动（不再必须铺设真实临时文件），也为阶段7 的

@@ -14,11 +14,12 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public class SplashForm : Form
     {
         private readonly System.Windows.Forms.Timer closeTimer;
+        private Image startupImage;
 
         public SplashForm(LicenseInfo licenseInfo, bool darkMode)
         {
@@ -41,15 +42,15 @@ namespace VideoMaterialRenamer
             mark.Location = new Point(32, 34);
             mark.Size = new Size(64, 64);
             mark.SizeMode = PictureBoxSizeMode.Zoom;
-            Icon icon = AppIcon.Get();
-            if (icon != null)
+            startupImage = AppIcon.GetStartupPreview();
+            if (startupImage != null)
             {
-                mark.Image = icon.ToBitmap();
+                mark.Image = startupImage;
             }
             panel.Controls.Add(mark);
 
             Label title = new Label();
-            title.Text = "视频素材镜头表命名工具";
+            title.Text = AppInfo.Name;
             title.Font = new Font("Microsoft YaHei UI", 17f, FontStyle.Bold);
             title.AutoSize = false;
             title.TextAlign = ContentAlignment.MiddleLeft;
@@ -124,6 +125,11 @@ namespace VideoMaterialRenamer
         {
             closeTimer.Stop();
             closeTimer.Dispose();
+            if (startupImage != null)
+            {
+                startupImage.Dispose();
+                startupImage = null;
+            }
             base.OnFormClosed(e);
         }
     }

@@ -1,10 +1,10 @@
 # Architecture Assessment & Redesign Plan
 
-**Project:** 视频素材镜头表命名工具 (Video Material Shot-List Renamer) · V1.0.6.0
+**Project:** VideoRenamer (Video Material Shot-List Renamer) · V1.0.6.0
 **Date:** 2026-07-26
 **Scope:** Full architectural assessment + phased refactoring plan. Goals, in priority order: (1) reduce coupling, (2) reorganize structure, (3) improve maintainability, (4) improve performance — while preserving all existing functionality with zero regressions.
 
-> **Status (2026-07-26): COMPLETED.** Executed as `refactor/architecture-v2` (27 commits, health 38→85/100), then extended by the V3 modernization (`refactor/modernization-v3`, 89/100, source now V1.0.7.0). This document is the historical plan — see [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md) for verification evidence and [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md) for the current state.
+> **Status (2026-07-26): COMPLETED.** Executed as `refactor/architecture-v2` (27 commits, health 38→85/100), then extended by the V3 modernization (`refactor/modernization-v3`, 89/100). The current release line is V1.0.8.0. This document is the historical plan — see [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md) for verification evidence and [HEALTH_ASSESSMENT.md](HEALTH_ASSESSMENT.md) for the current state.
 
 **How this plan was produced:** six parallel subsystem assessments (main form, domain logic, media pipeline, services/startup, UI rendering, build/release), three independently designed candidate architectures (conservative in-place, toolchain-first modernization, gated strangler-fig), and a three-lens adversarial judge panel (regression safety, decoupling/maintainability, performance/correctness). The winning plan below is the strangler-fig migration (won 2 of 3 lenses: regression safety 9/10, performance correctness 8/10) with mandatory transplants from the other two, and the toolchain modernization retained as the explicit follow-on phase (it won the end-state maintainability lens 8/10).
 
@@ -14,7 +14,7 @@
 
 ### 1.1 What exists today
 
-~7,800 lines of C# 5 across 42 files under `src/`, compiled as one WinForms EXE by feeding the entire `src/` glob to the in-box legacy compiler (`%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe`) via `构建EXE.ps1`. There is no `.csproj`/`.sln`, no NuGet, no test framework. The dev loop (`video_material_renamer.ps1`) compiles the same glob in-memory via `Add-Type` under PowerShell 5.1. ffmpeg.exe (~100 MB, git-ignored) is embedded as a resource at build time and extracted at runtime by the exact name `VideoMaterialRenamer.ffmpeg.exe`.
+~7,800 lines of C# 5 across 42 files under `src/`, compiled as one WinForms EXE by feeding the entire `src/` glob to the in-box legacy compiler (`%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe`) via `构建EXE.ps1`. There is no `.csproj`/`.sln`, no NuGet, no test framework. The dev loop (`VideoRenamer.ps1`) compiles the same glob in-memory via `Add-Type` under PowerShell 5.1. ffmpeg.exe (~100 MB, git-ignored) is embedded as a resource at build time and extracted at runtime by the exact name `VideoRenamer.ffmpeg.exe`.
 
 The layering is partially real: `Plan/RenamePlanBuilder.cs` (naming engine), `Models/`, `Media/` providers, `Services/` (license/update/disclaimer), and `Forms/` dialogs are separate files. But the center of the application is a single god class.
 
@@ -79,7 +79,7 @@ The three providers (`VideoMetadataReader`, `VideoThumbnailProvider`, `VideoFram
 
 ### 1.7 Build & release toolchain: self-contained but ungated
 
-- The **release script's version guard is dead code**: `Get-SourceVersion` regexes `video_material_renamer.ps1` for a constant that moved to `src/AppInfo.cs` during modularization — it silently returns `""` and skips the check (发布更新到GitHub.ps1:141-154, 180-183). A stale EXE can be published.
+- The **release script's version guard is dead code**: `Get-SourceVersion` regexes `VideoRenamer.ps1` for a constant that moved to `src/AppInfo.cs` during modularization — it silently returns `""` and skips the check (发布更新到GitHub.ps1:141-154, 180-183). A stale EXE can be published.
 - **No script ever runs the self-tests** — gating is a README convention.
 - `构建EXE.ps1` only **warns** when ffmpeg.exe is missing, and extraction failure at runtime returns `""` silently — a media-crippled EXE can ship with no error at any stage.
 - Version lives in four unsynchronized places (AppInfo.cs, AssemblyInfo.cs, installer.iss fallback, README) with no cross-check.
@@ -89,11 +89,11 @@ The three providers (`VideoMetadataReader`, `VideoThumbnailProvider`, `VideoFram
 
 Any refactor must treat these as **read-only**; violating any one bricks updates, media, or activations for every installed copy:
 
-1. Embedded resource named exactly `VideoMaterialRenamer.ffmpeg.exe` (构建EXE.ps1:63 ↔ Ffmpeg.cs:69).
-2. Single loose EXE `dist\视频素材镜头表命名工具.exe` — installer.iss:45-50 and the publish script's "newest hyphen-free EXE" heuristic both assume it.
+1. Embedded resource named exactly `VideoRenamer.ffmpeg.exe` (构建EXE.ps1:63 ↔ Ffmpeg.cs:69).
+2. Single loose EXE `dist\VideoRenamer.exe` — installer.iss:45-50 and the publish script's "newest hyphen-free EXE" heuristic both assume it.
 3. Auto-update artifact contract: tag `v{FileVersion}`, assets `VideoRenamer-v{version}.exe` + literal `latest.json`, manifest field names, appId guard, lowercase sha256; primary URL `releases/latest/download/latest.json` baked into shipped binaries.
 4. `FileVersion` sourced from `src/AssemblyInfo.cs` (drives tag/asset/manifest derivation in the publish script).
-5. License persistence: `GetMachineCode` algorithm, DPAPI entropy derivation, `LicenseStateV2`/`RSA-SHA256` markers, `license.v2.dat`/`license.state.v2.dat` under `%LocalAppData%\VideoMaterialRenamer`.
+5. License persistence: `GetMachineCode` algorithm, DPAPI entropy derivation, `LicenseStateV2`/`RSA-SHA256` markers, `license.v2.dat`/`license.state.v2.dat` under `%LocalAppData%\VideoRenamer`.
 6. Installer AppId GUID and install dir; uninstall preserves `%LocalAppData%` state.
 7. Gate order disclaimer → license (legal), and the update-restart early-return in `Program.Run`.
 8. Loader switches `-SelfTest`/`-SmokeTest` printing exactly `SelfTest OK`/`SmokeTest OK`.
@@ -160,7 +160,7 @@ Any refactor must treat these as **read-only**; violating any one bricks updates
 **Tests + Build** (`src/Tests`, `build/build-common.ps1`)
 - `TestRunner`: C# 5, framework-free, named cases, runs **all** (no first-failure abort), prints `SelfTest OK` on zero failures (loader contract preserved). Compiled into the EXE, reachable only via `-SelfTest`/`-SmokeTest`.
 - `build-common.ps1`: `Get-SourceFiles` / `Get-ReferenceAssemblies` / `Get-AppVersion` / `Assert-CorePurity`, shared by all four scripts.
-- `VideoRenamer.csproj`: net48, `LangVersion 5` pinned, `GenerateAssemblyInfo=false`, `EmbeddedResource LogicalName=VideoMaterialRenamer.ffmpeg.exe` — **parity shadow build only** until Phase 8.
+- `VideoRenamer.csproj`: net48, `LangVersion 5` pinned, `GenerateAssemblyInfo=false`, `EmbeddedResource LogicalName=VideoRenamer.ffmpeg.exe` — **parity shadow build only** until Phase 8.
 
 ### 2.3 Target directory tree
 
@@ -168,7 +168,7 @@ Any refactor must treat these as **read-only**; violating any one bricks updates
 videorenamercopy/
 ├── 构建EXE.ps1                  (release build — unchanged contract; sources build-common; fails hard on
 │                                 missing ffmpeg; asserts embedded resource + version cross-check post-build)
-├── video_material_renamer.ps1   (dev loop — unchanged contract, sources build-common)
+├── VideoRenamer.ps1   (dev loop — unchanged contract, sources build-common)
 ├── 打包安装程序.ps1 / 发布更新到GitHub.ps1 / installer.iss
 │                                (gain hard test gates + fixed version guard reading src/App/AppInfo.cs)
 ├── build/
@@ -224,9 +224,9 @@ videorenamercopy/
 Every phase ends releasable via the unchanged `构建EXE.ps1` → `打包安装程序.ps1` → `发布更新到GitHub.ps1` path.
 
 ### Phase 0 — Seal the pipeline (zero `.cs` files touched) · risk: low
-1. Create `build/build-common.ps1` (dedupe the source glob + reference lists copy-pasted between 构建EXE.ps1:31-33/71-74 and video_material_renamer.ps1:18-22; `Get-AppVersion` from `src/AppInfo.cs`); rewire all four scripts.
+1. Create `build/build-common.ps1` (dedupe the source glob + reference lists copy-pasted between 构建EXE.ps1:31-33/71-74 and VideoRenamer.ps1:18-22; `Get-AppVersion` from `src/AppInfo.cs`); rewire all four scripts.
 2. **Fix the dead version guard**: `发布更新到GitHub.ps1` reads `src/AppInfo.cs` and **fails** (not skips) on empty/mismatch vs the dist EXE's FileVersion; cross-check `AppInfo.Version` vs `AssemblyFileVersion` in `构建EXE.ps1`.
-3. `构建EXE.ps1`: missing `tools\ffmpeg.exe` becomes a **throw** (opt-out `-AllowNoFfmpeg` for dev); add `build/verify-artifact.ps1` run after every build — asserts manifest resource literally named `VideoMaterialRenamer.ffmpeg.exe`, FileVersion==AppInfo.Version, EXE size floor >90 MB, exactly one hyphen-free EXE, no stray DLLs. *(Converts all three silent-ship failure modes into hard build failures on day one.)*
+3. `构建EXE.ps1`: missing `tools\ffmpeg.exe` becomes a **throw** (opt-out `-AllowNoFfmpeg` for dev); add `build/verify-artifact.ps1` run after every build — asserts manifest resource literally named `VideoRenamer.ffmpeg.exe`, FileVersion==AppInfo.Version, EXE size floor >90 MB, exactly one hyphen-free EXE, no stray DLLs. *(Converts all three silent-ship failure modes into hard build failures on day one.)*
 4. Wire hard test gates: 打包安装程序.ps1 and 发布更新到GitHub.ps1 invoke `-SelfTest`/`-SmokeTest` and abort unless output contains exactly `SelfTest OK`/`SmokeTest OK`.
 5. Add **internal test hooks** on the form (e.g. `internal Button TestBtnAbout`) so the smoke test stops asserting private controls *before* decomposition begins.
 6. Delete vestigial script code (unused `$mainScript` requirement, `$generatedSource`); fix 打包安装程序.ps1's unreliable `$LASTEXITCODE` check.
@@ -262,7 +262,7 @@ Every phase ends releasable via the unchanged `构建EXE.ps1` → `打包安装�
 1. **4a: pure `git mv`** into the target tree — *no text edits in this commit* (the glob build makes moves free; "identical bits modulo moves" stays mechanically reviewable).
 2. **4b: text-only cleanup commit**: trim the copy-pasted 15-line using-headers; models lose WinForms imports (`VideoFileInfo.ListSummary` display text moves toward App).
 3. Enforce `Assert-CorePurity` in `构建EXE.ps1` (full-text namespace grep, catches qualified names).
-4. Add `VideoRenamer.csproj` (net48, `LangVersion 5` pinned, `GenerateAssemblyInfo=false`, `EmbeddedResource LogicalName=...`, `AssemblyName 视频素材镜头表命名工具`) + parity assertions (file-set vs `Get-SourceFiles`, FileVersion, manifest resource list). **csc remains the sole release path.**
+4. Add `VideoRenamer.csproj` (net48, `LangVersion 5` pinned, `GenerateAssemblyInfo=false`, `EmbeddedResource LogicalName=...`, `AssemblyName VideoRenamer`) + parity assertions (file-set vs `Get-SourceFiles`, FileVersion, manifest resource list). **csc remains the sole release path.**
 
 **Gate:** both builds runnable; parity assertions pass; full TestRunner + smoke + installer end-to-end on the csc output.
 

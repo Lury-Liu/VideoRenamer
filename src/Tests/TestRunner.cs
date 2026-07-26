@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace VideoMaterialRenamer.Tests
+namespace VideoRenamer.Tests
 {
     public sealed class TestCase
     {

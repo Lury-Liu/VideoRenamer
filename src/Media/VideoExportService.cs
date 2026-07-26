@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 单个视频的 1080p 导出执行（纯 I/O + ffmpeg，无 UI）。
     // 冻结契约：覆盖模式先写 .vmr_ 临时文件 → File.Replace 原子替换 →

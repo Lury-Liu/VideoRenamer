@@ -24,6 +24,7 @@ if (!(Test-Path -LiteralPath $ExePath)) {
 
 $failures = @()
 $exeItem = Get-Item -LiteralPath $ExePath
+$resourceNames = Get-EmbeddedResourceNames -ExePath $ExePath
 
 # --- 1. Version consistency: AppInfo.cs == AssemblyInfo.cs == built EXE ---
 $appVersion = Get-AppVersion
@@ -38,7 +39,6 @@ if ($fileVersion -ne $appVersion) {
 
 # --- 2. Embedded ffmpeg resource by its exact frozen name ---
 if (-not $AllowNoFfmpeg) {
-    $resourceNames = Get-EmbeddedResourceNames -ExePath $ExePath
     if ($resourceNames -notcontains $script:FfmpegResourceName) {
         $failures += ("EXE lacks embedded resource '{0}' (found: {1}) - media features would silently no-op" -f `
             $script:FfmpegResourceName, ($resourceNames -join ", "))
@@ -50,7 +50,15 @@ if (-not $AllowNoFfmpeg) {
     }
 }
 
-# --- 4. Exactly one hyphen-free EXE in dist (publish-script selection heuristic) ---
+# --- 4. Startup icons stay embedded so auto-update remains a single EXE. ---
+for ($index = 1; $index -le 9; $index++) {
+    $expectedIconResource = $script:StartupIconResourcePrefix + ("{0:D2}.ico" -f $index)
+    if ($resourceNames -notcontains $expectedIconResource) {
+        $failures += "EXE lacks startup icon resource '$expectedIconResource'"
+    }
+}
+
+# --- 5. Exactly one hyphen-free EXE in dist (publish-script selection heuristic) ---
 $distDir = Split-Path -Parent $ExePath
 $hyphenFree = @(Get-ChildItem -LiteralPath $distDir -Filter *.exe -File |
     Where-Object { $_.BaseName -notmatch "-" })
@@ -58,7 +66,7 @@ if ($hyphenFree.Count -ne 1) {
     $failures += ("Expected exactly one hyphen-free EXE in {0}, found {1}" -f $distDir, $hyphenFree.Count)
 }
 
-# --- 5. No stray DLLs beside the EXE (single-file contract) ---
+# --- 6. No stray DLLs beside the EXE (single-file contract) ---
 $strayDlls = @(Get-ChildItem -LiteralPath $distDir -Filter *.dll -File)
 if ($strayDlls.Count -gt 0) {
     $failures += ("Stray DLLs in {0}: {1}" -f $distDir, (($strayDlls | ForEach-Object Name) -join ", "))
@@ -71,5 +79,5 @@ if ($failures.Count -gt 0) {
     throw ("verify-artifact: {0} check(s) failed for {1}" -f $failures.Count, $ExePath)
 }
 
-Write-Host ("[verify-artifact] PASS: version={0}, size={1:N0} bytes, ffmpeg resource {2}, single hyphen-free EXE, no stray DLLs" -f `
+Write-Host ("[verify-artifact] PASS: version={0}, size={1:N0} bytes, ffmpeg resource {2}, 9 startup icon resources, single hyphen-free EXE, no stray DLLs" -f `
     $fileVersion, $exeItem.Length, $(if ($AllowNoFfmpeg) { "check skipped (-AllowNoFfmpeg)" } else { "present" }))

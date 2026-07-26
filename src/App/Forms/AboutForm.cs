@@ -14,7 +14,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public class AboutForm : Form
     {
@@ -49,7 +49,7 @@ namespace VideoMaterialRenamer
             Controls.Add(layout);
 
             Label title = new Label();
-            title.Text = "视频素材镜头表命名工具";
+            title.Text = AppInfo.Name;
             title.Font = new Font(Font.FontFamily, 12f, FontStyle.Bold);
             title.AutoSize = false;
             title.Height = 30;

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public class TimeoutWebClient : WebClient
     {

@@ -14,14 +14,25 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public static class AppIcon
     {
         private static Icon cachedIcon;
 
+        public static void InitializeForApplication()
+        {
+            StartupIconManager.InitializeForApplication();
+        }
+
         public static Icon Get()
         {
+            Icon startupIcon = StartupIconManager.GetSessionIcon();
+            if (startupIcon != null)
+            {
+                return startupIcon;
+            }
+
             if (cachedIcon != null)
             {
                 return cachedIcon;
@@ -55,6 +66,18 @@ namespace VideoMaterialRenamer
             }
 
             return cachedIcon;
+        }
+
+        public static Image GetStartupPreview()
+        {
+            Image preview = StartupIconManager.GetSessionPreviewImage();
+            if (preview != null)
+            {
+                return preview;
+            }
+
+            Icon icon = Get();
+            return icon == null ? null : icon.ToBitmap();
         }
 
         public static void Apply(Form form)

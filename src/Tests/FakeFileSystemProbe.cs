@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace VideoMaterialRenamer.Tests
+namespace VideoRenamer.Tests
 {
     // Deterministic IFileSystemProbe for plan-status tests - no temp files needed.
     public sealed class FakeFileSystemProbe : IFileSystemProbe

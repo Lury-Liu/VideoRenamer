@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public static partial class UpdateManager
     {
@@ -205,7 +205,7 @@ namespace VideoMaterialRenamer
         {
             try
             {
-                string updateDir = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update");
+                string updateDir = Path.Combine(Path.GetTempPath(), AppInfo.Name + "_Update");
                 if (!Directory.Exists(updateDir))
                 {
                     return;
@@ -294,7 +294,7 @@ namespace VideoMaterialRenamer
         // 决不能在此情况下退出进程。
         internal static bool StartUpdaterProcess(string currentExe, string downloadedExe, bool elevated)
         {
-            string scriptPath = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update", "apply_update_" + Guid.NewGuid().ToString("N") + ".ps1");
+            string scriptPath = Path.Combine(Path.GetTempPath(), AppInfo.Name + "_Update", "apply_update_" + Guid.NewGuid().ToString("N") + ".ps1");
             Directory.CreateDirectory(Path.GetDirectoryName(scriptPath));
             string script = BuildUpdaterScript(currentExe, downloadedExe, Process.GetCurrentProcess().Id, UpdateFailureMarkerPath);
             File.WriteAllText(scriptPath, script, new UTF8Encoding(false));

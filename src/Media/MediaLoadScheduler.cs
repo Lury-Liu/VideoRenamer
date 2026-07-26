@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 媒体加载调度器：用两条常驻 STA 工作线程取代原先“每次选中就新建
     // 最多 3 条 STA 线程”的模式（快速翻页曾堆出数十条线程 + 并发 ffmpeg）。

@@ -8,8 +8,8 @@ Each phase lists its acceptance criteria and the **actual verification evidence*
 
 | Gate | Command | Pass condition |
 |---|---|---|
-| G1 Self-test | `video_material_renamer.ps1 -SelfTest` (Windows PowerShell 5.1 STA) | every named case PASS + exact `SelfTest OK` |
-| G2 Smoke test | `video_material_renamer.ps1 -SmokeTest` | exact `SmokeTest OK` |
+| G1 Self-test | `VideoRenamer.ps1 -SelfTest` (Windows PowerShell 5.1 STA) | every named case PASS + exact `SelfTest OK` |
+| G2 Smoke test | `VideoRenamer.ps1 -SmokeTest` | exact `SmokeTest OK` |
 | G3 Release build | `构建EXE.ps1` | csc exit 0 + `verify-artifact` PASS (resource name, version triple-match, >90MB, single hyphen-free EXE, no DLLs) |
 | G4 Golden masters | included in G1 | corpus A/B byte-identical (only a flagged behavior-change commit may update them) |
 
@@ -53,7 +53,7 @@ Each phase lists its acceptance criteria and the **actual verification evidence*
 | Clone bug fix (own commit 2e16208) | `Clone()` copies ShotLabel; test flipped to assert fix; 50/50 |
 | 2d RenameHistoryStore | TSV format frozen-contract documented + first direct save/load tests; misplaced `SetOperationUiEnabled` → Ui partial; 51/51 |
 | 2e Early perf win | episode spinner → incremental refresh (self-correcting fallback); scene spinner deferred to Phase 7 (its value is in group headers) |
-| Embedded extraction end-to-end | built EXE loaded in child proc, CWD forced away, cache cleared → resolved to `%LocalAppData%\VideoMaterialRenamer\tools\ffmpeg.exe`, 101,457,920 bytes, `ffmpeg -version` runs |
+| Embedded extraction end-to-end | built EXE loaded in child proc, CWD forced away, cache cleared → resolved to `%LocalAppData%\VideoRenamer\tools\ffmpeg.exe`, 101,457,920 bytes, `ffmpeg -version` runs |
 | G3 | verify-artifact PASS |
 
 **Defect fixed:** cloned export plans lost the `28A` ShotLabel (latent since the feature shipped).
@@ -180,8 +180,8 @@ Gates: SelfTest 55→65, SmokeTest OK, G3 PASS.
 
 SelfTest **70/70** · SmokeTest OK（含结构/等价性/折叠断言）· 全部 **6 门禁** PASS（status-literal / core-purity / services-purity / palette / csproj-parity / verify-artifact）· 发布 DryRun 全绿 · 实测性能复测通过（见健康评估 v2）。V3 共 **23 提交**（`git rev-list --count refactor/architecture-v2..HEAD`，含收尾的版本号/文档提交；此前手数的 17/18/19 偏低），每个提交可发布。
 
-## 发布状态（2026-07-26）
+## 当前发布状态（2026-07-26）
 
-- 版本号已升 **V1.0.7.0**（AppInfo / AssemblyInfo / installer.iss / README 四处一致，`b1dcc27`）；升版后全套验证复跑：SelfTest 70/70、SmokeTest OK、6 门禁 + verify-artifact PASS（version=1.0.7.0，101,696,000 字节）。
-- 分支 `refactor/modernization-v3` 已推送 `origin`（远端尖 `6a1da4c`）；README 已重写为 V3 现状并入库；私钥工具确认从未入任何提交。
-- **线上仍是 v1.0.6.0**：远端 tag `v1.0.6.0` 挂在 `main`，应用内更新器当前照常服务 1.0.6.0。V1.0.7.0 的 tag / GitHub Release / latest.json **尚未发布**——需合并回 `main` 后跑 `发布更新到GitHub.ps1`（资产必须仍是裸 EXE `VideoRenamer-v1.0.7.0.exe` + latest.json，冻结契约）。
+- 版本号已升 **V1.0.8.0**，AppInfo / AssemblyInfo / installer.iss / README 保持一致；完整验证复跑为 SelfTest **77/77**、SmokeTest OK、全部源码与架构门禁、verify-artifact、安装包构建和发布 DryRun 通过。
+- 全局应用身份已迁移为 `VideoRenamer`，旧命名从源码、脚本、资源和文件名中清除；远端仅保留 `main`。
+- `v1.0.8.0` 从 `main` 发布。Release 同时提供完整安装包、供自动更新器消费的裸 EXE，以及固定 SHA-256 的 `latest.json`；清单中的 `fileName` 明确选择裸 EXE，因此安装包共存不会影响更新。

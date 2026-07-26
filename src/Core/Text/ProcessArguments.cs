@@ -1,4 +1,4 @@
-﻿namespace VideoMaterialRenamer
+﻿namespace VideoRenamer
 {
     // 进程命令行参数引号处理的唯一实现（阶段8c）。
     // 历史上共三份拷贝：两份已在阶段2 并入 FfmpegArguments，

@@ -14,11 +14,12 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public static class AppInfo
     {
-        public const string Version = "V1.0.7.0";
+        public const string Name = "VideoRenamer";
+        public const string Version = "V1.0.8.0";
         public const string Author = "@寒松";
         public const int DefaultRowCount = 1;
         public const string UpdateManifestUrl = "https://github.com/Lury-Liu/VideoRenamer/releases/latest/download/latest.json";
@@ -30,7 +31,7 @@ namespace VideoMaterialRenamer
             {
                 return Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "VideoMaterialRenamer");
+                    Name);
             }
         }
     }

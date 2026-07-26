@@ -14,7 +14,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public partial class MaterialRenamerForm
     {
@@ -260,6 +260,7 @@ namespace VideoMaterialRenamer
                 row.ProgressPercent = 0;
             }
             RenderAll();
+            ShowNoVideoDetails();
         }
     }
 }

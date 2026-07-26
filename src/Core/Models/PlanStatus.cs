@@ -1,4 +1,4 @@
-﻿namespace VideoMaterialRenamer
+﻿namespace VideoRenamer
 {
     // 计划条目状态机。原实现是八个中文显示串充当的“字符串协议”，散布在
     // 构建器/预览/导出/重命名多处做字符串相等比较——漏掉一处只会静默出错。

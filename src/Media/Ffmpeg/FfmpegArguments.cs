@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // ffmpeg 命令行参数构造（纯函数，无进程/UI 依赖）。
     // 导出参数串由测试黄金值逐字节锁定——任何改动都会改变导出画质或破坏导出。

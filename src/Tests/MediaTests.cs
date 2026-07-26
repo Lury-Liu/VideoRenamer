@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace VideoMaterialRenamer.Tests
+namespace VideoRenamer.Tests
 {
     // Characterization tests for ffmpeg argument construction. The exact argument
     // strings are golden values captured from the shipped V1.0.6.0 behavior -

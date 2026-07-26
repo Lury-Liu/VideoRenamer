@@ -14,7 +14,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 调色板唯一所有者（阶段9a 起为暖纸色系）：应用内所有颜色都必须经
     // 本类的具名角色函数取得——不允许在其他文件散落 Color.FromArgb

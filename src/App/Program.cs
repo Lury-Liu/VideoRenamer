@@ -14,7 +14,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public static class Program
     {
@@ -36,6 +36,7 @@ namespace VideoMaterialRenamer
                 AppLog.Write("crash", "未处理异常", e.ExceptionObject as Exception);
             };
             AppLog.Write("app", "启动 " + AppInfo.Version);
+            AppIcon.InitializeForApplication();
 
             // TLS 1.2：全进程启用一次（更新检查/下载共用；替代原先散布在
             // UpdateManager 两处的 (SecurityProtocolType)3072 魔数写法）。

@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 更新流程的 UI 侧（阶段12a，自 UpdateManager 逐字迁入）：提示对话框、
     // 进度窗、以及"下载→校验→启动替换脚本→退出进程"的编排。
@@ -63,7 +63,7 @@ namespace VideoMaterialRenamer
                 string name = Path.GetFileNameWithoutExtension(exePath) ?? "";
                 return File.Exists(exePath) &&
                     Path.GetExtension(exePath).Equals(".exe", StringComparison.OrdinalIgnoreCase) &&
-                    name.IndexOf("视频素材镜头表命名工具", StringComparison.OrdinalIgnoreCase) >= 0;
+                    name.IndexOf(AppInfo.Name, StringComparison.OrdinalIgnoreCase) >= 0;
             }
             catch
             {
@@ -139,7 +139,7 @@ namespace VideoMaterialRenamer
             }
 
             string currentExe = Application.ExecutablePath;
-            string updateDir = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update");
+            string updateDir = Path.Combine(Path.GetTempPath(), AppInfo.Name + "_Update");
             Directory.CreateDirectory(updateDir);
             string downloadPath = Path.Combine(updateDir, "update_" + Guid.NewGuid().ToString("N") + ".exe");
 
@@ -154,13 +154,15 @@ namespace VideoMaterialRenamer
                 }
 
                 UpdateManager.ReportUpdateProgress(progress, "正在校验更新文件...", 96, 0, 0);
-                if (!string.IsNullOrWhiteSpace(info.Sha256))
+                if (!UpdateManager.IsValidSha256(info.Sha256))
                 {
-                    string actualHash = UpdateManager.ComputeSha256(downloadPath);
-                    if (!StringComparer.OrdinalIgnoreCase.Equals(actualHash, info.Sha256.Trim()))
-                    {
-                        throw new IOException("更新文件校验失败，已取消安装。");
-                    }
+                    throw new IOException("更新清单缺少有效的 SHA-256，已取消安装。");
+                }
+
+                string actualHash = UpdateManager.ComputeSha256(downloadPath);
+                if (!StringComparer.OrdinalIgnoreCase.Equals(actualHash, info.Sha256))
+                {
+                    throw new IOException("更新文件校验失败，已取消安装。");
                 }
 
                 UpdateManager.ReportUpdateProgress(progress, "正在准备重启软件...", 100, 0, 0);

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace VideoMaterialRenamer.Tests
+namespace VideoRenamer.Tests
 {
     // Minimal assertion helpers for the framework-free C#5 test harness.
     public static class TestAssert

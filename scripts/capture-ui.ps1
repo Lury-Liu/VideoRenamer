@@ -28,14 +28,14 @@ try {
     $flags = [System.Reflection.BindingFlags]"NonPublic,Instance"
 
     foreach ($dark in @($false, $true)) {
-        $form = New-Object VideoMaterialRenamer.MaterialRenamerForm
+        $form = New-Object VideoRenamer.MaterialRenamerForm
 
         # 固定样例：3 行，含主/备素材与一个缺失文件（触发状态配色）。
-        $rowsField = [VideoMaterialRenamer.MaterialRenamerForm].GetField("rows", $flags)
+        $rowsField = [VideoRenamer.MaterialRenamerForm].GetField("rows", $flags)
         $rows = $rowsField.GetValue($form)
         $rows.Clear()
         for ($r = 1; $r -le 3; $r++) {
-            $row = New-Object VideoMaterialRenamer.ShotRow
+            $row = New-Object VideoRenamer.ShotRow
             $row.Scene = 1
             $row.Sequence = $r
             for ($f = 1; $f -le 2; $f++) {
@@ -48,11 +48,11 @@ try {
         $rows[1].ShotSuffix = "A"
         $rows[2].MainFiles.Add((Join-Path $fixtureDir "missing.mp4"))  # 源文件丢失
 
-        $darkField = [VideoMaterialRenamer.MaterialRenamerForm].GetField("darkMode", $flags)
+        $darkField = [VideoRenamer.MaterialRenamerForm].GetField("darkMode", $flags)
         $darkField.SetValue($form, $dark)
-        $applyTheme = [VideoMaterialRenamer.MaterialRenamerForm].GetMethod("ApplyTheme", $flags)
+        $applyTheme = [VideoRenamer.MaterialRenamerForm].GetMethod("ApplyTheme", $flags)
         $applyTheme.Invoke($form, @()) | Out-Null
-        $renderAll = [VideoMaterialRenamer.MaterialRenamerForm].GetMethod("RenderAll", $flags)
+        $renderAll = [VideoRenamer.MaterialRenamerForm].GetMethod("RenderAll", $flags)
         $renderAll.Invoke($form, @()) | Out-Null
 
         # 不 Show()：CreateControl + 指定尺寸即可离屏渲染。

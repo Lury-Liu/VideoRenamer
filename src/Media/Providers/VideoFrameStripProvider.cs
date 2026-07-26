@@ -5,7 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 用 ffmpeg 一次性抽取若干均匀分布的关键帧，供预览区“鼠标划过看不同时间点画面”。
     public static class VideoFrameStripProvider

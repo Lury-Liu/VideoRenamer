@@ -23,7 +23,7 @@ else {
     Write-Host "== 跳过 EXE 构建（-SkipExeBuild）==" -ForegroundColor Yellow
 }
 
-$exePath = Join-Path $root "dist\视频素材镜头表命名工具.exe"
+$exePath = Join-Path $root "dist\VideoRenamer.exe"
 if (!(Test-Path -LiteralPath $exePath)) { throw "找不到已构建的 EXE：$exePath" }
 
 # --- 2. 测试门禁 ---
@@ -70,7 +70,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $root "installer") | Out-Nu
 & $iscc "/DAppVersion=$version" (Join-Path $root "installer.iss")
 if ($LASTEXITCODE -ne 0) { throw "安装程序编译失败。" }
 
-$setupPath = Join-Path $root ("installer\视频素材镜头表命名工具_安装程序_v{0}.exe" -f $version)
+$setupPath = Join-Path $root ("installer\VideoRenamer-Setup-v{0}.exe" -f $version)
 Write-Host ""
 Write-Host "打包完成！" -ForegroundColor Green
 if (Test-Path -LiteralPath $setupPath) {

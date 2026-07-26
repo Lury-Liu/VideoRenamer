@@ -14,7 +14,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public partial class MaterialRenamerForm
     {
@@ -338,6 +338,8 @@ namespace VideoMaterialRenamer
 
         private void ShowNoVideoDetails()
         {
+            InvalidateFrameStrip();
+
             if (thumbnailBox == null || detailTitleLabel == null || detailInfoLabel == null || detailPathLabel == null)
             {
                 return;

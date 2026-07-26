@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 缩略图 LRU 缓存：字典 + 触达顺序链表 + 上限裁剪，图像生命周期归本类所有
     // （加入即接管，替换/淘汰/释放时 Dispose）。仅限 UI 线程访问

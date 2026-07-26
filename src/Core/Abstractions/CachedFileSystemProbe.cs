@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 单次刷新周期内的 FileExists 记忆化（阶段11b）：一次 BuildPlan 里同一
     // 路径可能被探测多次（目标存在性 + 源存在性），把一次刷新视为文件系统

@@ -2,11 +2,11 @@
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public static partial class UpdateManager
     {
-        private const string AppId = "VideoMaterialRenamer";
+        private const string AppId = AppInfo.Name;
 
         public static UpdateInfo GetLatestUpdateInfo()
         {
@@ -91,7 +91,7 @@ namespace VideoMaterialRenamer
 
             using (TimeoutWebClient client = new TimeoutWebClient())
             {
-                client.Headers[HttpRequestHeader.UserAgent] = "VideoMaterialRenamer/" + AppInfo.Version;
+                client.Headers[HttpRequestHeader.UserAgent] = AppInfo.Name + "/" + AppInfo.Version;
                 client.Headers[HttpRequestHeader.CacheControl] = "no-cache";
                 string json = client.DownloadString(AppInfo.UpdateManifestUrl + "?t=" + DateTime.UtcNow.Ticks.ToString());
                 return ParseManifest(json);
@@ -102,7 +102,7 @@ namespace VideoMaterialRenamer
         {
             TimeoutWebClient client = new TimeoutWebClient();
             client.TimeoutMilliseconds = timeoutMilliseconds;
-            client.Headers[HttpRequestHeader.UserAgent] = "VideoMaterialRenamer/" + AppInfo.Version;
+            client.Headers[HttpRequestHeader.UserAgent] = AppInfo.Name + "/" + AppInfo.Version;
             client.Headers[HttpRequestHeader.CacheControl] = "no-cache";
             client.Headers[HttpRequestHeader.Accept] = "application/vnd.github+json";
             return client;
@@ -112,7 +112,7 @@ namespace VideoMaterialRenamer
         {
             TimeoutWebClient client = new TimeoutWebClient();
             client.TimeoutMilliseconds = timeoutMilliseconds;
-            client.Headers[HttpRequestHeader.UserAgent] = "VideoMaterialRenamer/" + AppInfo.Version;
+            client.Headers[HttpRequestHeader.UserAgent] = AppInfo.Name + "/" + AppInfo.Version;
             client.Headers[HttpRequestHeader.CacheControl] = "no-cache";
             client.Headers[HttpRequestHeader.Accept] = "application/octet-stream";
             return client;
@@ -126,7 +126,7 @@ namespace VideoMaterialRenamer
             }
 
             string appId = GetJsonString(json, "appId");
-            if (!string.IsNullOrWhiteSpace(appId) && !StringComparer.OrdinalIgnoreCase.Equals(appId, AppId))
+            if (!StringComparer.Ordinal.Equals(appId, AppId))
             {
                 return null;
             }
@@ -138,7 +138,29 @@ namespace VideoMaterialRenamer
             info.Sha256 = GetJsonString(json, "sha256");
             info.FileName = GetJsonString(json, "fileName");
             info.Notes = GetJsonString(json, "notes");
-            return string.IsNullOrWhiteSpace(info.Version) ? null : info;
+            return string.IsNullOrWhiteSpace(info.Version) || !IsValidSha256(info.Sha256) ? null : info;
+        }
+
+        internal static bool IsValidSha256(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Length != 64)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < value.Length; index++)
+            {
+                char ch = value[index];
+                bool isHex = (ch >= '0' && ch <= '9')
+                    || (ch >= 'a' && ch <= 'f')
+                    || (ch >= 'A' && ch <= 'F');
+                if (!isHex)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static string GetJsonString(string json, string name)

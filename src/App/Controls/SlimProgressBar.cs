@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 主题化细进度条（阶段10h）：执行中条专用，替代系统样式 ProgressBar
     //（绿色光泽与暖纸色系冲突）。圆角胶囊造型与设计稿一致；颜色经

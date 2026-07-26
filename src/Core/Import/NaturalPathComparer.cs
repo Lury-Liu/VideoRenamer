@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public class NaturalPathComparer : IComparer<string>
     {

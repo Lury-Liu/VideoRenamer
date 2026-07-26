@@ -2,7 +2,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public class UpdateDownloadProgressForm : Form
     {

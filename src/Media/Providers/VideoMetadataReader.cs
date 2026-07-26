@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public static class VideoMetadataReader
     {

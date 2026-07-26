@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // UI 线程投递接口（QueueOnUi 的契约化）。
     // 冻结契约：窗体已释放或句柄未创建时返回 false 且不执行——

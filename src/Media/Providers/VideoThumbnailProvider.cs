@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public static class VideoThumbnailProvider
     {

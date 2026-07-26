@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 授权闸门的 UI 侧（阶段13a，自 LicenseManager 逐字迁入）：激活对话框
     // 编排与续期提醒弹窗。验证与 DPAPI 存储留在 Services（LicenseManager/

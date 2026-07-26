@@ -20,13 +20,13 @@ $sourceFiles = Get-SourceFiles
 Add-Type -Path $sourceFiles -ReferencedAssemblies (Get-ReferenceAssemblies)
 
 if ($SelfTest) {
-    [VideoMaterialRenamer.MaterialRenamerForm]::RunSelfTest()
+    [VideoRenamer.MaterialRenamerForm]::RunSelfTest()
     return
 }
 
 if ($SmokeTest) {
-    [VideoMaterialRenamer.MaterialRenamerForm]::RunSmokeTest()
+    [VideoRenamer.MaterialRenamerForm]::RunSmokeTest()
     return
 }
 
-[VideoMaterialRenamer.Program]::Run()
+[VideoRenamer.Program]::Run()

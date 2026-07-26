@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // 重命名计划的执行（File.Move）与行模型路径写回。
     // PatchRowFileList 是原先在 Rename/Export 完成/历史还原三处

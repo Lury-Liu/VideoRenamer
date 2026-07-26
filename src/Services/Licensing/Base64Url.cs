@@ -1,6 +1,6 @@
 using System;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // Base64Url 编解码（授权子系统共用；阶段8e 自 LicenseManager 抽出，
     // 逻辑逐字不变——密钥/DPAPI 文件的磁盘格式依赖它）。

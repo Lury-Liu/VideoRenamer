@@ -141,6 +141,24 @@ function Resolve-DefaultExePath {
     throw "No EXE found in dist."
 }
 
+function Get-Sha256Hex([string]$Path) {
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hash = $sha.ComputeHash($stream)
+        }
+        finally {
+            $sha.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+
+    return (($hash | ForEach-Object { $_.ToString("x2") }) -join "")
+}
+
 if (-not $DryRun) {
     $gh = Get-Command gh -ErrorAction SilentlyContinue
     if ($null -eq $gh) {
@@ -181,10 +199,10 @@ Invoke-TestGate
 $tag = "v$version"
 $displayVersion = "V$version"
 $fullRepo = "$Owner/$Repo"
-$assetName = "VideoRenamer-$tag.exe"
+$assetName = "$($script:AppName)-$tag.exe"
 $encodedAssetName = [System.Uri]::EscapeDataString($assetName)
 $downloadUrl = "https://github.com/$fullRepo/releases/download/$tag/$encodedAssetName"
-$sha256 = (Get-FileHash -LiteralPath $resolvedExe -Algorithm SHA256).Hash.ToLowerInvariant()
+$sha256 = Get-Sha256Hex -Path $resolvedExe
 
 $updatesDir = Join-Path (Get-Location).Path "updates"
 New-Item -ItemType Directory -Force -Path $updatesDir | Out-Null
@@ -193,7 +211,7 @@ $uploadExePath = Join-Path $updatesDir $assetName
 Copy-Item -LiteralPath $resolvedExe -Destination $uploadExePath -Force
 
 $manifest = [ordered]@{
-    appId = "VideoMaterialRenamer"
+    appId = $script:AppName
     version = $version
     displayVersion = $displayVersion
     fileName = $assetName

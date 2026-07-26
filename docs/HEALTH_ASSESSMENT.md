@@ -1,8 +1,8 @@
 # Project Health Assessment v2 — Evidence-Backed
 
-**Branch:** `refactor/modernization-v3` (23 commits over `refactor/architecture-v2` by `git rev-list --count`, which was 27 commits over the V1.0.6.0 baseline; figures below refreshed at the 10i/V1.0.7.0 commits)
-**Version:** source bumped to **V1.0.7.0**; branch pushed to `origin` (tip `6a1da4c`); the published release the in-app updater serves is still **v1.0.6.0** (remote tag on `main`) until V1.0.7.0 is tagged and published.
-**Date:** 2026-07-26 · **Verification state (re-run at V1.0.7.0):** SelfTest **70/70**, SmokeTest OK (incl. structure/equivalence/collapse assertions), **all 6 build gates** PASS, release EXE builds + verify-artifact PASS (version=1.0.7.0), publish `-DryRun` green end-to-end at 1.0.6.0-era check.
+**Branch:** `main` (V2/V3 history retained below; current release work is consolidated directly on the sole remote branch)
+**Version:** **V1.0.8.0**, published from `main` as `v1.0.8.0`.
+**Date:** 2026-07-26 · **Verification state (V1.0.8.0):** SelfTest **77/77**, SmokeTest OK, all source/architecture gates PASS, release EXE and installer build successfully, verify-artifact PASS, and publish `-DryRun` green end-to-end.
 
 Scoring: six dimensions, equal weight, scored against measured evidence (commands and raw numbers in [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md)). History: original baseline ≈38 → V2 refactor 85 → **V3 now**.
 
@@ -41,7 +41,7 @@ Deliberately not rounded to 90: the enumerated remainder (§gaps) is real — ch
 - **55 → 70 named cases.** New: `LicenseValidator` table ×9 — the subsystem previously written off as untestable — using pinned **already-expired keys for dummy machine codes** (worthless if extracted from the EXE) with the injected clock walking the valid path; a DPAPI round-trip proving the storage layer; updater-script shape ×2 (hardening semantics pinned); palette pins ×2; quoting table; caching-probe counting.
 - SmokeTest grew teeth: footer structure, progress initially hidden, inspector collapse round-trip, and the **grid incremental-vs-full-rebuild equivalence** check. It caught a real bug during development (`Control.Visible` is false on unshown forms — the collapse toggle was rebuilt on an explicit state field).
 - `scripts/capture-ui.ps1`: off-screen screenshots of the real form (both themes) reviewed at every visual commit.
-- Golden masters byte-identical through **all 23 commits** — naming output provably never drifted (10h/10i and the release/docs commits touched no `src/Core/Naming` code; corpus re-verified green at each verification point, most recently at V1.0.7.0).
+- Golden masters remained byte-identical throughout V2/V3 and the V1.0.8.0 identity/icon/update-hardening work; the corpus is re-verified by every SelfTest run.
 - **Held back by:** no CI runner; tests compile into the shipped EXE; UI beyond construction+structure needs the human pass; networking (`TimeoutWebClient`) untested.
 
 ## 4. Reliability — 87

@@ -1,6 +1,6 @@
 ﻿
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public enum ExportOutputMode
     {

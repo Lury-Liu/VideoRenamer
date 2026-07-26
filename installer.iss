@@ -1,14 +1,14 @@
 ﻿; ============================================================================
-;  视频素材镜头表命名工具 - Inno Setup 安装脚本
+;  VideoRenamer - Inno Setup 安装脚本
 ;  由 打包安装程序.ps1 调用，或直接用 Inno Setup 打开编译。
 ;  预处理变量 AppVersion 可由命令行覆盖： ISCC.exe /DAppVersion=1.0.6.0 installer.iss
 ; ============================================================================
 
-#define AppName "视频素材镜头表命名工具"
+#define AppName "VideoRenamer"
 #define AppPublisher "@寒松"
-#define AppExeName "视频素材镜头表命名工具.exe"
+#define AppExeName "VideoRenamer.exe"
 #ifndef AppVersion
-  #define AppVersion "1.0.7.0"
+  #define AppVersion "1.0.8.0"
 #endif
 
 [Setup]
@@ -18,12 +18,12 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
-DefaultDirName={autopf}\VideoMaterialRenamer
+DefaultDirName={autopf}\VideoRenamer
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 ; 输出到项目的 installer 目录
 OutputDir=installer
-OutputBaseFilename=视频素材镜头表命名工具_安装程序_v{#AppVersion}
+OutputBaseFilename=VideoRenamer-Setup-v{#AppVersion}
 SetupIconFile=assets\app.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 UninstallDisplayName={#AppName}
@@ -45,18 +45,23 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 ; 主程序（已内置 FFmpeg 资源），来自 dist\
 Source: "dist\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; 快捷方式固定引用共享图标代理；目录授予标准用户修改权，程序每次启动只替换此文件内容。
+Source: "assets\startup-icons\01.ico"; DestDir: "{commonappdata}\VideoRenamer\startup-icons"; DestName: "current.ico"; Flags: ignoreversion
 ; 可选随附文档（存在才打包）
-Source: "dist\README_视频素材重命名工具.md"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "dist\README.md"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "dist\CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
+[Dirs]
+Name: "{commonappdata}\VideoRenamer\startup-icons"; Permissions: users-modify
+
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{commonappdata}\VideoRenamer\startup-icons\current.ico"
 Name: "{group}\卸载 {#AppName}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{commonappdata}\VideoRenamer\startup-icons\current.ico"; Tasks: desktopicon
 
 [Run]
 ; 安装完成后可选立即运行
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
-; 说明：卸载时故意不删除 {localappdata}\VideoMaterialRenamer（授权/状态数据），
+; 说明：卸载时故意不删除 {localappdata}\VideoRenamer（授权/状态数据），
 ; 以便用户重装后无需重新激活。如需彻底清除，请手动删除该目录。

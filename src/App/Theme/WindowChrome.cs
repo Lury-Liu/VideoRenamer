@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     // DWM 沉浸式深色标题栏（阶段9c）：护眼模式下 OS 标题栏一并调暗。
     // Windows 10 1903+ 用属性 20，1809 回退属性 19；不支持的系统静默

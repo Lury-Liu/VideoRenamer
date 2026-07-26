@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace VideoMaterialRenamer
+namespace VideoRenamer
 {
     public class LicenseInfo
     {
