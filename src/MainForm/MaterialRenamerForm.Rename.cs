@@ -23,7 +23,7 @@ namespace VideoMaterialRenamer
         {
             if (operationRunning)
             {
-                statusLabel.Text = "当前正在处理视频，请等待完成。";
+                StatusText = "当前正在处理视频，请等待完成。";
                 return;
             }
 

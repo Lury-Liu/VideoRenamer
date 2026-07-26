@@ -254,7 +254,7 @@ namespace VideoMaterialRenamer
                     {
                         e.Effect = DragDropEffects.Copy;
                         SetDragHighlight(rowIndex, columnIndex);
-                        statusLabel.Text = string.Format(
+                        StatusText = string.Format(
                             "松开鼠标后会导入到第 {0} 行 {1}。",
                             rowIndex + 1,
                             columnIndex == GridMainColumn ? GetMainColumnDisplayName() : GetBackupColumnDisplayName());
@@ -287,14 +287,14 @@ namespace VideoMaterialRenamer
             {
                 if (e == null || e.Data == null || !e.Data.GetDataPresent(DataFormats.FileDrop))
                 {
-                    statusLabel.Text = "没有检测到可拖入的文件。";
+                    StatusText = "没有检测到可拖入的文件。";
                     return;
                 }
 
                 string[] paths = e.Data.GetData(DataFormats.FileDrop) as string[];
                 if (paths == null || paths.Length == 0)
                 {
-                    statusLabel.Text = "没有检测到可拖入的文件。";
+                    StatusText = "没有检测到可拖入的文件。";
                     return;
                 }
 
@@ -303,7 +303,7 @@ namespace VideoMaterialRenamer
 
                 if (!TryGetDropTargetCell(e, out rowIndex, out columnIndex))
                 {
-                    statusLabel.Text = "请拖到 " + GetMainColumnDisplayName() + " 或 " + GetBackupColumnDisplayName() + " 单元格。";
+                    StatusText = "请拖到 " + GetMainColumnDisplayName() + " 或 " + GetBackupColumnDisplayName() + " 单元格。";
                     return;
                 }
 
@@ -311,7 +311,7 @@ namespace VideoMaterialRenamer
             }
             catch (Exception ex)
             {
-                statusLabel.Text = "拖入失败：" + ex.Message;
+                StatusText = "拖入失败：" + ex.Message;
             }
             finally
             {
@@ -355,20 +355,20 @@ namespace VideoMaterialRenamer
         {
             if (rowIndex < 0 || rowIndex >= rows.Count)
             {
-                statusLabel.Text = "目标行无效。";
+                StatusText = "目标行无效。";
                 return;
             }
 
             if (columnIndex != GridMainColumn && columnIndex != GridBackupColumn)
             {
-                statusLabel.Text = "请把视频拖到 " + GetMainColumnDisplayName() + " 或 " + GetBackupColumnDisplayName() + " 列。";
+                StatusText = "请把视频拖到 " + GetMainColumnDisplayName() + " 或 " + GetBackupColumnDisplayName() + " 列。";
                 return;
             }
 
             List<string> videoPaths = GetVideoFilePaths(paths);
             if (videoPaths.Count == 0)
             {
-                statusLabel.Text = "没有发现支持的视频文件。";
+                StatusText = "没有发现支持的视频文件。";
                 return;
             }
 
@@ -404,7 +404,7 @@ namespace VideoMaterialRenamer
             RefreshPreview();
 
             string columnName = columnIndex == GridMainColumn ? "主要素材" : "备用素材";
-            statusLabel.Text = string.Format("第 {0} 行 {1} 已加入 {2} 个视频；跳过重复 {3} 个。", rowIndex + 1, columnName, added, skipped);
+            StatusText = string.Format("第 {0} 行 {1} 已加入 {2} 个视频；跳过重复 {3} 个。", rowIndex + 1, columnName, added, skipped);
             if (skippedNames.Count > 0)
             {
                 ShowDuplicateFileWarning(skippedNames);
@@ -432,7 +432,7 @@ namespace VideoMaterialRenamer
                 {
                     row.Scene = RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), true);
                     grid.Rows[e.RowIndex].Cells[GridSceneColumn].Value = row.Scene;
-                    statusLabel.Text = "A 列场号必须是大于 0 的整数，已保留原场号。";
+                    StatusText = "A 列场号必须是大于 0 的整数，已保留原场号。";
                 }
             }
             else if (e.ColumnIndex == GridShotColumn)
@@ -450,7 +450,7 @@ namespace VideoMaterialRenamer
                 {
                     row.Sequence = Math.Max(1, row.Sequence);
                     grid.Rows[e.RowIndex].Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
-                    statusLabel.Text = (IsRowSceneEnabled() ? "B" : "A") + " 列镜号可填正整数，或整数+字母（如 28A，用于两镜之间补插衔接镜）。";
+                    StatusText = (IsRowSceneEnabled() ? "B" : "A") + " 列镜号可填正整数，或整数+字母（如 28A，用于两镜之间补插衔接镜）。";
                 }
             }
             else if (e.ColumnIndex == GridProgressColumn)

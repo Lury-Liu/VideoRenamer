@@ -122,7 +122,7 @@ namespace VideoMaterialRenamer
             SetProgressColumnVisible(true);
             ResetProgressBars();
             SetOperationUiEnabled(false);
-            statusLabel.Text = outputMode == ExportOutputMode.OverwriteOriginal
+            StatusText = outputMode == ExportOutputMode.OverwriteOriginal
                 ? (watermarkEnabled ? "正在导出并添加文件名水印，请等待..." : "正在导出并覆盖原文件，请等待...")
                 : (watermarkEnabled ? "正在导出 1080x1920 新文件并添加文件名水印，请等待..." : "正在导出 1080x1920 新文件，请等待...");
 
@@ -155,7 +155,7 @@ namespace VideoMaterialRenamer
                     int currentIndex = index;
                     QueueOnUi(delegate
                     {
-                        statusLabel.Text = string.Format("正在导出 {0}/{1}：{2}", currentIndex, total, entry.NewName);
+                        StatusText = string.Format("正在导出 {0}/{1}：{2}", currentIndex, total, entry.NewName);
                     });
 
                     try
@@ -175,7 +175,7 @@ namespace VideoMaterialRenamer
                             {
                                 entry.Row.ProgressPercent = rowPercent;
                                 RenderGridProgress(entry.RowIndex - 1);
-                                statusLabel.Text = string.Format("正在导出 {0}/{1}：{2}（{3}%）", currentIndex, total, entry.NewName, safePercent);
+                                StatusText = string.Format("正在导出 {0}/{1}：{2}（{3}%）", currentIndex, total, entry.NewName, safePercent);
                             });
                         };
 

@@ -16,7 +16,7 @@ using Microsoft.Win32;
 
 namespace VideoMaterialRenamer
 {
-    public partial class MaterialRenamerForm
+    public partial class MaterialRenamerForm : IStatusSink
     {
 
         private void BuildUi()
@@ -206,7 +206,7 @@ namespace VideoMaterialRenamer
             statusLabel.Height = 28;
             statusLabel.Padding = new Padding(12, 6, 12, 0);
             statusLabel.Tag = "Muted";
-            statusLabel.Text = "把视频拖到表格 B「主要素材」或 C「备用素材」单元格。";
+            StatusText = "把视频拖到表格 B「主要素材」或 C「备用素材」单元格。";
             Controls.Add(statusLabel);
 
             SplitContainer split = new SplitContainer();
@@ -496,6 +496,22 @@ namespace VideoMaterialRenamer
             {
                 dialog.ShowDialog(this);
             }
+        }
+
+        // IStatusSink 实现：状态栏文本唯一写入点（原先散布在 8 个分部文件里的
+        // statusLabel.Text 直写全部经此收拢）。
+        public void SetStatus(string text)
+        {
+            if (statusLabel != null)
+            {
+                statusLabel.Text = text;
+            }
+        }
+
+        // 写入专用属性：让原有赋值语句形态（含多行三元表达式）保持不变。
+        private string StatusText
+        {
+            set { SetStatus(value); }
         }
 
         // 操作期间整窗锁定（重命名/导出共用）。原先误放在 History 分部文件里。

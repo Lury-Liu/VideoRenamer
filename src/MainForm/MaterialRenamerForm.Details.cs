@@ -238,15 +238,15 @@ namespace VideoMaterialRenamer
             {
                 if (string.IsNullOrWhiteSpace(normalized))
                 {
-                    statusLabel.Text = "已恢复默认 T 编号。";
+                    StatusText = "已恢复默认 T 编号。";
                 }
                 else if (!StringComparer.Ordinal.Equals(normalized, requestedNormalized))
                 {
-                    statusLabel.Text = "已应用自定义末尾：" + normalized + "（自动补号）";
+                    StatusText = "已应用自定义末尾：" + normalized + "（自动补号）";
                 }
                 else
                 {
-                    statusLabel.Text = "已应用自定义末尾：" + normalized;
+                    StatusText = "已应用自定义末尾：" + normalized;
                 }
             }
         }
@@ -283,7 +283,7 @@ namespace VideoMaterialRenamer
             RefreshPreview();
             if (statusLabel != null)
             {
-                statusLabel.Text = string.IsNullOrWhiteSpace(RenamePlanBuilder.NormalizeCustomTailText(baseName))
+                StatusText = string.IsNullOrWhiteSpace(RenamePlanBuilder.NormalizeCustomTailText(baseName))
                     ? "已恢复所选 " + selected.Count + " 条为默认 T 编号。"
                     : "已批量应用自定义末尾到 " + selected.Count + " 条。";
             }

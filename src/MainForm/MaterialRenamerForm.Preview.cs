@@ -236,21 +236,21 @@ namespace VideoMaterialRenamer
             int errors = currentPlan.Count(RenamePlanBuilder.IsBlockingIssue);
             if (currentPlan.Count == 0)
             {
-                statusLabel.Text = "把视频拖到表格 " + GetMainColumnDisplayName() + " 或 " + GetBackupColumnDisplayName() + " 单元格。";
+                StatusText = "把视频拖到表格 " + GetMainColumnDisplayName() + " 或 " + GetBackupColumnDisplayName() + " 单元格。";
             }
             else if (errors > 0)
             {
-                statusLabel.Text = string.Format("共 {0} 个视频，发现 {1} 个命名问题；请处理后再执行。", currentPlan.Count, errors);
+                StatusText = string.Format("共 {0} 个视频，发现 {1} 个命名问题；请处理后再执行。", currentPlan.Count, errors);
             }
             else if (IsExport1080pEnabled())
             {
-                statusLabel.Text = IsExportWatermarkEnabled()
+                StatusText = IsExportWatermarkEnabled()
                     ? string.Format("共 {0} 个视频，预览无冲突；导出时会在左上角加入新文件名水印。", currentPlan.Count)
                     : string.Format("共 {0} 个视频，预览无冲突；执行时可选择覆盖原文件或另存为新文件。", currentPlan.Count);
             }
             else
             {
-                statusLabel.Text = string.Format("共 {0} 个视频，预览无冲突。{1} 列先编号，{2} 列接着编号。", currentPlan.Count, GetMainColumnLetter(), GetBackupColumnLetter());
+                StatusText = string.Format("共 {0} 个视频，预览无冲突。{1} 列先编号，{2} 列接着编号。", currentPlan.Count, GetMainColumnLetter(), GetBackupColumnLetter());
             }
         }
 

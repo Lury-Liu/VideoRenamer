@@ -43,14 +43,14 @@ namespace VideoMaterialRenamer
         {
             if (previewList.SelectedItems.Count == 0)
             {
-                statusLabel.Text = "请先在底部预览中选中一条素材记录。";
+                StatusText = "请先在底部预览中选中一条素材记录。";
                 return;
             }
 
             RenamePlan entry = previewList.SelectedItems[0].Tag as RenamePlan;
             if (entry == null || entry.Row == null)
             {
-                statusLabel.Text = "选中的预览记录无效。";
+                StatusText = "选中的预览记录无效。";
                 return;
             }
 
@@ -59,7 +59,7 @@ namespace VideoMaterialRenamer
             RenamePlanBuilder.EnsureTailOverrideSize(entry.Row, entry.IsMain);
             if (entry.FileIndex < 0 || entry.FileIndex >= files.Count)
             {
-                statusLabel.Text = "选中的素材记录已经变化，请重新选择。";
+                StatusText = "选中的素材记录已经变化，请重新选择。";
                 RefreshPreview();
                 return;
             }
@@ -72,7 +72,7 @@ namespace VideoMaterialRenamer
             }
             RenderGridRow(entry.RowIndex - 1);
             RefreshPreview();
-            statusLabel.Text = "已删除单条记录：" + removed;
+            StatusText = "已删除单条记录：" + removed;
         }
 
         private int GetNextShotSequence()
@@ -96,7 +96,7 @@ namespace VideoMaterialRenamer
             rows.Insert(insertIndex, new ShotRow { Scene = GetDefaultScene(), Sequence = GetNextShotSequence() });
             RenderAll();
             SelectGridCell(insertIndex, GetDefaultGridFocusColumn());
-            statusLabel.Text = IsRowSceneEnabled()
+            StatusText = IsRowSceneEnabled()
                 ? "已新增一条空记录；A 列场号、B 列镜号可直接改成任意正整数。"
                 : "已新增一条空记录；A 列镜号可直接改成任意正整数。";
         }
@@ -106,14 +106,14 @@ namespace VideoMaterialRenamer
             int currentRowIndex = GetCurrentGridRowIndex();
             if (currentRowIndex < 0)
             {
-                statusLabel.Text = "请先选中要移动的行。";
+                StatusText = "请先选中要移动的行。";
                 return;
             }
 
             int targetIndex = currentRowIndex + direction;
             if (targetIndex < 0 || targetIndex >= rows.Count)
             {
-                statusLabel.Text = "当前行已经在边界位置。";
+                StatusText = "当前行已经在边界位置。";
                 return;
             }
 
@@ -123,7 +123,7 @@ namespace VideoMaterialRenamer
             rows.Insert(targetIndex, moving);
             RenderAll();
             SelectGridCell(targetIndex, columnIndex);
-            statusLabel.Text = IsRowSceneEnabled()
+            StatusText = IsRowSceneEnabled()
                 ? "已移动当前行；A 列场号、B 列镜号保持不变。"
                 : "已移动当前行；A 列镜号保持不变。";
         }
@@ -133,7 +133,7 @@ namespace VideoMaterialRenamer
             int currentRowIndex = GetCurrentGridRowIndex();
             if (currentRowIndex < 0)
             {
-                statusLabel.Text = "请先选中要删除的行。";
+                StatusText = "请先选中要删除的行。";
                 return;
             }
 
@@ -163,7 +163,7 @@ namespace VideoMaterialRenamer
             RenderAll();
             int nextRowIndex = Math.Min(currentRowIndex, rows.Count - 1);
             SelectGridCell(nextRowIndex, columnIndex);
-            statusLabel.Text = IsRowSceneEnabled()
+            StatusText = IsRowSceneEnabled()
                 ? "已删除当前行，下方行已上移；A 列场号、B 列镜号保持不变。"
                 : "已删除当前行，下方行已上移；A 列镜号保持不变。";
         }
@@ -194,7 +194,7 @@ namespace VideoMaterialRenamer
             }
             else
             {
-                statusLabel.Text = "当前单元格不是素材列。";
+                StatusText = "当前单元格不是素材列。";
                 return;
             }
 
@@ -227,7 +227,7 @@ namespace VideoMaterialRenamer
             }
 
             RenderAll();
-            statusLabel.Text = IsRowSceneEnabled()
+            StatusText = IsRowSceneEnabled()
                 ? "已删除尾部空白行；A 列场号、B 列镜号保持不变。"
                 : "已删除尾部空白行；A 列镜号保持不变。";
         }
