@@ -37,7 +37,7 @@ namespace VideoMaterialRenamer
         private readonly Dictionary<string, List<ListViewItem>> previewItemsByPath = new Dictionary<string, List<ListViewItem>>(StringComparer.OrdinalIgnoreCase);
         private readonly Stack<List<RenameOperation>> undoStack = new Stack<List<RenameOperation>>();
         private readonly Dictionary<string, VideoFileInfo> videoInfoCache = new Dictionary<string, VideoFileInfo>(StringComparer.OrdinalIgnoreCase);
-        private readonly ThumbnailCache thumbnailCache = new ThumbnailCache(ThumbnailCacheLimit);
+        private readonly ThumbnailCache thumbnailCache;
         private readonly MediaLoadScheduler mediaScheduler = new MediaLoadScheduler();
         private readonly ExportController exportController;
         private readonly RenameController renameController;
@@ -90,6 +90,12 @@ namespace VideoMaterialRenamer
         public MaterialRenamerForm(LicenseInfo licenseInfo)
         {
             activeLicenseInfo = licenseInfo;
+            // 保留守卫：正在详情面板展示的缓存图像被 LRU 淘汰时不 Dispose
+            //（修复淘汰后重绘触发 GDI+ 异常的既有窗口）。
+            thumbnailCache = new ThumbnailCache(ThumbnailCacheLimit, delegate
+            {
+                return thumbnailBox == null ? null : thumbnailBox.Image;
+            });
             exportController = new ExportController(this, this);
             renameController = new RenameController(this, this);
             darkMode = UiTheme.DetectWindowsDarkMode();

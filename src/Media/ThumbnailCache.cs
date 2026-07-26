@@ -5,22 +5,45 @@ using System.Drawing;
 namespace VideoMaterialRenamer
 {
     // 缩略图 LRU 缓存：字典 + 触达顺序链表 + 上限裁剪，图像生命周期归本类所有
-    // （加入即接管，替换/淘汰/释放时 Dispose）。语义与原窗体内三字段实现
-    // 逐行为一致。仅限 UI 线程访问（与原实现相同，不加锁）。
+    // （加入即接管，替换/淘汰/释放时 Dispose）。仅限 UI 线程访问
+    // （与原实现相同，不加锁）。
     //
-    // 已知遗留（评估阶段发现，修复排在阶段7）：被淘汰的图像若恰好正被
-    // 详情面板展示（借用式引用），淘汰 Dispose 后重绘会触发 GDI+ 异常；
-    // 修复方案是淘汰前与“当前展示图像”做 ReferenceEquals 保护。
+    // retainedImageProvider（修复评估发现的既有缺陷）：被淘汰的图像若恰好
+    // 正被详情面板展示（借用式引用），Dispose 后重绘会触发 GDI+ 异常。
+    // 淘汰/替换前与“当前展示图像”做 ReferenceEquals 保护——命中时只移出
+    // 缓存、不 Dispose（宁可极罕见地漏掉一张图的释放，也不崩溃）。
     public sealed class ThumbnailCache : IDisposable
     {
         private readonly int limit;
+        private readonly Func<Image> retainedImageProvider;
         private readonly Dictionary<string, Image> images = new Dictionary<string, Image>(StringComparer.OrdinalIgnoreCase);
         private readonly LinkedList<string> order = new LinkedList<string>();
         private readonly Dictionary<string, LinkedListNode<string>> nodes = new Dictionary<string, LinkedListNode<string>>(StringComparer.OrdinalIgnoreCase);
 
         public ThumbnailCache(int limit)
+            : this(limit, null)
+        {
+        }
+
+        public ThumbnailCache(int limit, Func<Image> retainedImageProvider)
         {
             this.limit = Math.Max(1, limit);
+            this.retainedImageProvider = retainedImageProvider;
+        }
+
+        private void DisposeUnlessRetained(Image image)
+        {
+            if (image == null)
+            {
+                return;
+            }
+
+            if (retainedImageProvider != null && object.ReferenceEquals(retainedImageProvider(), image))
+            {
+                return;
+            }
+
+            image.Dispose();
         }
 
         public bool TryGet(string path, out Image image)
@@ -54,7 +77,7 @@ namespace VideoMaterialRenamer
             Image existing;
             if (images.TryGetValue(path, out existing) && !object.ReferenceEquals(existing, image))
             {
-                existing.Dispose();
+                DisposeUnlessRetained(existing);
             }
 
             images[path] = image;
@@ -81,10 +104,7 @@ namespace VideoMaterialRenamer
             if (images.TryGetValue(path, out image))
             {
                 images.Remove(path);
-                if (image != null)
-                {
-                    image.Dispose();
-                }
+                DisposeUnlessRetained(image);
             }
         }
 
@@ -114,10 +134,7 @@ namespace VideoMaterialRenamer
                 if (images.TryGetValue(path, out image))
                 {
                     images.Remove(path);
-                    if (image != null)
-                    {
-                        image.Dispose();
-                    }
+                    DisposeUnlessRetained(image);
                 }
             }
         }
