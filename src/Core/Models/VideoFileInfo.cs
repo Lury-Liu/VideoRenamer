@@ -9,6 +9,7 @@ namespace VideoMaterialRenamer
         public string FileName;
         public string SizeText;
         public string ResolutionText;
+        public string DurationText;
         public string ModifiedText;
         public bool Exists;
 
@@ -25,6 +26,10 @@ namespace VideoMaterialRenamer
                 if (!string.IsNullOrWhiteSpace(ResolutionText) && ResolutionText != "未知")
                 {
                     parts.Add(ResolutionText);
+                }
+                if (!string.IsNullOrWhiteSpace(DurationText))
+                {
+                    parts.Add(DurationText);
                 }
                 if (!string.IsNullOrWhiteSpace(SizeText))
                 {

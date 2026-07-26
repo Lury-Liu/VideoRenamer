@@ -176,6 +176,18 @@ namespace VideoMaterialRenamer
             return dark ? Color.FromArgb(74, 44, 38) : Color.FromArgb(247, 228, 222);
         }
 
+        // --- 预览状态列文字（阶段10i，设计稿：就绪绿 / 阻塞红） ---
+
+        public static Color PreviewOkFore(bool dark)
+        {
+            return dark ? Color.FromArgb(137, 183, 128) : Color.FromArgb(58, 118, 62);
+        }
+
+        public static Color PreviewErrorFore(bool dark)
+        {
+            return dark ? Color.FromArgb(229, 124, 107) : Color.FromArgb(176, 58, 44);
+        }
+
         // --- 复选框 ---
 
         public static Color CheckAccentBack(bool dark)

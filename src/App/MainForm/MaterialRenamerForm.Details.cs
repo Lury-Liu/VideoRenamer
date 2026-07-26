@@ -151,7 +151,10 @@ namespace VideoMaterialRenamer
                 lines.Add("目标文件名：" + newName);
             }
             lines.Add("大小：" + (string.IsNullOrWhiteSpace(info.SizeText) ? "未知" : info.SizeText));
-            lines.Add("分辨率：" + info.ResolutionText);
+            // 阶段10i（设计稿）：分辨率与时长并排成紧凑一行（1920 x 1080 · 8s）。
+            lines.Add(string.IsNullOrWhiteSpace(info.DurationText)
+                ? "分辨率：" + info.ResolutionText
+                : "分辨率：" + info.ResolutionText + " · " + info.DurationText);
             lines.Add("修改时间：" + (string.IsNullOrWhiteSpace(info.ModifiedText) ? "未知" : info.ModifiedText));
             detailInfoLabel.Text = string.Join("\r\n", lines.ToArray());
             detailPathLabel.Text = info.Path ?? "";

@@ -53,6 +53,7 @@ namespace VideoMaterialRenamer
             info.FileName = string.IsNullOrWhiteSpace(path) ? "" : Path.GetFileName(path);
             info.SizeText = "";
             info.ResolutionText = "读取中";
+            info.DurationText = "";
             info.ModifiedText = "";
             info.Exists = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
 

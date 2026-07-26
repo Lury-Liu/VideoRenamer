@@ -33,6 +33,8 @@ namespace VideoMaterialRenamer.Tests
             AssertColor(255, 255, 255, UiTheme.AccentFore(false), "light accent fore is white");
             AssertColor(247, 237, 216, UiTheme.PreviewWarningBack(false), "light warning tint");
             AssertColor(247, 228, 222, UiTheme.PreviewErrorBack(false), "light error tint");
+            AssertColor(58, 118, 62, UiTheme.PreviewOkFore(false), "light status ok green");
+            AssertColor(176, 58, 44, UiTheme.PreviewErrorFore(false), "light status error red");
         }
 
         private static void PalettePinsDark()
@@ -43,6 +45,8 @@ namespace VideoMaterialRenamer.Tests
             AssertColor(74, 70, 63, UiTheme.BorderColor(true), "dark border");
             AssertColor(217, 119, 87, UiTheme.AccentBack(true), "dark clay accent");
             AssertColor(59, 26, 14, UiTheme.AccentFore(true), "dark accent fore is deep clay");
+            AssertColor(137, 183, 128, UiTheme.PreviewOkFore(true), "dark status ok green");
+            AssertColor(229, 124, 107, UiTheme.PreviewErrorFore(true), "dark status error red");
         }
     }
 }

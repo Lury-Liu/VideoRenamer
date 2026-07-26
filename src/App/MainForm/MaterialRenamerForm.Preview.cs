@@ -232,17 +232,46 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            item.BackColor = entry.RowIndex % 2 == 0 ? UiTheme.PreviewAltBack(darkMode) : UiTheme.ControlBack(darkMode);
-            item.ForeColor = UiTheme.TextColor(darkMode);
-
+            Color back = entry.RowIndex % 2 == 0 ? UiTheme.PreviewAltBack(darkMode) : UiTheme.ControlBack(darkMode);
             if (RenamePlanBuilder.IsBlockingIssue(entry))
             {
-                item.BackColor = UiTheme.PreviewErrorBack(darkMode);
+                back = UiTheme.PreviewErrorBack(darkMode);
             }
             else if (entry.Status == PlanStatus.Unchanged)
             {
-                item.BackColor = UiTheme.PreviewNeutralBack(darkMode);
+                back = UiTheme.PreviewNeutralBack(darkMode);
             }
+
+            Color fore = UiTheme.TextColor(darkMode);
+            item.BackColor = back;
+            item.ForeColor = fore;
+
+            // 阶段10i（设计稿）：状态列文字着色——就绪/待执行绿、阻塞红、
+            // 未变化弱化。逐子项配色须关闭 UseItemStyleForSubItems 并给
+            // 每个子项显式底/前景，否则其余列会退回系统默认白底。
+            item.UseItemStyleForSubItems = false;
+            for (int i = 0; i < item.SubItems.Count; i++)
+            {
+                item.SubItems[i].BackColor = back;
+                item.SubItems[i].ForeColor = fore;
+            }
+            if (item.SubItems.Count > 6)
+            {
+                item.SubItems[6].ForeColor = GetPreviewStatusForeColor(entry);
+            }
+        }
+
+        private Color GetPreviewStatusForeColor(RenamePlan entry)
+        {
+            if (RenamePlanBuilder.IsBlockingIssue(entry))
+            {
+                return UiTheme.PreviewErrorFore(darkMode);
+            }
+            if (entry.Status == PlanStatus.Unchanged)
+            {
+                return UiTheme.MutedText(darkMode);
+            }
+            return UiTheme.PreviewOkFore(darkMode);
         }
 
         private void UpdatePreviewStatusSummary()

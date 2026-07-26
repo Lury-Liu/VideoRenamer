@@ -1,6 +1,6 @@
 # Project Health Assessment v2 — Evidence-Backed
 
-**Branch:** `refactor/modernization-v3` (17 commits over `refactor/architecture-v2`, which was 27 commits over the V1.0.6.0 baseline)
+**Branch:** `refactor/modernization-v3` (19 commits over `refactor/architecture-v2`, which was 27 commits over the V1.0.6.0 baseline; figures below refreshed at the 10i commit)
 **Date:** 2026-07-26 · **Verification state:** SelfTest **70/70**, SmokeTest OK (incl. structure/equivalence/collapse assertions), **all 6 build gates** PASS, release EXE builds + verify-artifact PASS, publish `-DryRun` green end-to-end.
 
 Scoring: six dimensions, equal weight, scored against measured evidence (commands and raw numbers in [REFACTOR_PROGRESS.md](REFACTOR_PROGRESS.md)). History: original baseline ≈38 → V2 refactor 85 → **V3 now**.
@@ -11,7 +11,7 @@ Deliberately not rounded to 90: the enumerated remainder (§gaps) is real — ch
 
 | Dimension | Baseline | V2 | V3 | Key evidence |
 |---|---|---|---|---|
-| 1. Architectural coupling | 35 | 84 | **90** | all dependency rules machine-gated; zero WinForms in Services; single owners gated |
+| 1. Architectural coupling | 35 | 84 | **90** | UI-framework purity machine-gated below App; zero WinForms in Services; single owners gated |
 | 2. Maintainability | 40 | 82 | **87** | BuildUi → 10 named builders; hardcoded styling eliminated + gated; dedup complete |
 | 3. Testability | 25 | 85 | **89** | 70 named cases; license subsystem fully characterized; screenshot harness |
 | 4. Reliability | 45 | 84 | **87** | silent update failure fixed; crash logging; safe cancel paths; orphan sweeps |
@@ -20,11 +20,11 @@ Deliberately not rounded to 90: the enumerated remainder (§gaps) is real — ch
 
 ## 1. Architectural coupling — 90
 
-- **Dependency rules fully machine-enforced** (every build): `Core ← Media / Services ← App ← Tests` via `Assert-CorePurity` + new `Assert-ServicesPurity` (full-text scans — qualified names can't hide); `Assert-StatusLiteralOwnership`; new `Assert-PaletteOwnership`; `Assert-CsprojParity`. Both new gates were **drill-proven** (planted violations caught; the services gate also caught two real leftovers on arrival).
+- **UI-framework purity machine-enforced** (every build): `Assert-CorePurity` + new `Assert-ServicesPurity` ban `System.Windows.Forms`/`System.Drawing` below App via full-text scans (qualified names can't hide); `Assert-StatusLiteralOwnership`; new `Assert-PaletteOwnership`; `Assert-CsprojParity`. Both new gates were **drill-proven** (planted violations caught; the services gate also caught two real leftovers on arrival). **Honest scope note (10i audit finding):** these gates are a namespace proxy, not full dependency-direction enforcement — cross-layer *type* references pass unchecked, and a real instance exists: Services (`LicenseManager`, `UpdateManager`, `DisclaimerManager`) and Media (`FfmpegLocator`) reference `AppInfo`, defined in the App layer (`src/App/AppInfo.cs`). It's a constants-only class (name/version/paths), so no UI leaks downward, but the direction claim previously stated here was too strong. Fix candidate: move `AppInfo` to Core.
 - **Zero WinForms/Drawing in Services**: update/license/disclaimer UI orchestration lives in `App/Presenters` (`UpdatePrompter`, `LicenseGate`, `DisclaimerGate`), moved verbatim; Services keep pure logic + storage.
 - **Single owners, verified**: `currentPlan` — one writer (`ReplaceCurrentPlan`, field co-located); palette — `UiTheme` only (gated); status literals — `PlanStatusText` (gated); status text — `IStatusSink`; quoting — `ProcessArguments`.
 - License validation is a pure function (`LicenseValidator.Validate(key, machineCode, nowUtc)`) — machine code and clock injected; DPAPI storage untouched and covered by a round-trip test.
-- **Held back by:** the main form is still 13 partials sharing view state (inherent to the single-form WinForms design; full MVP would be re-sharding); `AboutForm` keeps its own check choreography (download/restart now shared).
+- **Held back by:** the main form is still 12 partials sharing view state (inherent to the single-form WinForms design; full MVP would be re-sharding); `AboutForm` keeps its own check choreography (download/restart now shared).
 
 ## 2. Maintainability — 87
 
@@ -32,7 +32,7 @@ Deliberately not rounded to 90: the enumerated remainder (§gaps) is real — ch
 - **No hardcoded styling anywhere** — swept and machine-gated; the palette is one file with named roles, pinned by tests.
 - Duplication complete: quoting (1 impl), row write-back (1), grid cell fill (1), update download/restart flow (1 — the AboutForm copy died).
 - `App/Grid` → `App/Controls` (100%-similarity moves); Services + model using-headers trimmed to actual needs.
-- Tree: App 5,219 / Core 959 / Media 1,320 / Services 1,045 / Tests 1,314 lines; largest production file 673 (`Ui.cs` — grown by builders, each method small).
+- Tree (non-blank lines, `Measure-Object -Line`): App 5,525 / Core 964 / Media 1,405 / Services 1,045 / Tests 1,318; largest production file 734 non-blank (833 raw) — `Ui.cs`, grown by the 10g–10i visual builders, each method small.
 - **Held back by:** App/MainForm partials still carry the 15-line copy-pasted using header (documented deviation); two regex JSON mechanisms; C# 5 syntax cap (toolchain-frozen until csproj promotion).
 
 ## 3. Testability — 89
@@ -40,7 +40,7 @@ Deliberately not rounded to 90: the enumerated remainder (§gaps) is real — ch
 - **55 → 70 named cases.** New: `LicenseValidator` table ×9 — the subsystem previously written off as untestable — using pinned **already-expired keys for dummy machine codes** (worthless if extracted from the EXE) with the injected clock walking the valid path; a DPAPI round-trip proving the storage layer; updater-script shape ×2 (hardening semantics pinned); palette pins ×2; quoting table; caching-probe counting.
 - SmokeTest grew teeth: footer structure, progress initially hidden, inspector collapse round-trip, and the **grid incremental-vs-full-rebuild equivalence** check. It caught a real bug during development (`Control.Visible` is false on unshown forms — the collapse toggle was rebuilt on an explicit state field).
 - `scripts/capture-ui.ps1`: off-screen screenshots of the real form (both themes) reviewed at every visual commit.
-- Golden masters byte-identical through **all 17 commits** — naming output provably never drifted.
+- Golden masters byte-identical through **all 19 commits** — naming output provably never drifted (10h/10i touched no `src/Core/Naming` code; corpus re-verified green at each).
 - **Held back by:** no CI runner; tests compile into the shipped EXE; UI beyond construction+structure needs the human pass; networking (`TimeoutWebClient`) untested.
 
 ## 4. Reliability — 87
@@ -77,7 +77,7 @@ New fixes on top of V2's nine:
 
 1. **CI + csproj validation** (+1–1.5): build `VideoRenamer.csproj` on a dotnet-SDK machine, compare FileVersion/resources against the csc EXE, stand up CI running the gates headless. The single biggest remaining lever.
 2. **The one-hour human pass** (checklist below) — especially **HiDPI rendering** (10f) and the **elevated-update rehearsal at the next real release** (12b). Automation cannot see these.
-3. **Minor debt:** App/MainForm using headers; `AboutForm` check choreography; two regex JSON parsers; `Ui.cs` (673 lines) could split builders into a Layout partial.
+3. **Minor debt:** App/MainForm using headers; `AboutForm` check choreography; two regex JSON parsers; `Ui.cs` (734 non-blank lines) could split builders into a Layout partial; `AppInfo` lives in App but is referenced by Services/Media (see §1 — candidate move to Core).
 4. **Product decisions pending (unchanged):** frame-strip full-duration sampling; splitting ffmpeg from the ~100 MB update download.
 5. **Toolchain ceiling (unchanged):** C# 5 cap and tests-in-EXE fall only with the csproj-promotion project.
 
