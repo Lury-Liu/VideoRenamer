@@ -29,6 +29,14 @@ namespace VideoMaterialRenamer
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            // 最后防线日志（阶段8d）：仅观察不吞并——默认崩溃行为不变，
+            // 但任何未处理异常都会在 app.log 留下记录。
+            AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs e)
+            {
+                AppLog.Write("crash", "未处理异常", e.ExceptionObject as Exception);
+            };
+            AppLog.Write("app", "启动 " + AppInfo.Version);
+
             // TLS 1.2：全进程启用一次（更新检查/下载共用；替代原先散布在
             // UpdateManager 两处的 (SecurityProtocolType)3072 魔数写法）。
             ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | SecurityProtocolType.Tls12;
@@ -67,8 +75,10 @@ namespace VideoMaterialRenamer
                     {
                         info = UpdateManager.GetLatestUpdateInfo();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        // 静默容忍（离线属正常场景），但留痕以便诊断"永远收不到更新"。
+                        AppLog.Write("update", "启动更新检查失败", ex);
                     }
                     lock (updateSync)
                     {

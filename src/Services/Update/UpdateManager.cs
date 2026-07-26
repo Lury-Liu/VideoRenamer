@@ -70,8 +70,9 @@ namespace VideoMaterialRenamer
 
                 return DownloadAndRestart(info, owner);
             }
-            catch
+            catch (Exception ex)
             {
+                AppLog.Write("update", "更新提示/安装流程异常", ex);
                 return false;
             }
         }
