@@ -42,7 +42,7 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("build_plan_resizes_tail_overrides", BuildPlanResizesTailOverrides));
             cases.Add(new TestCase("shot_label_pattern_table", ShotLabelPatternTable));
             cases.Add(new TestCase("shot_label_try_parse_table", ShotLabelTryParseTable));
-            cases.Add(new TestCase("clone_rename_plan_copies_fields_drops_shot_label", CloneRenamePlanCopiesFieldsDropsShotLabel));
+            cases.Add(new TestCase("clone_rename_plan_copies_all_fields", CloneRenamePlanCopiesFieldsDropsShotLabel));
             cases.Add(new TestCase("clone_rename_plan_shares_row_reference", CloneRenamePlanSharesRowReference));
             cases.Add(new TestCase("prepare_export_plan_save_as_renames_unchanged", PrepareExportPlanSaveAsRenamesUnchanged));
             cases.Add(new TestCase("prepare_export_plan_duplicate_target_throws", PrepareExportPlanDuplicateTargetThrows));
@@ -443,11 +443,10 @@ namespace VideoMaterialRenamer.Tests
             TestAssert.AreEqual(source.NewName, clone.NewName, "clone NewName");
             TestAssert.AreEqual(source.Status, clone.Status, "clone Status");
 
-            // KNOWN BUG (pinned as current behavior): CloneRenamePlan omits the
-            // ShotLabel field, so cloned export plans lose the "28A" suffix label.
-            // Phase 2 replaces this with RenamePlan.Clone() and flips this
-            // assertion in its own dedicated bug-fix commit.
-            TestAssert.IsNull(clone.ShotLabel, "clone drops ShotLabel (current bug, fix scheduled)");
+            // Fixed defect (was pinned as a characterization): the legacy
+            // CloneRenamePlan omitted ShotLabel, so cloned export plans lost the
+            // "28A" suffix label. RenamePlan.Clone() now copies every field.
+            TestAssert.AreEqual("28A", clone.ShotLabel, "clone copies ShotLabel (bug fixed)");
         }
 
         private static void CloneRenamePlanSharesRowReference()

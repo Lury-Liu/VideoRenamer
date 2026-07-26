@@ -37,8 +37,6 @@ namespace VideoMaterialRenamer
         public string Status;
 
         // 浅克隆：Row 引用必须共享（撤销/导出进度按引用身份映射，测试锁定）。
-        // 注意：当前保持与旧 CloneRenamePlan 相同的行为——ShotLabel 不复制
-        // （已知缺陷，由特征化测试按现状锁定；修复在独立提交中翻转该测试）。
         public RenamePlan Clone()
         {
             return new RenamePlan
@@ -50,6 +48,7 @@ namespace VideoMaterialRenamer
                 FileIndex = FileIndex,
                 Scene = Scene,
                 Shot = Shot,
+                ShotLabel = ShotLabel,
                 Take = Take,
                 TailSegment = TailSegment,
                 CustomTailText = CustomTailText,
