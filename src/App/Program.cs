@@ -41,10 +41,11 @@ namespace VideoMaterialRenamer
             // UpdateManager 两处的 (SecurityProtocolType)3072 魔数写法）。
             ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | SecurityProtocolType.Tls12;
 
-            // 后台清扫上次异常退出遗留的抽帧临时目录（不阻塞启动）。
+            // 后台清扫上次异常退出遗留的抽帧临时目录与更新临时文件（不阻塞启动）。
             ThreadPool.QueueUserWorkItem(delegate
             {
                 VideoFrameStripProvider.SweepOrphanedStripDirs();
+                UpdateManager.SweepOrphanedUpdateTemps();
             });
 
             bool darkMode = UiTheme.DetectWindowsDarkMode();

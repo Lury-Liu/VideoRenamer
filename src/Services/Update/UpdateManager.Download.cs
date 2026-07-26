@@ -334,6 +334,40 @@ namespace VideoMaterialRenamer
             }
         }
 
+        // 阶段11d：清扫更新临时目录的孤儿文件（下载失败/辅助脚本半途而废
+        // 时会留下 ~100MB 的 update_*.exe，此前永不清理）。1 小时年龄门槛
+        // 避免误删正在进行的下载。
+        public static void SweepOrphanedUpdateTemps()
+        {
+            try
+            {
+                string updateDir = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update");
+                if (!Directory.Exists(updateDir))
+                {
+                    return;
+                }
+
+                DateTime cutoffUtc = DateTime.UtcNow.AddHours(-1);
+                foreach (string file in Directory.GetFiles(updateDir))
+                {
+                    try
+                    {
+                        if (File.GetLastWriteTimeUtc(file) < cutoffUtc)
+                        {
+                            File.Delete(file);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLog.Write("update", "清扫更新临时目录失败", ex);
+            }
+        }
+
         private static void StartUpdaterProcess(string currentExe, string downloadedExe)
         {
             string scriptPath = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update", "apply_update_" + Guid.NewGuid().ToString("N") + ".ps1");

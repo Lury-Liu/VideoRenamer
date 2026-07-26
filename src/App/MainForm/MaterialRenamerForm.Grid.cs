@@ -161,6 +161,72 @@ namespace VideoMaterialRenamer
             }
         }
 
+        // 阶段11c：行级增量操作——增/移/删只动受影响的网格行，不再整表
+        // 重建（预览仍整表刷新：行号与分组标题会整体变化）。任何计数
+        // 前置条件不满足都回退 RenderGrid()；等价性由冒烟断言锁定。
+        private void InsertGridRowAt(int rowIndex)
+        {
+            if (grid == null || rowIndex < 0 || rowIndex > grid.Rows.Count || grid.Rows.Count != rows.Count - 1)
+            {
+                RenderGrid();
+                return;
+            }
+
+            rendering = true;
+            try
+            {
+                grid.Rows.Insert(rowIndex, 1);
+                PopulateGridRow(grid.Rows[rowIndex], rows[rowIndex]);
+            }
+            finally
+            {
+                rendering = false;
+            }
+        }
+
+        private void RemoveGridRowAt(int rowIndex)
+        {
+            if (grid == null || rowIndex < 0 || rowIndex >= grid.Rows.Count || grid.Rows.Count != rows.Count + 1)
+            {
+                RenderGrid();
+                return;
+            }
+
+            rendering = true;
+            try
+            {
+                grid.Rows.RemoveAt(rowIndex);
+            }
+            finally
+            {
+                rendering = false;
+            }
+        }
+
+        // 相邻两行互换后按行模型重填两行内容（仅 ±1 移动会调用）。
+        private void RepopulateGridRowPair(int indexA, int indexB)
+        {
+            if (grid == null || indexA < 0 || indexB < 0 ||
+                indexA >= grid.Rows.Count || indexB >= grid.Rows.Count ||
+                indexA >= rows.Count || indexB >= rows.Count ||
+                grid.Rows.Count != rows.Count)
+            {
+                RenderGrid();
+                return;
+            }
+
+            rendering = true;
+            try
+            {
+                PopulateGridRow(grid.Rows[indexA], rows[indexA]);
+                PopulateGridRow(grid.Rows[indexB], rows[indexB]);
+            }
+            finally
+            {
+                rendering = false;
+            }
+        }
+
         private void RenderGridRow(int rowIndex)
         {
             if (grid == null || rowIndex < 0 || rowIndex >= rows.Count || rowIndex >= grid.Rows.Count)

@@ -181,9 +181,39 @@ namespace VideoMaterialRenamer
                 {
                     throw new Exception("详情面板展开测试失败。");
                 }
+
+                // 阶段11c 等价性：一串增/移/删增量操作后的网格内容必须与
+                // 整表重建完全一致（空行操作不触发确认对话框，可无头执行）。
+                form.AddEmptyRow();
+                form.AddEmptyRow();
+                form.SelectGridCell(1, GridShotColumn);
+                form.MoveCurrentRow(1);
+                form.DeleteCurrentRow();
+                string incremental = DumpGridForSmoke(form);
+                form.RenderGrid();
+                string rebuilt = DumpGridForSmoke(form);
+                if (incremental != rebuilt || form.grid.Rows.Count != form.rows.Count)
+                {
+                    throw new Exception("网格增量操作等价性测试失败。");
+                }
             }
 
             return "SmokeTest OK";
+        }
+
+        private static string DumpGridForSmoke(MaterialRenamerForm form)
+        {
+            StringBuilder builder = new StringBuilder();
+            foreach (DataGridViewRow gridRow in form.grid.Rows)
+            {
+                for (int column = 0; column < form.grid.Columns.Count; column++)
+                {
+                    object value = gridRow.Cells[column].Value;
+                    builder.Append(value == null ? "" : value.ToString()).Append('|');
+                }
+                builder.Append(';');
+            }
+            return builder.ToString();
         }
 
         // 新行为（阶段5b）：任务进行中关窗需确认；确认后立即杀掉活动

@@ -94,7 +94,8 @@ namespace VideoMaterialRenamer
             int currentRowIndex = GetCurrentGridRowIndex();
             int insertIndex = currentRowIndex >= 0 ? currentRowIndex + 1 : rows.Count;
             rows.Insert(insertIndex, new ShotRow { Scene = GetDefaultScene(), Sequence = GetNextShotSequence() });
-            RenderAll();
+            InsertGridRowAt(insertIndex);
+            RefreshPreview();
             SelectGridCell(insertIndex, GetDefaultGridFocusColumn());
             StatusText = IsRowSceneEnabled()
                 ? "已新增一条空记录；A 列场号、B 列镜号可直接改成任意正整数。"
@@ -121,7 +122,8 @@ namespace VideoMaterialRenamer
             ShotRow moving = rows[currentRowIndex];
             rows.RemoveAt(currentRowIndex);
             rows.Insert(targetIndex, moving);
-            RenderAll();
+            RepopulateGridRowPair(currentRowIndex, targetIndex);
+            RefreshPreview();
             SelectGridCell(targetIndex, columnIndex);
             StatusText = IsRowSceneEnabled()
                 ? "已移动当前行；A 列场号、B 列镜号保持不变。"
@@ -155,12 +157,21 @@ namespace VideoMaterialRenamer
 
             int columnIndex = grid.CurrentCell != null ? grid.CurrentCell.ColumnIndex : 0;
             rows.RemoveAt(currentRowIndex);
-            if (rows.Count == 0)
+            bool resetToSingleEmptyRow = rows.Count == 0;
+            if (resetToSingleEmptyRow)
             {
                 rows.Add(new ShotRow { Scene = GetDefaultScene(), Sequence = 1 });
             }
 
-            RenderAll();
+            if (resetToSingleEmptyRow)
+            {
+                RenderGrid();
+            }
+            else
+            {
+                RemoveGridRowAt(currentRowIndex);
+            }
+            RefreshPreview();
             int nextRowIndex = Math.Min(currentRowIndex, rows.Count - 1);
             SelectGridCell(nextRowIndex, columnIndex);
             StatusText = IsRowSceneEnabled()
