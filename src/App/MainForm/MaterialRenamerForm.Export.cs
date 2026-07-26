@@ -33,6 +33,12 @@ namespace VideoMaterialRenamer
                     foreach (RenameOperation op in outcome.Successes)
                     {
                         PlanExecutor.PatchRowFileList(op);
+                        // 修复既有缺陷：覆盖导出改变了文件内容，但旧缓存不失效，
+                        // 详情面板会一直显示导出前的大小/分辨率/缩略图。
+                        videoInfoCache.Remove(op.OriginalPath);
+                        videoInfoCache.Remove(op.RenamedPath);
+                        thumbnailCache.Remove(op.OriginalPath);
+                        thumbnailCache.Remove(op.RenamedPath);
                     }
 
                     RenderAll();

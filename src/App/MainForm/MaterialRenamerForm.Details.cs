@@ -316,12 +316,17 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            foreach (ListViewItem item in previewList.Items)
+            // O(1) 反查（原实现每个元数据回调线性扫描全表，n 个文件
+            // 全部回填合计 O(n²) UI 线程工作）。
+            List<ListViewItem> pathItems;
+            if (!previewItemsByPath.TryGetValue(path, out pathItems))
             {
-                RenamePlan entry = item.Tag as RenamePlan;
-                if (entry != null &&
-                    StringComparer.OrdinalIgnoreCase.Equals(entry.OldPath, path) &&
-                    item.SubItems.Count > 7)
+                return;
+            }
+
+            foreach (ListViewItem item in pathItems)
+            {
+                if (item.SubItems.Count > 7)
                 {
                     item.SubItems[7].Text = info.ListSummary;
                 }

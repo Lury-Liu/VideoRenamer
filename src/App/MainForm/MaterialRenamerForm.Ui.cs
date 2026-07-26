@@ -80,7 +80,9 @@ namespace VideoMaterialRenamer
             numScene.Value = 1;
             numScene.Width = 78;
             numScene.Margin = new Padding(0, 4, 14, 0);
-            numScene.ValueChanged += delegate { RefreshPreview(); };
+            // 场号/各选项只改名字与状态列文本，不改项目数——走增量刷新
+            //（该路径现在会同步分组标题，且计数不一致时自带整表重建回退）。
+            numScene.ValueChanged += delegate { RefreshPreviewNamesOnly(); };
             settingsPanel.Controls.Add(numScene);
 
             chkRowScene = new CheckBox();
@@ -105,7 +107,7 @@ namespace VideoMaterialRenamer
             chkKeepExtension.Checked = true;
             chkKeepExtension.AutoSize = true;
             chkKeepExtension.Margin = new Padding(0, 7, 14, 0);
-            chkKeepExtension.CheckedChanged += delegate { RefreshPreview(); };
+            chkKeepExtension.CheckedChanged += delegate { RefreshPreviewNamesOnly(); };
             settingsPanel.Controls.Add(chkKeepExtension);
 
             chkExport1080p = new CheckBox();
@@ -114,7 +116,7 @@ namespace VideoMaterialRenamer
             chkExport1080p.Margin = new Padding(0, 7, 14, 0);
             chkExport1080p.CheckedChanged += delegate
             {
-                RefreshPreview();
+                RefreshPreviewNamesOnly();
                 UpdateRenameButtonText();
                 UpdateWatermarkOptionState();
             };
@@ -128,7 +130,7 @@ namespace VideoMaterialRenamer
             chkExportWatermark.CheckedChanged += delegate
             {
                 UpdateWatermarkOptionState();
-                RefreshPreview();
+                RefreshPreviewNamesOnly();
             };
             settingsPanel.Controls.Add(chkExportWatermark);
             UpdateWatermarkOptionState();
@@ -215,7 +217,7 @@ namespace VideoMaterialRenamer
             Controls.Add(split);
             split.BringToFront();
 
-            grid = new DataGridView();
+            grid = new DoubleBufferedGridView();
             grid.Dock = DockStyle.Fill;
             grid.AllowDrop = true;
             grid.AllowUserToAddRows = false;
@@ -306,7 +308,7 @@ namespace VideoMaterialRenamer
             detailHost.Width = 320;
             detailHost.MinimumSize = new Size(280, 0);
 
-            previewList = new ListView();
+            previewList = new DoubleBufferedListView();
             previewList.Dock = DockStyle.Fill;
             previewList.View = View.Details;
             previewList.FullRowSelect = true;

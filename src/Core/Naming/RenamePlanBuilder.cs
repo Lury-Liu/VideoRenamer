@@ -301,18 +301,25 @@ namespace VideoMaterialRenamer
                 return baseTail;
             }
 
+            // 目标路径集合预先建成 HashSet：原实现每个候选序号都对整个计划
+            // 做一次线性 Any 扫描（最坏 10000×n）。
+            HashSet<string> existingTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (existingPlan != null)
+            {
+                foreach (RenamePlan entry in existingPlan)
+                {
+                    if (entry != null && !IsSamePlanEntry(entry, selectedEntry) && entry.TargetPath != null)
+                    {
+                        existingTargets.Add(entry.TargetPath);
+                    }
+                }
+            }
+
             for (int counter = 1; counter < 10000; counter++)
             {
                 string candidateTail = counter == 1 ? baseTail : AppendCustomTailCounter(baseTail, counter);
                 string candidatePath = BuildTargetPathForTail(selectedEntry, candidateTail, episode, scene, keepExtensionCase);
-                bool duplicate = existingPlan != null && existingPlan.Any(delegate(RenamePlan entry)
-                {
-                    return entry != null &&
-                        !IsSamePlanEntry(entry, selectedEntry) &&
-                        StringComparer.OrdinalIgnoreCase.Equals(entry.TargetPath, candidatePath);
-                });
-
-                if (!duplicate)
+                if (!existingTargets.Contains(candidatePath))
                 {
                     return candidateTail;
                 }

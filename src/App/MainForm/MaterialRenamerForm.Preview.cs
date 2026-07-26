@@ -27,19 +27,28 @@ namespace VideoMaterialRenamer
 
         private void RefreshPreview()
         {
+            RefreshPreview(null);
+        }
+
+        // prebuiltPlan：调用方（如增量刷新的回退路径）已构建好的计划——
+        // 直接采用，避免同一次刷新里 BuildPlan 跑两遍（每遍都对每个文件
+        // 做两次 File.Exists）。传 null 则正常构建。
+        private void RefreshPreview(List<RenamePlan> prebuiltPlan)
+        {
             if (previewList == null)
             {
                 return;
             }
 
             currentPlan.Clear();
-            currentPlan.AddRange(RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance));
+            currentPlan.AddRange(prebuiltPlan ?? RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance));
 
             previewList.BeginUpdate();
             try
             {
                 previewList.Items.Clear();
                 previewList.Groups.Clear();
+                previewItemsByPath.Clear();
                 Dictionary<int, ListViewGroup> previewGroups = new Dictionary<int, ListViewGroup>();
                 foreach (RenamePlan entry in currentPlan)
                 {
@@ -75,6 +84,16 @@ namespace VideoMaterialRenamer
                     ApplyPreviewItemStatusStyle(item, entry);
 
                     previewList.Items.Add(item);
+
+                    // OldPath → 项目 反查表：元数据回填从每次全表线性扫描
+                    // 降为 O(1)（n 个文件全部回填时原来是 O(n²)）。
+                    List<ListViewItem> pathItems;
+                    if (!previewItemsByPath.TryGetValue(entry.OldPath, out pathItems))
+                    {
+                        pathItems = new List<ListViewItem>();
+                        previewItemsByPath[entry.OldPath] = pathItems;
+                    }
+                    pathItems.Add(item);
                 }
 
                 UpdatePreviewStatusSummary();
@@ -265,9 +284,8 @@ namespace VideoMaterialRenamer
             List<RenamePlan> rebuilt = RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance);
             if (rebuilt.Count != previewList.Items.Count)
             {
-                currentPlan.Clear();
-                currentPlan.AddRange(rebuilt);
-                RefreshPreview();
+                // 计数变化 → 整表重建；把已建好的计划递交过去，不再二次 BuildPlan。
+                RefreshPreview(rebuilt);
                 return;
             }
 
@@ -289,6 +307,18 @@ namespace VideoMaterialRenamer
                         item.SubItems[5].Text = entry.NewName;
                         item.SubItems[6].Text = PlanStatusText.For(entry.Status);
                     }
+
+                    // 分组标题包含场号/镜号，增量路径也要同步（修复既有缺陷：
+                    // 网格内编辑场/镜号后分组标题一直显示旧值）。
+                    if (item.Group != null)
+                    {
+                        string header = string.Format("第 {0} 行 / 场号 {1} / 镜号 {2}", entry.RowIndex, entry.Scene, entry.ShotLabel);
+                        if (item.Group.Header != header)
+                        {
+                            item.Group.Header = header;
+                        }
+                    }
+
                     ApplyPreviewItemStatusStyle(item, entry);
                 }
                 UpdatePreviewStatusSummary();

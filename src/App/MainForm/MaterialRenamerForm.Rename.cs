@@ -123,6 +123,11 @@ namespace VideoMaterialRenamer
                 foreach (RenameOperation op in result.Successes)
                 {
                     PlanExecutor.PatchRowFileList(op);
+                    // 缓存按路径失效：旧路径的元数据/缩略图条目已无意义。
+                    videoInfoCache.Remove(op.OriginalPath);
+                    videoInfoCache.Remove(op.RenamedPath);
+                    thumbnailCache.Remove(op.OriginalPath);
+                    thumbnailCache.Remove(op.RenamedPath);
                 }
 
                 if (result.Successes.Count > 0)

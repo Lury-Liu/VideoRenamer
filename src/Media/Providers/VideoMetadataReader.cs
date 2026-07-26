@@ -37,9 +37,9 @@ namespace VideoMaterialRenamer
 
             try
             {
-                Dictionary<string, string> details = ReadShellDetails(path);
-                string width = NormalizeDimension(FindDetail(details, new string[] { "帧宽度", "宽度", "Frame width", "Width" }));
-                string height = NormalizeDimension(FindDetail(details, new string[] { "帧高度", "高度", "Frame height", "Height" }));
+                string width;
+                string height;
+                ReadResolutionViaShell(path, out width, out height);
                 if (!string.IsNullOrWhiteSpace(width) && !string.IsNullOrWhiteSpace(height))
                 {
                     info.ResolutionText = width + " x " + height;
@@ -50,6 +50,141 @@ namespace VideoMaterialRenamer
             }
 
             return info;
+        }
+
+        // Shell 属性列索引缓存：宽/高所在的列号在同一系统上是稳定的。
+        // 首个文件做一次 0..339 全列扫描并记住两列索引，之后每个文件只需
+        // 约 4 次 late-bound COM 调用（原实现每个文件约 680 次）。
+        // 缓存索引读不出值时（区域设置变化等）自动回退全扫描并刷新缓存。
+        private static readonly object IndexCacheSync = new object();
+        private static int cachedWidthIndex = -1;
+        private static int cachedHeightIndex = -1;
+
+        private static readonly string[] WidthDetailNames = { "帧宽度", "宽度", "Frame width", "Width" };
+        private static readonly string[] HeightDetailNames = { "帧高度", "高度", "Frame height", "Height" };
+
+        private static void ReadResolutionViaShell(string path, out string width, out string height)
+        {
+            width = "";
+            height = "";
+
+            object shell = null;
+            object folder = null;
+            object item = null;
+            try
+            {
+                Type shellType = Type.GetTypeFromProgID("Shell.Application");
+                if (shellType == null)
+                {
+                    return;
+                }
+
+                shell = Activator.CreateInstance(shellType);
+                string directory = System.IO.Path.GetDirectoryName(path);
+                string fileName = System.IO.Path.GetFileName(path);
+                if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName))
+                {
+                    return;
+                }
+
+                folder = shellType.InvokeMember("NameSpace", BindingFlags.InvokeMethod, null, shell, new object[] { directory });
+                if (folder == null)
+                {
+                    return;
+                }
+
+                item = folder.GetType().InvokeMember("ParseName", BindingFlags.InvokeMethod, null, folder, new object[] { fileName });
+                if (item == null)
+                {
+                    return;
+                }
+
+                int widthIndex;
+                int heightIndex;
+                lock (IndexCacheSync)
+                {
+                    widthIndex = cachedWidthIndex;
+                    heightIndex = cachedHeightIndex;
+                }
+
+                if (widthIndex >= 0 && heightIndex >= 0)
+                {
+                    width = NormalizeDimension(GetDetailValue(folder, item, widthIndex));
+                    height = NormalizeDimension(GetDetailValue(folder, item, heightIndex));
+                    if (!string.IsNullOrWhiteSpace(width) && !string.IsNullOrWhiteSpace(height))
+                    {
+                        return;
+                    }
+                    width = "";
+                    height = "";
+                }
+
+                // 全扫描：逐列取列名，命中目标列才取值（并记录索引）。
+                for (int i = 0; i < 340; i++)
+                {
+                    string key = CleanShellText(Convert.ToString(folder.GetType().InvokeMember("GetDetailsOf", BindingFlags.InvokeMethod, null, folder, new object[] { null, i })));
+                    if (string.IsNullOrWhiteSpace(key))
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(width) && MatchesAnyName(key, WidthDetailNames))
+                    {
+                        string value = NormalizeDimension(GetDetailValue(folder, item, i));
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            width = value;
+                            widthIndex = i;
+                        }
+                    }
+                    else if (string.IsNullOrWhiteSpace(height) && MatchesAnyName(key, HeightDetailNames))
+                    {
+                        string value = NormalizeDimension(GetDetailValue(folder, item, i));
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            height = value;
+                            heightIndex = i;
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(width) && !string.IsNullOrWhiteSpace(height))
+                    {
+                        break;
+                    }
+                }
+
+                if (widthIndex >= 0 && heightIndex >= 0)
+                {
+                    lock (IndexCacheSync)
+                    {
+                        cachedWidthIndex = widthIndex;
+                        cachedHeightIndex = heightIndex;
+                    }
+                }
+            }
+            finally
+            {
+                ReleaseComObject(item);
+                ReleaseComObject(folder);
+                ReleaseComObject(shell);
+            }
+        }
+
+        private static bool MatchesAnyName(string key, string[] names)
+        {
+            foreach (string name in names)
+            {
+                if (key.IndexOf(name, StringComparison.CurrentCultureIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static string GetDetailValue(object folder, object item, int index)
+        {
+            return CleanShellText(Convert.ToString(folder.GetType().InvokeMember("GetDetailsOf", BindingFlags.InvokeMethod, null, folder, new object[] { item, index })));
         }
 
         public static string FormatBytes(long bytes)
@@ -64,81 +199,6 @@ namespace VideoMaterialRenamer
             }
 
             return unit == 0 ? value.ToString("0") + " " + units[unit] : value.ToString("0.##") + " " + units[unit];
-        }
-
-        private static Dictionary<string, string> ReadShellDetails(string path)
-        {
-            Dictionary<string, string> details = new Dictionary<string, string>(StringComparer.CurrentCultureIgnoreCase);
-            object shell = null;
-            object folder = null;
-            object item = null;
-            try
-            {
-                Type shellType = Type.GetTypeFromProgID("Shell.Application");
-                if (shellType == null)
-                {
-                    return details;
-                }
-
-                shell = Activator.CreateInstance(shellType);
-                string directory = System.IO.Path.GetDirectoryName(path);
-                string fileName = System.IO.Path.GetFileName(path);
-                if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName))
-                {
-                    return details;
-                }
-
-                folder = shellType.InvokeMember("NameSpace", BindingFlags.InvokeMethod, null, shell, new object[] { directory });
-                if (folder == null)
-                {
-                    return details;
-                }
-
-                item = folder.GetType().InvokeMember("ParseName", BindingFlags.InvokeMethod, null, folder, new object[] { fileName });
-                if (item == null)
-                {
-                    return details;
-                }
-
-                for (int i = 0; i < 340; i++)
-                {
-                    string key = CleanShellText(Convert.ToString(folder.GetType().InvokeMember("GetDetailsOf", BindingFlags.InvokeMethod, null, folder, new object[] { null, i })));
-                    string value = CleanShellText(Convert.ToString(folder.GetType().InvokeMember("GetDetailsOf", BindingFlags.InvokeMethod, null, folder, new object[] { item, i })));
-                    if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(value) && !details.ContainsKey(key))
-                    {
-                        details[key] = value;
-                    }
-                }
-            }
-            finally
-            {
-                ReleaseComObject(item);
-                ReleaseComObject(folder);
-                ReleaseComObject(shell);
-            }
-
-            return details;
-        }
-
-        private static string FindDetail(Dictionary<string, string> details, string[] names)
-        {
-            if (details == null || names == null)
-            {
-                return "";
-            }
-
-            foreach (string name in names)
-            {
-                foreach (KeyValuePair<string, string> pair in details)
-                {
-                    if (pair.Key.IndexOf(name, StringComparison.CurrentCultureIgnoreCase) >= 0)
-                    {
-                        return pair.Value;
-                    }
-                }
-            }
-
-            return "";
         }
 
         private static string NormalizeDimension(string value)

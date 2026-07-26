@@ -18,6 +18,12 @@ namespace VideoMaterialRenamer
 {
     public class DataGridViewProgressCell : DataGridViewTextBoxCell
     {
+        // 两种进度填充色是固定值：静态复用，避免导出期间每次重绘每个
+        // 可见进度格都分配再释放 SolidBrush（track/border 颜色依赖单元格
+        // 样式，保持按需创建）。
+        private static readonly Brush CompletedFillBrush = new SolidBrush(Color.FromArgb(43, 150, 92));
+        private static readonly Brush ActiveFillBrush = new SolidBrush(Color.FromArgb(35, 120, 210));
+
         protected override void Paint(
             Graphics graphics,
             Rectangle clipBounds,
@@ -54,7 +60,7 @@ namespace VideoMaterialRenamer
             bool selected = (cellState & DataGridViewElementStates.Selected) == DataGridViewElementStates.Selected;
             Color textColor = selected ? cellStyle.SelectionForeColor : cellStyle.ForeColor;
             Color trackColor = ControlPaint.Light(selected ? cellStyle.SelectionBackColor : cellStyle.BackColor);
-            Color fillColor = progress >= 100 ? Color.FromArgb(43, 150, 92) : Color.FromArgb(35, 120, 210);
+            Brush fillBrush = progress >= 100 ? CompletedFillBrush : ActiveFillBrush;
 
             Rectangle bar = new Rectangle(cellBounds.X + 8, cellBounds.Y + 12, Math.Max(4, cellBounds.Width - 16), Math.Max(8, cellBounds.Height - 24));
             using (Brush track = new SolidBrush(trackColor))
@@ -65,10 +71,7 @@ namespace VideoMaterialRenamer
             int fillWidth = (int)Math.Round(bar.Width * (progress / 100.0));
             if (fillWidth > 0)
             {
-                using (Brush fill = new SolidBrush(fillColor))
-                {
-                    graphics.FillRectangle(fill, new Rectangle(bar.X, bar.Y, fillWidth, bar.Height));
-                }
+                graphics.FillRectangle(fillBrush, new Rectangle(bar.X, bar.Y, fillWidth, bar.Height));
             }
 
             using (Pen border = new Pen(ControlPaint.Dark(trackColor)))
