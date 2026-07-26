@@ -83,9 +83,9 @@ namespace VideoMaterialRenamer
             numEpisode.Value = 5;
             numEpisode.Width = 78;
             numEpisode.Margin = new Padding(0, 4, 14, 0);
-            // 集数只影响文件名文本，不影响分组标题/项目数——走增量刷新路径
-            // （计数不一致时该路径自带整表重建回退）。
-            numEpisode.ValueChanged += delegate { RefreshPreviewNamesOnly(); };
+            // 集数只影响文件名文本，不影响分组标题/项目数——走防抖的增量
+            // 刷新（计数不一致时该路径自带整表重建回退）。
+            numEpisode.ValueChanged += delegate { ScheduleNamesOnlyRefresh(); };
             settingsPanel.Controls.Add(numEpisode);
 
             Label labelScene = new Label();
@@ -101,9 +101,9 @@ namespace VideoMaterialRenamer
             numScene.Value = 1;
             numScene.Width = 78;
             numScene.Margin = new Padding(0, 4, 14, 0);
-            // 场号/各选项只改名字与状态列文本，不改项目数——走增量刷新
-            //（该路径现在会同步分组标题，且计数不一致时自带整表重建回退）。
-            numScene.ValueChanged += delegate { RefreshPreviewNamesOnly(); };
+            // 场号/各选项只改名字与状态列文本，不改项目数——走防抖的增量
+            // 刷新（该路径会同步分组标题，计数不一致时自带整表重建回退）。
+            numScene.ValueChanged += delegate { ScheduleNamesOnlyRefresh(); };
             settingsPanel.Controls.Add(numScene);
 
             chkRowScene = new CheckBox();
@@ -118,7 +118,7 @@ namespace VideoMaterialRenamer
             chkKeepExtension.Checked = true;
             chkKeepExtension.AutoSize = true;
             chkKeepExtension.Margin = new Padding(0, 7, 14, 0);
-            chkKeepExtension.CheckedChanged += delegate { RefreshPreviewNamesOnly(); };
+            chkKeepExtension.CheckedChanged += delegate { ScheduleNamesOnlyRefresh(); };
             settingsPanel.Controls.Add(chkKeepExtension);
 
             btnTheme = NewButton("", 112);
@@ -423,7 +423,7 @@ namespace VideoMaterialRenamer
 
         private void OnExport1080pCheckedChanged(object sender, EventArgs e)
         {
-            RefreshPreviewNamesOnly();
+            ScheduleNamesOnlyRefresh();
             UpdateRenameButtonText();
             UpdateWatermarkOptionState();
         }
@@ -431,7 +431,28 @@ namespace VideoMaterialRenamer
         private void OnExportWatermarkCheckedChanged(object sender, EventArgs e)
         {
             UpdateWatermarkOptionState();
-            RefreshPreviewNamesOnly();
+            ScheduleNamesOnlyRefresh();
+        }
+
+        // 阶段11a：微调框/选项连打防抖——事件层把 120ms 内的连续变更合并
+        // 为一次增量刷新（每次刷新都是全表 BuildPlan + 逐文件 File.Exists）。
+        // 只防抖事件接线；直接调用 RefreshPreviewNamesOnly 的路径不变，
+        // 测试仍可同步驱动。
+        private void ScheduleNamesOnlyRefresh()
+        {
+            if (namesOnlyRefreshTimer == null)
+            {
+                namesOnlyRefreshTimer = new System.Windows.Forms.Timer();
+                namesOnlyRefreshTimer.Interval = 120;
+                namesOnlyRefreshTimer.Tick += delegate
+                {
+                    namesOnlyRefreshTimer.Stop();
+                    RefreshPreviewNamesOnly();
+                };
+            }
+
+            namesOnlyRefreshTimer.Stop();
+            namesOnlyRefreshTimer.Start();
         }
 
         private void OnPreviewListKeyDown(object sender, KeyEventArgs e)

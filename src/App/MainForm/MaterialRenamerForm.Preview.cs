@@ -40,7 +40,8 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            ReplaceCurrentPlan(prebuiltPlan ?? RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance));
+            // 阶段11b：单次刷新内 FileExists 记忆化（重复路径不再重复打磁盘）。
+            ReplaceCurrentPlan(prebuiltPlan ?? RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), new CachedFileSystemProbe(RealFileSystemProbe.Instance)));
 
             previewList.BeginUpdate();
             try
@@ -280,7 +281,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            List<RenamePlan> rebuilt = RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), RealFileSystemProbe.Instance);
+            List<RenamePlan> rebuilt = RenamePlanBuilder.BuildPlan(rows, ReadNamingSettings(), new CachedFileSystemProbe(RealFileSystemProbe.Instance));
             if (rebuilt.Count != previewList.Items.Count)
             {
                 // 计数变化 → 整表重建；把已建好的计划递交过去，不再二次 BuildPlan。

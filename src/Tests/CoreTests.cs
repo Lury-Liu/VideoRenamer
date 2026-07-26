@@ -33,6 +33,7 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("normalize_custom_tail_invalid_chars", NormalizeCustomTailInvalidChars));
             cases.Add(new TestCase("normalize_custom_tail_80_char_truncation", NormalizeCustomTail80CharTruncation));
             cases.Add(new TestCase("process_arguments_quote_table", ProcessArgumentsQuoteTable));
+            cases.Add(new TestCase("cached_probe_memoizes_file_exists_only", CachedProbeMemoizesFileExistsOnly));
             cases.Add(new TestCase("status_ready", StatusReady));
             cases.Add(new TestCase("status_unchanged", StatusUnchanged));
             cases.Add(new TestCase("status_target_exists", StatusTargetExists));
@@ -698,6 +699,42 @@ namespace VideoMaterialRenamer.Tests
             TestAssert.AreEqual("\"a\\\"b\"", ProcessArguments.Quote("a\"b"), "embedded quote escaped");
             // FfmpegArguments 委托后行为逐字节一致（导出参数黄金值另有整串锁定）。
             TestAssert.AreEqual(ProcessArguments.Quote(@"D:\素材\v.mp4"), FfmpegArguments.QuoteArgument(@"D:\素材\v.mp4"), "ffmpeg delegate identical");
+        }
+
+        private sealed class CountingProbe : IFileSystemProbe
+        {
+            public int ExistsCalls;
+            public int LockCalls;
+
+            public bool FileExists(string path)
+            {
+                ExistsCalls++;
+                return false;
+            }
+
+            public bool IsFileLocked(string path)
+            {
+                LockCalls++;
+                return false;
+            }
+        }
+
+        private static void CachedProbeMemoizesFileExistsOnly()
+        {
+            CountingProbe inner = new CountingProbe();
+            CachedFileSystemProbe cached = new CachedFileSystemProbe(inner);
+
+            cached.FileExists(@"C:\a.mp4");
+            cached.FileExists(@"C:\a.mp4");
+            cached.FileExists(@"c:\A.MP4");
+            TestAssert.AreEqual(1, inner.ExistsCalls, "same path (case-insensitive) probed once");
+
+            cached.FileExists(@"C:\b.mp4");
+            TestAssert.AreEqual(2, inner.ExistsCalls, "distinct path probed");
+
+            cached.IsFileLocked(@"C:\a.mp4");
+            cached.IsFileLocked(@"C:\a.mp4");
+            TestAssert.AreEqual(2, inner.LockCalls, "lock probe never cached");
         }
 
         private static void UniquePathWithSuffixFirstCandidate()

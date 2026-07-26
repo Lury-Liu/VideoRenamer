@@ -73,6 +73,7 @@ namespace VideoMaterialRenamer
         private bool detailPanelCollapsed;
         private volatile bool renameCancelRequested;
         private System.Windows.Forms.Timer previewColumnResizeTimer;
+        private System.Windows.Forms.Timer namesOnlyRefreshTimer;
         private Image ownedDetailImage;
         private Font previewGroupFont;
         private List<Image> frameStrip = new List<Image>();
@@ -256,6 +257,13 @@ namespace VideoMaterialRenamer
                 previewColumnResizeTimer.Stop();
                 previewColumnResizeTimer.Dispose();
                 previewColumnResizeTimer = null;
+            }
+
+            if (namesOnlyRefreshTimer != null)
+            {
+                namesOnlyRefreshTimer.Stop();
+                namesOnlyRefreshTimer.Dispose();
+                namesOnlyRefreshTimer = null;
             }
 
             if (ownedDetailImage != null)
