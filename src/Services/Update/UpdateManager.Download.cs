@@ -19,138 +19,9 @@ namespace VideoMaterialRenamer
     public static partial class UpdateManager
     {
 
-        public static bool DownloadAndRestartWithProgress(UpdateInfo info, IWin32Window owner)
-        {
-            return DownloadAndRestart(info, owner);
-        }
-
-        private static bool DownloadAndRestart(UpdateInfo info, IWin32Window owner)
-        {
-            string error = "";
-            bool started = false;
-            bool userCancelled = false;
-            using (UpdateDownloadProgressForm progressForm = new UpdateDownloadProgressForm(UiTheme.DetectWindowsDarkMode()))
-            {
-                progressForm.Shown += delegate
-                {
-                    ThreadPool.QueueUserWorkItem(delegate
-                    {
-                        string threadError;
-                        bool threadStarted = TryDownloadAndRestart(info, delegate(string status, int percent, long bytesReceived, long totalBytes)
-                        {
-                            progressForm.UpdateProgress(status, percent, bytesReceived, totalBytes);
-                        }, delegate
-                        {
-                            return progressForm.CancelRequested;
-                        }, out threadError);
-
-                        started = threadStarted;
-                        if (!threadStarted)
-                        {
-                            error = threadError;
-                            try
-                            {
-                                progressForm.BeginInvoke((MethodInvoker)delegate
-                                {
-                                    progressForm.Close();
-                                });
-                            }
-                            catch
-                            {
-                            }
-                        }
-                    });
-                };
-
-                if (owner == null)
-                {
-                    progressForm.ShowDialog();
-                }
-                else
-                {
-                    progressForm.ShowDialog(owner);
-                }
-
-                userCancelled = progressForm.CancelRequested;
-            }
-
-            if (!started && !userCancelled)
-            {
-                MessageBox.Show(owner, "更新失败：\r\n" + error, "无法更新", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-
-            return started;
-        }
-
-        public static bool TryDownloadAndRestart(UpdateInfo info, out string error)
-        {
-            return TryDownloadAndRestart(info, null, null, out error);
-        }
-
-        public static bool TryDownloadAndRestart(UpdateInfo info, Action<string, int, long, long> progress, out string error)
-        {
-            return TryDownloadAndRestart(info, progress, null, out error);
-        }
-
-        public static bool TryDownloadAndRestart(UpdateInfo info, Action<string, int, long, long> progress, Func<bool> cancelRequested, out string error)
-        {
-            error = "";
-            if (info == null || string.IsNullOrWhiteSpace(info.DownloadUrl))
-            {
-                error = "更新清单中没有下载地址。";
-                return false;
-            }
-
-            string currentExe = Application.ExecutablePath;
-            string updateDir = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update");
-            Directory.CreateDirectory(updateDir);
-            string downloadPath = Path.Combine(updateDir, "update_" + Guid.NewGuid().ToString("N") + ".exe");
-
-            try
-            {
-                ReportUpdateProgress(progress, "正在准备下载更新...", 0, 0, 0);
-                DownloadUpdateFile(info, downloadPath, progress, cancelRequested);
-
-                if (!File.Exists(downloadPath) || new FileInfo(downloadPath).Length == 0)
-                {
-                    throw new IOException("下载后的更新文件为空。");
-                }
-
-                ReportUpdateProgress(progress, "正在校验更新文件...", 96, 0, 0);
-                if (!string.IsNullOrWhiteSpace(info.Sha256))
-                {
-                    string actualHash = ComputeSha256(downloadPath);
-                    if (!StringComparer.OrdinalIgnoreCase.Equals(actualHash, info.Sha256.Trim()))
-                    {
-                        throw new IOException("更新文件校验失败，已取消安装。");
-                    }
-                }
-
-                ReportUpdateProgress(progress, "正在准备重启软件...", 100, 0, 0);
-                StartUpdaterProcess(currentExe, downloadPath);
-                Application.Exit();
-                Environment.Exit(0);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                try
-                {
-                    if (File.Exists(downloadPath))
-                    {
-                        File.Delete(downloadPath);
-                    }
-                }
-                catch
-                {
-                }
-
-                error = ex.Message;
-                return false;
-            }
-        }
-
-        private static void DownloadUpdateFile(UpdateInfo info, string downloadPath, Action<string, int, long, long> progress, Func<bool> cancelRequested)
+        // 阶段12a：下载编排的 UI 壳（进度窗/退出进程）在 UpdatePrompter；
+        // 这里保留可复用的纯下载/校验/脚本机件（internal 供同程序集调用）。
+        internal static void DownloadUpdateFile(UpdateInfo info, string downloadPath, Action<string, int, long, long> progress, Func<bool> cancelRequested)
         {
             Exception directException = null;
             try
@@ -318,7 +189,7 @@ namespace VideoMaterialRenamer
             }
         }
 
-        private static void ReportUpdateProgress(Action<string, int, long, long> progress, string status, int percent, long bytesReceived, long totalBytes)
+        internal static void ReportUpdateProgress(Action<string, int, long, long> progress, string status, int percent, long bytesReceived, long totalBytes)
         {
             if (progress == null)
             {
@@ -368,7 +239,7 @@ namespace VideoMaterialRenamer
             }
         }
 
-        private static void StartUpdaterProcess(string currentExe, string downloadedExe)
+        internal static void StartUpdaterProcess(string currentExe, string downloadedExe)
         {
             string scriptPath = Path.Combine(Path.GetTempPath(), "VideoMaterialRenamer_Update", "apply_update_" + Guid.NewGuid().ToString("N") + ".ps1");
             Directory.CreateDirectory(Path.GetDirectoryName(scriptPath));
@@ -434,7 +305,7 @@ namespace VideoMaterialRenamer
             return "";
         }
 
-        private static string ComputeSha256(string path)
+        internal static string ComputeSha256(string path)
         {
             using (SHA256 sha = SHA256.Create())
             using (FileStream stream = File.OpenRead(path))

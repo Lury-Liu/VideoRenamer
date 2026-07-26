@@ -67,7 +67,7 @@ namespace VideoMaterialRenamer
             object updateSync = new object();
             UpdateInfo[] pendingUpdate = { null };
             bool[] updateCheckDone = { false };
-            if (UpdateManager.CanAutoInstallUpdate())
+            if (UpdatePrompter.CanAutoInstallUpdate())
             {
                 ThreadPool.QueueUserWorkItem(delegate
                 {
@@ -105,7 +105,7 @@ namespace VideoMaterialRenamer
 
             // 保留原语义：接受更新时安装脚本已就绪、旧进程立即退出，
             // 决不进入主窗体。
-            if (foundUpdate != null && UpdateManager.PromptAndInstallUpdate(foundUpdate, null))
+            if (foundUpdate != null && UpdatePrompter.PromptAndInstallUpdate(foundUpdate, null))
             {
                 return;
             }

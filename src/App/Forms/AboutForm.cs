@@ -186,7 +186,7 @@ namespace VideoMaterialRenamer
                 return;
             }
 
-            if (!UpdateManager.CanAutoInstallUpdate())
+            if (!UpdatePrompter.CanAutoInstallUpdate())
             {
                 SetUpdateBusy(false, "当前不是正式 EXE 运行状态。");
                 MessageBox.Show(this, "当前不是正式 EXE 运行状态，无法自动替换更新。", "无法更新", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -199,7 +199,7 @@ namespace VideoMaterialRenamer
         private void StartBackgroundUpdateDownload(UpdateInfo info)
         {
             SetUpdateBusy(true, "正在下载更新...");
-            bool started = UpdateManager.DownloadAndRestartWithProgress(info, this);
+            bool started = UpdatePrompter.DownloadAndRestartWithProgress(info, this);
             if (!started)
             {
                 SetUpdateBusy(false, "更新未完成。");

@@ -35,64 +35,10 @@ namespace VideoMaterialRenamer
             return GetDisplayVersion(info);
         }
 
-        public static bool CanAutoInstallUpdate()
-        {
-            return IsRunningPackagedExecutable();
-        }
-
-        // 启动更新提示：清单已由后台线程取回（与启动画面并行，见 Program.Run），
-        // 这里只做提示与安装。提示文案与原 CheckForUpdatesOnStartup 逐字一致。
-        // 原同步的 CheckForUpdatesOnStartup 与从未被调用的 CheckForUpdatesManually
-        //（约 50 行死代码，与 AboutForm 内自有流程重复）一并移除。
-        public static bool PromptAndInstallUpdate(UpdateInfo info, IWin32Window owner)
-        {
-            try
-            {
-                if (info == null || !IsNewerVersion(info.Version, AppInfo.Version) || !IsRunningPackagedExecutable())
-                {
-                    return false;
-                }
-
-                string message =
-                    "检测到新版本 " + GetDisplayVersion(info) + "，当前版本 " + AppInfo.Version + "。\r\n\r\n" +
-                    "是否立即下载并更新？\r\n\r\n" +
-                    "选择“否”后，本次不会更新，下次启动仍会提示。";
-                if (!string.IsNullOrWhiteSpace(info.Notes))
-                {
-                    message += "\r\n\r\n更新说明：\r\n" + info.Notes;
-                }
-
-                DialogResult result = MessageBox.Show(owner, message, "发现新版本", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                if (result != DialogResult.Yes)
-                {
-                    return false;
-                }
-
-                return DownloadAndRestart(info, owner);
-            }
-            catch (Exception ex)
-            {
-                AppLog.Write("update", "更新提示/安装流程异常", ex);
-                return false;
-            }
-        }
-
-        private static bool IsRunningPackagedExecutable()
-        {
-            try
-            {
-                string exePath = Application.ExecutablePath;
-                string name = Path.GetFileNameWithoutExtension(exePath) ?? "";
-                return File.Exists(exePath) &&
-                    Path.GetExtension(exePath).Equals(".exe", StringComparison.OrdinalIgnoreCase) &&
-                    name.IndexOf("视频素材镜头表命名工具", StringComparison.OrdinalIgnoreCase) >= 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
+        // 阶段12a：提示/进度窗/退出进程等 UI 侧编排移至 App/Presenters/
+        // UpdatePrompter（含原 CanAutoInstallUpdate 的 EXE 名检查——它读
+        // Application.ExecutablePath，属 WinForms）。本类只剩纯逻辑：
+        // 清单获取/解析、版本比较、下载/校验、替换脚本生成、临时清扫。
         private static UpdateInfo FetchUpdateInfo()
         {
             // TLS 1.2 已在 Program.Run 启动时全进程启用一次（原先此处与
