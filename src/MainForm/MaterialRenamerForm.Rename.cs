@@ -71,7 +71,7 @@ namespace VideoMaterialRenamer
                 List<RenamePlan> exportPlan;
                 try
                 {
-                    exportPlan = PrepareExportPlan(currentPlan.ToList(), outputMode);
+                    exportPlan = ExportPlanBuilder.Prepare(currentPlan.ToList(), outputMode);
                 }
                 catch (Exception ex)
                 {

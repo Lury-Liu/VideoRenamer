@@ -18,9 +18,6 @@ namespace VideoMaterialRenamer
 {
     public partial class MaterialRenamerForm
     {
-        // 镜号单元格解析规则：正整数 + 至多两个字母后缀（如 28A）。
-        // 与 RenamePlanBuilder.FormatShotLabel 互为逆运算；由测试用例锁定。
-        internal const string ShotLabelPattern = @"^(?<num>\d+)\s*(?<suf>[A-Za-z]{0,2})$";
 
         private void ApplyGridNumberColumnStyles()
         {
@@ -442,12 +439,12 @@ namespace VideoMaterialRenamer
             {
                 object value = grid.Rows[e.RowIndex].Cells[GridShotColumn].Value;
                 string text = value == null ? "" : value.ToString().Trim();
-                Match m = Regex.Match(text, ShotLabelPattern);
                 int parsedShot;
-                if (m.Success && int.TryParse(m.Groups["num"].Value, out parsedShot) && parsedShot > 0)
+                string parsedSuffix;
+                if (ShotLabelParser.TryParse(text, out parsedShot, out parsedSuffix))
                 {
                     row.Sequence = parsedShot;
-                    row.ShotSuffix = RenamePlanBuilder.NormalizeShotSuffix(m.Groups["suf"].Value);
+                    row.ShotSuffix = parsedSuffix;
                 }
                 else
                 {

@@ -41,6 +41,7 @@ namespace VideoMaterialRenamer.Tests
             cases.Add(new TestCase("is_blocking_issue_truth_table", IsBlockingIssueTruthTable));
             cases.Add(new TestCase("build_plan_resizes_tail_overrides", BuildPlanResizesTailOverrides));
             cases.Add(new TestCase("shot_label_pattern_table", ShotLabelPatternTable));
+            cases.Add(new TestCase("shot_label_try_parse_table", ShotLabelTryParseTable));
             cases.Add(new TestCase("clone_rename_plan_copies_fields_drops_shot_label", CloneRenamePlanCopiesFieldsDropsShotLabel));
             cases.Add(new TestCase("clone_rename_plan_shares_row_reference", CloneRenamePlanSharesRowReference));
             cases.Add(new TestCase("prepare_export_plan_save_as_renames_unchanged", PrepareExportPlanSaveAsRenamesUnchanged));
@@ -350,9 +351,29 @@ namespace VideoMaterialRenamer.Tests
             TestAssert.AreEqual(2, row.MainTailOverrides.Count, "overrides resized to file count");
         }
 
+        private static void ShotLabelTryParseTable()
+        {
+            int shot;
+            string suffix;
+
+            TestAssert.IsTrue(ShotLabelParser.TryParse("28a", out shot, out suffix), "28a parses");
+            TestAssert.AreEqual(28, shot, "28a shot");
+            TestAssert.AreEqual("A", suffix, "28a suffix normalized to uppercase");
+
+            TestAssert.IsTrue(ShotLabelParser.TryParse(" 28A ", out shot, out suffix), "outer whitespace trimmed");
+            TestAssert.IsTrue(ShotLabelParser.TryParse("7", out shot, out suffix), "digits only");
+            TestAssert.AreEqual("", suffix, "digits only empty suffix");
+
+            TestAssert.IsFalse(ShotLabelParser.TryParse("0", out shot, out suffix), "zero shot rejected");
+            TestAssert.IsFalse(ShotLabelParser.TryParse("abc", out shot, out suffix), "letters only rejected");
+            TestAssert.IsFalse(ShotLabelParser.TryParse(null, out shot, out suffix), "null rejected");
+
+            TestAssert.AreEqual("28A", ShotLabelParser.Format(28, "a"), "format round-trips parse");
+        }
+
         private static void ShotLabelPatternTable()
         {
-            string pattern = MaterialRenamerForm.ShotLabelPattern;
+            string pattern = ShotLabelParser.Pattern;
 
             Match m = Regex.Match("28A", pattern);
             TestAssert.IsTrue(m.Success, "28A matches");
@@ -404,7 +425,7 @@ namespace VideoMaterialRenamer.Tests
         private static void CloneRenamePlanCopiesFieldsDropsShotLabel()
         {
             RenamePlan source = BuildFullyPopulatedPlanEntry(new ShotRow());
-            RenamePlan clone = MaterialRenamerForm.CloneRenamePlan(source);
+            RenamePlan clone = source.Clone();
 
             TestAssert.AreEqual(source.RowIndex, clone.RowIndex, "clone RowIndex");
             TestAssert.AreEqual(source.ColumnName, clone.ColumnName, "clone ColumnName");
@@ -433,10 +454,12 @@ namespace VideoMaterialRenamer.Tests
         {
             ShotRow row = new ShotRow();
             RenamePlan source = BuildFullyPopulatedPlanEntry(row);
-            RenamePlan clone = MaterialRenamerForm.CloneRenamePlan(source);
+            RenamePlan clone = source.Clone();
             TestAssert.IsTrue(object.ReferenceEquals(row, clone.Row),
                 "clone must SHARE the live ShotRow reference (undo/export progress depend on identity)");
-            TestAssert.IsNull(MaterialRenamerForm.CloneRenamePlan(null), "null clones to null");
+            List<RenamePlan> prepared = ExportPlanBuilder.Prepare(
+                new List<RenamePlan> { null, source }, ExportOutputMode.OverwriteOriginal);
+            TestAssert.AreEqual(1, prepared.Count, "null source entries are skipped");
         }
 
         private static void PrepareExportPlanSaveAsRenamesUnchanged()
@@ -451,7 +474,7 @@ namespace VideoMaterialRenamer.Tests
                 NewName = "E1-S1-1-T1.mp4",
                 Status = "待覆盖导出1080p"
             };
-            List<RenamePlan> prepared = MaterialRenamerForm.PrepareExportPlan(
+            List<RenamePlan> prepared = ExportPlanBuilder.Prepare(
                 new List<RenamePlan> { entry }, ExportOutputMode.SaveAsNewFile);
             TestAssert.AreEqual(1, prepared.Count, "prepared count");
             TestAssert.AreEqual("E1-S1-1-T1_1080p.mp4", prepared[0].NewName, "save-as derives _1080p name");
@@ -466,7 +489,7 @@ namespace VideoMaterialRenamer.Tests
             RenamePlan second = new RenamePlan { OldPath = @"C:\VmrNoSuchDir_ff8a2\b.mp4", TargetPath = target, NewName = "E1-S1-1-T1.mp4" };
             IOException ex = TestAssert.Throws<IOException>(delegate
             {
-                MaterialRenamerForm.PrepareExportPlan(new List<RenamePlan> { first, second }, ExportOutputMode.OverwriteOriginal);
+                ExportPlanBuilder.Prepare(new List<RenamePlan> { first, second }, ExportOutputMode.OverwriteOriginal);
             }, "duplicate export target");
             TestAssert.IsTrue(ex.Message.StartsWith("新文件名重复"), "duplicate message prefix: " + ex.Message);
         }
@@ -482,7 +505,7 @@ namespace VideoMaterialRenamer.Tests
                 RenamePlan entry = new RenamePlan { OldPath = source, TargetPath = target, NewName = "E1-S1-1-T1.mp4" };
                 IOException ex = TestAssert.Throws<IOException>(delegate
                 {
-                    MaterialRenamerForm.PrepareExportPlan(new List<RenamePlan> { entry }, ExportOutputMode.SaveAsNewFile);
+                    ExportPlanBuilder.Prepare(new List<RenamePlan> { entry }, ExportOutputMode.SaveAsNewFile);
                 }, "existing export target");
                 TestAssert.IsTrue(ex.Message.StartsWith("目标文件已存在"), "existing message prefix: " + ex.Message);
             });

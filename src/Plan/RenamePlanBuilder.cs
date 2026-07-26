@@ -155,31 +155,16 @@ namespace VideoMaterialRenamer
             }
         }
 
+        // 规则实现集中在 ShotLabelParser（与 TryParse 互为逆运算）；这里保留
+        // 原公共 API 形状以免打扰既有调用方。
         public static string NormalizeShotSuffix(string value)
         {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return "";
-            }
-
-            StringBuilder builder = new StringBuilder();
-            foreach (char ch in value.Trim())
-            {
-                if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
-                {
-                    builder.Append(char.ToUpperInvariant(ch));
-                }
-                if (builder.Length >= 2)
-                {
-                    break;
-                }
-            }
-            return builder.ToString();
+            return ShotLabelParser.NormalizeSuffix(value);
         }
 
         public static string FormatShotLabel(int shot, string suffix)
         {
-            return Math.Max(1, shot).ToString() + NormalizeShotSuffix(suffix);
+            return ShotLabelParser.Format(shot, suffix);
         }
 
         public static string GetMaterialFileName(int episode, int scene, int shot, string shotSuffix, string tailSegment, string sourcePath, bool keepExtensionCase)
