@@ -52,7 +52,7 @@ namespace VideoRenamer
             ApplyGridNumberColumnStyles();
             if (detailTitleLabel != null && (string.IsNullOrWhiteSpace(detailTitleLabel.Text) || detailTitleLabel.Text == "未选择素材"))
             {
-                ShowNoVideoDetails();
+                ShowNoMaterialDetails();
             }
             ReapplyDragHighlight();
         }

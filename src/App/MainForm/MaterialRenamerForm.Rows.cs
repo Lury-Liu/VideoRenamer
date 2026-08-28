@@ -259,7 +259,7 @@ namespace VideoRenamer
                 row.BackupTailOverrides.Clear();
             }
             RenderAll();
-            ShowNoVideoDetails();
+            ShowNoMaterialDetails();
         }
     }
 }

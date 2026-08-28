@@ -453,7 +453,7 @@ namespace VideoRenamer
             // 面板底下，DrawToBitmap 截图也会反序漏画面板）。
             previewBody.Controls.Add(previewList);
             previewBody.Controls.Add(detailHost);
-            detailPanelBody = BuildVideoDetailsPanel();
+            detailPanelBody = BuildMaterialDetailsPanel();
             detailHost.Controls.Add(detailPanelBody);
             detailHost.Controls.Add(detailExpandButton);
         }
@@ -513,7 +513,7 @@ namespace VideoRenamer
             }
         }
 
-        private Control BuildVideoDetailsPanel()
+        private Control BuildMaterialDetailsPanel()
         {
             TableLayoutPanel panel = new TableLayoutPanel();
             panel.Dock = DockStyle.Fill;
@@ -565,7 +565,7 @@ namespace VideoRenamer
             detailPathLabel.Padding = new Padding(0, 4, 0, 0);
             panel.Controls.Add(detailPathLabel, 0, 3);
 
-            ShowNoVideoDetails();
+            ShowNoMaterialDetails();
             return panel;
         }
 

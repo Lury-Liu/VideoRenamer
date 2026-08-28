@@ -53,12 +53,12 @@ namespace VideoRenamer
             RenamePlan entry = previewList.SelectedItems[0].Tag as RenamePlan;
             if (entry == null)
             {
-                ShowNoVideoDetails();
+                ShowNoMaterialDetails();
                 return;
             }
 
             string context = string.Format("第 {0} 行 / 场号 {1} / 镜号 {2} / {3} / {4}", entry.RowIndex, entry.Scene, entry.Shot, entry.ColumnName, entry.TailSegment);
-            ShowVideoDetails(entry.OldPath, entry.NewName, context);
+            ShowMaterialDetails(entry.OldPath, entry.NewName, context);
             UpdateCustomTailControls(entry);
         }
 
@@ -73,7 +73,7 @@ namespace VideoRenamer
             int columnIndex = grid.CurrentCell.ColumnIndex;
             if (rowIndex < 0 || rowIndex >= rows.Count || (columnIndex != GridMainColumn && columnIndex != GridBackupColumn))
             {
-                ShowNoVideoDetails();
+                ShowNoMaterialDetails();
                 return;
             }
 
@@ -81,7 +81,7 @@ namespace VideoRenamer
             List<string> files = columnIndex == GridMainColumn ? row.MainFiles : row.BackupFiles;
             if (files.Count == 0)
             {
-                ShowNoVideoDetails();
+                ShowNoMaterialDetails();
                 return;
             }
 
@@ -89,11 +89,11 @@ namespace VideoRenamer
             RenamePlan firstPlan = currentPlan.FirstOrDefault(p => p.Row == row && p.IsMain == isMain && p.FileIndex == 0);
             string newName = firstPlan == null ? "" : firstPlan.NewName;
             string context = string.Format("第 {0} 行 / 场号 {1} / 镜号 {2} / {3}，单元格共 {4} 个视频，当前显示第 1 个", rowIndex + 1, RenamePlanBuilder.GetEffectiveScene(row, GetDefaultScene(), IsRowSceneEnabled()), row.Sequence, isMain ? "主要素材" : "备用素材", files.Count);
-            ShowVideoDetails(files[0], newName, context);
+            ShowMaterialDetails(files[0], newName, context);
             UpdateCustomTailControls(firstPlan);
         }
 
-        private void ShowVideoDetails(string path, string newName, string context)
+        private void ShowMaterialDetails(string path, string newName, string context)
         {
             if (detailTitleLabel == null || detailInfoLabel == null || detailPathLabel == null)
             {
@@ -324,7 +324,7 @@ namespace VideoRenamer
             }
         }
 
-        private void ShowNoVideoDetails()
+        private void ShowNoMaterialDetails()
         {
             if (detailTitleLabel == null || detailInfoLabel == null || detailPathLabel == null)
             {

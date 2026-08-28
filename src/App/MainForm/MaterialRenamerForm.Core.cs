@@ -149,7 +149,7 @@ namespace VideoRenamer
 
                 // 清空素材后，详情区不应保留上一条视频的播放器状态。
                 form.currentDetailPath = "stale.mp4";
-                form.ShowNoVideoDetails();
+                form.ShowNoMaterialDetails();
                 if (!string.IsNullOrEmpty(form.currentDetailPath))
                 {
                     throw new Exception("清空素材后详情状态测试失败。");
