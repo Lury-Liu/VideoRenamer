@@ -117,18 +117,6 @@ if (Test-Path -LiteralPath $changelog) {
     Copy-Item -LiteralPath $changelog -Destination (Join-Path $distDir "CHANGELOG.md") -Force
 }
 
-# 复制绿色 libvlc 运行时目录（随 EXE 分发，位于 dist\libvlc 子目录，不破坏
-# 根目录“单 EXE、无散落 DLL”契约）。缺失时跳过——播放器静默降级，命名/导出不受影响。
-$libvlcSource = Join-Path $root "tools\libvlc"
-if (Test-Path -LiteralPath $libvlcSource) {
-    $libvlcDest = Join-Path $distDir "libvlc"
-    if (Test-Path -LiteralPath $libvlcDest) {
-        Remove-Item -LiteralPath $libvlcDest -Recurse -Force
-    }
-    robocopy $libvlcSource $libvlcDest /E /NFL /NDL /NJH /NJS /NC /NS | Out-Null
-    Write-Host "已复制 libvlc 运行时到 dist\libvlc"
-}
-
 # 构建产物验证：内置 FFmpeg 资源名、版本一致、单一 EXE、无多余 DLL
 & (Join-Path $root "scripts\verify-artifact.ps1") -ExePath $outputExe -AllowNoFfmpeg:$AllowNoFfmpeg
 

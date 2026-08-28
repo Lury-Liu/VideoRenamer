@@ -4,12 +4,12 @@ using System.Windows.Forms;
 
 namespace VideoRenamer
 {
-    // 内嵌 libvlc 的播放器控件：视频画面 + 播放/暂停 + 可拖拽进度条 + 时间。
-    // 视频通过 hwnd 模式直接渲染到 Panel 窗口句柄（替代不稳定的 vmem 回调）。
+    // 内嵌 Windows Media Player 的播放器控件：视频画面 + 播放/暂停 + 可拖拽进度条 + 时间。
+    // 使用 AxWindowsMediaPlayer ActiveX 控件（Windows 内置，无外部依赖）。
     // 进度用 200ms 轮询刷新；拖动进度条期间暂停轮询写回，避免打架。
     public sealed class VideoPlayerControl : UserControl
     {
-        private readonly VlcMediaPlayer player = new VlcMediaPlayer();
+        private readonly dynamic wmpPlayer;
         private readonly Panel videoSurface;
         private readonly Panel controlBar;
         private readonly Button btnPlayPause;
@@ -18,6 +18,7 @@ namespace VideoRenamer
         private readonly System.Windows.Forms.Timer progressTimer;
         private bool seeking;
         private bool darkMode;
+        private string currentPath = "";
 
         public VideoPlayerControl()
         {
@@ -25,6 +26,29 @@ namespace VideoRenamer
             videoSurface.Dock = DockStyle.Fill;
             videoSurface.BackColor = Color.Black;
             videoSurface.Margin = new Padding(0);
+
+            // 创建 Windows Media Player ActiveX 控件
+            try
+            {
+                Type wmpType = Type.GetTypeFromCLSID(new Guid("6BF52A52-394A-11d3-B153-00C04F79FAA6"));
+                wmpPlayer = Activator.CreateInstance(wmpType);
+
+                // 包装为 Control 并嵌入
+                Control wmpControl = (Control)wmpPlayer;
+                wmpControl.Dock = DockStyle.Fill;
+                wmpControl.BackColor = Color.Black;
+                videoSurface.Controls.Add(wmpControl);
+
+                // 隐藏 WMP 自带的控制条（我们自己做）
+                wmpPlayer.uiMode = "none";
+                wmpPlayer.settings.autoStart = false;
+                wmpPlayer.settings.volume = 70;
+            }
+            catch
+            {
+                // WMP 不可用时静默降级（显示黑屏，功能禁用）
+                wmpPlayer = null;
+            }
 
             controlBar = new Panel();
             controlBar.Dock = DockStyle.Bottom;
@@ -79,33 +103,45 @@ namespace VideoRenamer
 
         public void LoadVideo(string path)
         {
-            if (string.IsNullOrWhiteSpace(path))
+            if (wmpPlayer == null || string.IsNullOrWhiteSpace(path))
             {
                 StopPlayback();
                 return;
             }
 
-            player.LoadMedia(path);
-            // hwnd 模式：把 VLC 输出窗口绑定到 videoSurface 的句柄
-            if (videoSurface != null && videoSurface.IsHandleCreated)
+            try
             {
-                player.SetHwnd(videoSurface.Handle);
+                currentPath = path;
+                wmpPlayer.URL = path;
+                ResetUiToStart();
+                progressTimer.Start();
             }
-            player.SetVolume(70);
-            ResetUiToStart();
-            progressTimer.Start();
+            catch
+            {
+                StopPlayback();
+            }
         }
 
         public void StopPlayback()
         {
             progressTimer.Stop();
-            player.Stop();
+            currentPath = "";
+            if (wmpPlayer != null)
+            {
+                try
+                {
+                    wmpPlayer.controls.stop();
+                }
+                catch
+                {
+                }
+            }
             ResetUiToStart();
         }
 
         public bool IsAvailable
         {
-            get { return player.IsAvailable; }
+            get { return wmpPlayer != null; }
         }
 
         private void ResetUiToStart()
@@ -118,67 +154,111 @@ namespace VideoRenamer
 
         private void OnPlayPauseClick(object sender, EventArgs e)
         {
-            if (player.IsPlaying)
+            if (wmpPlayer == null)
             {
-                player.Pause();
-                btnPlayPause.Text = "播放";
+                return;
             }
-            else
+
+            try
             {
-                player.Play();
-                btnPlayPause.Text = "暂停";
+                string state = wmpPlayer.playState.ToString();
+                // WMPPlayState: 1=Stopped, 2=Paused, 3=Playing
+                if (state == "3")
+                {
+                    wmpPlayer.controls.pause();
+                    btnPlayPause.Text = "播放";
+                }
+                else
+                {
+                    wmpPlayer.controls.play();
+                    btnPlayPause.Text = "暂停";
+                }
+            }
+            catch
+            {
             }
         }
 
         private void OnProgressScroll(object sender, EventArgs e)
         {
-            float position = progressBar.Value / 1000f;
-            player.SeekPosition(position);
-            UpdateTimeText();
-        }
-
-        private void OnProgressTimerTick(object sender, EventArgs e)
-        {
-            if (seeking)
+            if (wmpPlayer == null)
             {
                 return;
             }
 
-            long length = player.LengthMilliseconds;
-            long time = player.TimeMilliseconds;
-
-            if (length > 0)
+            try
             {
-                int value = (int)Math.Round(time * 1000.0 / length);
-                progressBar.Value = Math.Max(0, Math.Min(1000, value));
+                double duration = wmpPlayer.currentMedia.duration;
+                double position = (progressBar.Value / 1000.0) * duration;
+                wmpPlayer.controls.currentPosition = position;
+                UpdateTimeText();
+            }
+            catch
+            {
+            }
+        }
+
+        private void OnProgressTimerTick(object sender, EventArgs e)
+        {
+            if (wmpPlayer == null || seeking)
+            {
+                return;
             }
 
-            UpdateTimeText();
-
-            if (btnPlayPause.Text == "暂停" && !player.IsPlaying && length > 0 && time >= length - 400)
+            try
             {
-                btnPlayPause.Text = "播放";
-                player.Stop();
+                double duration = wmpPlayer.currentMedia.duration;
+                double position = wmpPlayer.controls.currentPosition;
+
+                if (duration > 0)
+                {
+                    int value = (int)Math.Round(position * 1000.0 / duration);
+                    progressBar.Value = Math.Max(0, Math.Min(1000, value));
+                }
+
+                UpdateTimeText();
+
+                string state = wmpPlayer.playState.ToString();
+                if (btnPlayPause.Text == "暂停" && state != "3" && duration > 0 && position >= duration - 0.4)
+                {
+                    btnPlayPause.Text = "播放";
+                    wmpPlayer.controls.stop();
+                }
+            }
+            catch
+            {
             }
         }
 
         private void UpdateTimeText()
         {
-            long length = player.LengthMilliseconds;
-            long time = player.TimeMilliseconds;
-            timeLabel.Text = FormatTime(time) + " / " + FormatTime(length);
+            if (wmpPlayer == null)
+            {
+                return;
+            }
+
+            try
+            {
+                double duration = wmpPlayer.currentMedia.duration;
+                double position = wmpPlayer.controls.currentPosition;
+                timeLabel.Text = FormatTime(position) + " / " + FormatTime(duration);
+            }
+            catch
+            {
+                timeLabel.Text = "00:00 / 00:00";
+            }
         }
 
-        private static string FormatTime(long milliseconds)
+        private static string FormatTime(double seconds)
         {
-            if (milliseconds < 0)
+            if (seconds < 0 || double.IsNaN(seconds) || double.IsInfinity(seconds))
             {
-                milliseconds = 0;
+                seconds = 0;
             }
-            long totalSeconds = milliseconds / 1000;
-            long minutes = totalSeconds / 60;
-            long seconds = totalSeconds % 60;
-            return string.Format("{0:00}:{1:00}", minutes, seconds);
+            int totalSeconds = (int)Math.Round(seconds);
+            int minutes = totalSeconds / 60;
+            int secs = totalSeconds % 60;
+            return string.Format("{0:00}:{1:00}", minutes, secs);
         }
 
         protected override void Dispose(bool disposing)
@@ -190,7 +270,16 @@ namespace VideoRenamer
                     progressTimer.Stop();
                     progressTimer.Dispose();
                 }
-                player.Dispose();
+                if (wmpPlayer != null)
+                {
+                    try
+                    {
+                        wmpPlayer.close();
+                    }
+                    catch
+                    {
+                    }
+                }
             }
             base.Dispose(disposing);
         }
