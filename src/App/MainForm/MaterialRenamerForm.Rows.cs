@@ -245,7 +245,7 @@ namespace VideoRenamer
 
         private void ClearAllMaterials()
         {
-            DialogResult confirm = MessageBox.Show(this, "是否清空表格中所有素材？场号和镜号会保留，进度会清零。", "确认清空", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            DialogResult confirm = MessageBox.Show(this, "是否清空表格中所有素材？场号和镜号会保留。", "确认清空", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (confirm != DialogResult.Yes)
             {
                 return;
@@ -257,7 +257,6 @@ namespace VideoRenamer
                 row.BackupFiles.Clear();
                 row.MainTailOverrides.Clear();
                 row.BackupTailOverrides.Clear();
-                row.ProgressPercent = 0;
             }
             RenderAll();
             ShowNoVideoDetails();

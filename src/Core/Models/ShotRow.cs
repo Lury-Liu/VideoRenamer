@@ -12,6 +12,5 @@ namespace VideoRenamer
         public List<string> BackupFiles = new List<string>();
         public List<string> MainTailOverrides = new List<string>();
         public List<string> BackupTailOverrides = new List<string>();
-        public int ProgressPercent;
     }
 }

@@ -49,11 +49,10 @@ namespace VideoRenamer
             }
 
             UiTheme.ApplyForm(this, darkMode);
-            DataGridViewProgressCell.ApplyPalette(UiTheme.ProgressActiveFill(darkMode), UiTheme.ProgressCompletedFill(darkMode));
             ApplyGridNumberColumnStyles();
-            if (thumbnailBox != null)
+            if (videoPlayer != null)
             {
-                thumbnailBox.BackColor = UiTheme.ControlBack(darkMode);
+                videoPlayer.ApplyTheme(darkMode);
             }
             if (detailTitleLabel != null && (string.IsNullOrWhiteSpace(detailTitleLabel.Text) || detailTitleLabel.Text == "未选择素材"))
             {

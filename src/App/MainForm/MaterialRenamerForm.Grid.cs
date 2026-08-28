@@ -134,7 +134,6 @@ namespace VideoRenamer
             string backupSummary = RenamePlanBuilder.GetCellSummary(row.BackupFiles);
             gridRow.Cells[GridMainColumn].Value = mainSummary;
             gridRow.Cells[GridBackupColumn].Value = backupSummary;
-            gridRow.Cells[GridProgressColumn].Value = row.ProgressPercent;
             gridRow.Cells[GridMainColumn].ToolTipText = mainSummary;
             gridRow.Cells[GridBackupColumn].ToolTipText = backupSummary;
             ApplyGridNumberCellStyles(gridRow);
@@ -247,28 +246,16 @@ namespace VideoRenamer
             }
         }
 
-        private void RenderGridProgress(int rowIndex)
-        {
-            if (grid == null || rowIndex < 0 || rowIndex >= rows.Count || rowIndex >= grid.Rows.Count || grid.Columns.Count <= GridProgressColumn)
-            {
-                return;
-            }
-
-            grid.Rows[rowIndex].Cells[GridProgressColumn].Value = rows[rowIndex].ProgressPercent;
-            grid.InvalidateCell(GridProgressColumn, rowIndex);
-        }
-
         private int GetDefaultGridFocusColumn()
         {
             return IsRowSceneEnabled() ? GridSceneColumn : GridShotColumn;
         }
 
-        // 阶段10h（与设计稿一致）：场号/进度列常显、列头无字母前缀后，这里
-        // 只剩场号列的可编辑性——逐行场号关闭时列显示全局场号，就地编辑无
-        // 意义，设为只读。
+        // 场号列常显、列头无字母前缀后，这里只剩场号列的可编辑性——逐行
+        // 场号关闭时列显示全局场号，就地编辑无意义，设为只读。
         private void ApplyGridColumnLayout()
         {
-            if (grid == null || grid.Columns.Count <= GridProgressColumn)
+            if (grid == null || grid.Columns.Count <= GridBackupColumn)
             {
                 return;
             }
@@ -322,16 +309,6 @@ namespace VideoRenamer
                 e.CellStyle.SelectionForeColor = UiTheme.MutedText(darkMode);
                 e.FormattingApplied = true;
             }
-        }
-
-        private void ResetProgressBars()
-        {
-            foreach (ShotRow row in rows)
-            {
-                row.ProgressPercent = 0;
-            }
-
-            RenderGrid();
         }
 
         private void OnGridDragEnterOrOver(object sender, DragEventArgs e)
@@ -544,10 +521,6 @@ namespace VideoRenamer
                     grid.Rows[e.RowIndex].Cells[GridShotColumn].Value = RenamePlanBuilder.FormatShotLabel(row.Sequence, row.ShotSuffix);
                     StatusText = "镜号可填正整数，或整数+字母（如 28A，用于两镜之间补插衔接镜）。";
                 }
-            }
-            else if (e.ColumnIndex == GridProgressColumn)
-            {
-                grid.Rows[e.RowIndex].Cells[GridProgressColumn].Value = row.ProgressPercent;
             }
 
             RenderGridRow(e.RowIndex);

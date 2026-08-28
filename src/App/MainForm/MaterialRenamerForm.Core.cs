@@ -18,13 +18,11 @@ namespace VideoRenamer
 {
     public partial class MaterialRenamerForm : Form
     {
-        private const int ThumbnailCacheLimit = 200;
         private const int PlanStatusCheckBatchSize = 50;
         private const int GridSceneColumn = 0;
         private const int GridShotColumn = 1;
         private const int GridMainColumn = 2;
         private const int GridBackupColumn = 3;
-        private const int GridProgressColumn = 4;
 
         private static readonly HashSet<string> VideoExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -36,18 +34,16 @@ namespace VideoRenamer
         private readonly Dictionary<string, List<ListViewItem>> previewItemsByPath = new Dictionary<string, List<ListViewItem>>(StringComparer.OrdinalIgnoreCase);
         private readonly Stack<List<RenameOperation>> undoStack = new Stack<List<RenameOperation>>();
         private readonly Dictionary<string, VideoFileInfo> videoInfoCache = new Dictionary<string, VideoFileInfo>(StringComparer.OrdinalIgnoreCase);
-        private readonly ThumbnailCache thumbnailCache;
         private readonly MediaLoadScheduler mediaScheduler = new MediaLoadScheduler();
         private readonly ExportController exportController;
         private readonly RenameController renameController;
         private readonly HashSet<string> pendingVideoInfoLoads = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private readonly HashSet<string> pendingThumbnailLoads = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly LicenseInfo activeLicenseInfo;
         private readonly string historyPath = Path.Combine(Environment.CurrentDirectory, "rename_history.tsv");
 
         private DataGridView grid;
         private ListView previewList;
-        private PictureBox thumbnailBox;
+        private VideoPlayerControl videoPlayer;
         private Label detailTitleLabel;
         private Label detailInfoLabel;
         private Label detailPathLabel;
@@ -61,6 +57,7 @@ namespace VideoRenamer
         private TextBox txtCustomTail;
         private Label statusLabel;
         private Button btnRename;
+        private Button btnExportOnly;
         private Button btnUndo;
         private Button btnTheme;
         private Button btnAbout;
@@ -78,11 +75,7 @@ namespace VideoRenamer
         private volatile bool renameCancelRequested;
         private System.Windows.Forms.Timer previewColumnResizeTimer;
         private System.Windows.Forms.Timer namesOnlyRefreshTimer;
-        private Image ownedDetailImage;
         private Font previewGroupFont;
-        private List<Image> frameStrip = new List<Image>();
-        private string frameStripPath = "";
-        private int frameStripVersion;
         private int dragHighlightRow = -1;
         private int dragHighlightColumn = -1;
         private int planCheckVersion;
@@ -102,12 +95,6 @@ namespace VideoRenamer
         public MaterialRenamerForm(LicenseInfo licenseInfo)
         {
             activeLicenseInfo = licenseInfo;
-            // 保留守卫：正在详情面板展示的缓存图像被 LRU 淘汰时不 Dispose
-            //（修复淘汰后重绘触发 GDI+ 异常的既有窗口）。
-            thumbnailCache = new ThumbnailCache(ThumbnailCacheLimit, delegate
-            {
-                return thumbnailBox == null ? null : thumbnailBox.Image;
-            });
             exportController = new ExportController(this, this);
             renameController = new RenameController(this, this);
             darkMode = UiTheme.DetectWindowsDarkMode();
@@ -161,25 +148,12 @@ namespace VideoRenamer
                     throw new Exception("护眼模式水印复选框颜色测试失败。");
                 }
 
-                // 清空素材后，详情区不能继续保留上一条视频的帧序列；否则鼠标
-                // 划过缩略图会把旧画面重新覆盖到“未选择素材”的占位图上。
+                // 清空素材后，详情区不应保留上一条视频的播放器状态。
                 form.currentDetailPath = "stale.mp4";
-                form.currentDetailNewName = "stale-new.mp4";
-                form.currentDetailContext = "stale-context";
-                form.frameStripPath = "stale.mp4";
-                form.frameStripVersion = 7;
-                form.frameStrip.Add(new Bitmap(1, 1));
                 form.ShowNoVideoDetails();
-                Image noVideoImage = form.thumbnailBox.Image;
-                int clearedFrameStripVersion = form.frameStripVersion;
-                form.ShowFrameAtRatio(0.5);
-                if (form.frameStrip.Count != 0 ||
-                    !string.IsNullOrEmpty(form.frameStripPath) ||
-                    clearedFrameStripVersion <= 7 ||
-                    !string.IsNullOrEmpty(form.currentDetailPath) ||
-                    !object.ReferenceEquals(form.thumbnailBox.Image, noVideoImage))
+                if (!string.IsNullOrEmpty(form.currentDetailPath))
                 {
-                    throw new Exception("清空素材后详情帧预览状态测试失败。");
+                    throw new Exception("清空素材后详情状态测试失败。");
                 }
 
                 // 阶段10 结构锁定：主按钮驻底部执行栏；进度/取消初始隐藏；
@@ -236,14 +210,15 @@ namespace VideoRenamer
                     throw new Exception("详情面板展开测试失败。");
                 }
 
-                // 阶段10h 设计稿锁定：列头无字母前缀、场号/进度列常显且场号
-                // 默认只读（逐行场号关闭）、无行头列。
+                // 设计稿锁定：列头无字母前缀、场号列常显且默认只读（逐行
+                // 场号关闭）、无行头列。逐任务进度列已移除，进度只由左下角
+                // 执行栏总进度条呈现。
                 if (form.grid.RowHeadersVisible ||
                     !form.grid.Columns[GridSceneColumn].Visible ||
                     !form.grid.Columns[GridSceneColumn].ReadOnly ||
                     form.grid.Columns[GridSceneColumn].HeaderText != "场号" ||
                     form.grid.Columns[GridShotColumn].HeaderText != "镜号" ||
-                    !form.grid.Columns[GridProgressColumn].Visible)
+                    form.grid.Columns.Count != 4)
                 {
                     throw new Exception("设计稿网格结构测试失败。");
                 }
@@ -404,13 +379,6 @@ namespace VideoRenamer
                 namesOnlyRefreshTimer = null;
             }
 
-            if (ownedDetailImage != null)
-            {
-                ownedDetailImage.Dispose();
-                ownedDetailImage = null;
-            }
-
-            ClearFrameStrip();
             if (previewGroupFont != null)
             {
                 previewGroupFont.Dispose();
@@ -418,7 +386,6 @@ namespace VideoRenamer
             }
 
             mediaScheduler.Dispose();
-            thumbnailCache.Dispose();
 
             base.OnFormClosed(e);
         }

@@ -242,6 +242,11 @@ namespace VideoRenamer
             btnUndo.Margin = new Padding(0, 3, 6, 3);
             footerRight.Controls.Add(btnUndo);
 
+            btnExportOnly = NewButton("仅导出高清", 100);
+            btnExportOnly.Click += delegate { Export1080pOnly(); };
+            btnExportOnly.Margin = new Padding(0, 3, 6, 3);
+            footerRight.Controls.Add(btnExportOnly);
+
             btnRename = NewButton("执行重命名", 100);
             btnRename.Tag = "Primary";
             btnRename.Click += delegate { RenameFiles(); };
@@ -362,7 +367,7 @@ namespace VideoRenamer
             grid.DragLeave += delegate { ClearDragHighlight(); };
             grid.DragDrop += OnGridDragDrop;
 
-            // 阶段10h（与设计稿一致）：列头无字母前缀；场号/进度列常显。
+            // 列头无字母前缀；场号列常显（逐任务进度列已移除）。
             DataGridViewTextBoxColumn colScene = new DataGridViewTextBoxColumn();
             colScene.HeaderText = "场号";
             colScene.Width = 72;
@@ -381,21 +386,16 @@ namespace VideoRenamer
 
             DataGridViewTextBoxColumn colBackup = new DataGridViewTextBoxColumn();
             colBackup.HeaderText = "备用素材";
-            colBackup.Width = 310;
+            // 素材列填充剩余宽度（原「进度」列移除后，备用素材列接管弹性宽度）。
+            colBackup.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            colBackup.MinimumWidth = 310;
             colBackup.ReadOnly = true;
             colBackup.SortMode = DataGridViewColumnSortMode.NotSortable;
-
-            DataGridViewProgressColumn colProgress = new DataGridViewProgressColumn();
-            colProgress.HeaderText = "进度";
-            colProgress.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            colProgress.MinimumWidth = 130;
-            colProgress.SortMode = DataGridViewColumnSortMode.NotSortable;
 
             grid.Columns.Add(colScene);
             grid.Columns.Add(colSeq);
             grid.Columns.Add(colMain);
             grid.Columns.Add(colBackup);
-            grid.Columns.Add(colProgress);
             ApplyGridColumnLayout();
             gridShell.Controls.Add(grid, 0, 1);
         }
@@ -513,15 +513,6 @@ namespace VideoRenamer
             }
         }
 
-        private void OnThumbnailMouseMove(object sender, MouseEventArgs e)
-        {
-            if (thumbnailBox.Width > 1)
-            {
-                double ratio = Math.Max(0.0, Math.Min(1.0, (double)e.X / thumbnailBox.Width));
-                ShowFrameAtRatio(ratio);
-            }
-        }
-
         private Control BuildVideoDetailsPanel()
         {
             TableLayoutPanel panel = new TableLayoutPanel();
@@ -530,7 +521,7 @@ namespace VideoRenamer
             panel.RowCount = 5;
             panel.Padding = new Padding(10, 8, 10, 10);
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 128));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -555,13 +546,10 @@ namespace VideoRenamer
             titleRow.Controls.Add(collapseButton);
             panel.Controls.Add(titleRow, 0, 0);
 
-            thumbnailBox = new PictureBox();
-            thumbnailBox.Dock = DockStyle.Fill;
-            thumbnailBox.SizeMode = PictureBoxSizeMode.Zoom;
-            thumbnailBox.BorderStyle = BorderStyle.FixedSingle;
-            thumbnailBox.MouseMove += OnThumbnailMouseMove;
-            thumbnailBox.MouseLeave += delegate { RestoreStaticThumbnail(); };
-            panel.Controls.Add(thumbnailBox, 0, 1);
+            videoPlayer = new VideoPlayerControl();
+            videoPlayer.Dock = DockStyle.Fill;
+            videoPlayer.Margin = new Padding(0);
+            panel.Controls.Add(videoPlayer, 0, 1);
 
             detailTitleLabel = new Label();
             detailTitleLabel.Dock = DockStyle.Fill;
@@ -679,7 +667,7 @@ namespace VideoRenamer
         {
             if (btnRename != null)
             {
-                btnRename.Text = IsExport1080pEnabled() ? "导出1080p" : "执行重命名";
+                btnRename.Text = IsExport1080pEnabled() ? "导出并重命名" : "执行重命名";
             }
         }
 
@@ -734,6 +722,10 @@ namespace VideoRenamer
             if (btnUndo != null)
             {
                 btnUndo.Enabled = enabled;
+            }
+            if (btnExportOnly != null)
+            {
+                btnExportOnly.Enabled = enabled;
             }
             if (btnRename != null)
             {

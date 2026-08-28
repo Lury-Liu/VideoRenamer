@@ -207,18 +207,6 @@ namespace VideoRenamer
             return dark ? Color.FromArgb(242, 209, 192) : Color.FromArgb(150, 72, 44);
         }
 
-        // --- 进度填充（DataGridViewProgressCell 经 ApplyPalette 取用） ---
-
-        public static Color ProgressActiveFill(bool dark)
-        {
-            return dark ? Color.FromArgb(217, 119, 87) : Color.FromArgb(186, 91, 52);
-        }
-
-        public static Color ProgressCompletedFill(bool dark)
-        {
-            return dark ? Color.FromArgb(95, 162, 104) : Color.FromArgb(76, 138, 79);
-        }
-
         // --- 应用 ---
 
         public static void ApplyForm(Form form, bool dark)
