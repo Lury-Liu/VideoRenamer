@@ -1,16 +1,16 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace VideoRenamer
 {
-    // 内嵌 Windows Media Player 的播放器控件：视频画面 + 播放/暂停 + 可拖拽进度条 + 时间。
-    // 使用 AxWindowsMediaPlayer ActiveX 控件（Windows 内置，无外部依赖）。
+    // 内嵌 HTML5 video 的播放器控件：通过 WebBrowser 渲染 video 标签。
+    // 使用浏览器内置的视频播放能力，零外部依赖，格式支持取决于 IE11/Edge。
     // 进度用 200ms 轮询刷新；拖动进度条期间暂停轮询写回，避免打架。
     public sealed class VideoPlayerControl : UserControl
     {
-        private readonly dynamic wmpPlayer;
-        private readonly Panel videoSurface;
+        private readonly WebBrowser browser;
         private readonly Panel controlBar;
         private readonly Button btnPlayPause;
         private readonly TrackBar progressBar;
@@ -18,37 +18,18 @@ namespace VideoRenamer
         private readonly System.Windows.Forms.Timer progressTimer;
         private bool seeking;
         private bool darkMode;
-        private string currentPath = "";
+        private bool browserReady;
 
         public VideoPlayerControl()
         {
-            videoSurface = new Panel();
-            videoSurface.Dock = DockStyle.Fill;
-            videoSurface.BackColor = Color.Black;
-            videoSurface.Margin = new Padding(0);
-
-            // 创建 Windows Media Player ActiveX 控件
-            try
-            {
-                Type wmpType = Type.GetTypeFromCLSID(new Guid("6BF52A52-394A-11d3-B153-00C04F79FAA6"));
-                wmpPlayer = Activator.CreateInstance(wmpType);
-
-                // 包装为 Control 并嵌入
-                Control wmpControl = (Control)wmpPlayer;
-                wmpControl.Dock = DockStyle.Fill;
-                wmpControl.BackColor = Color.Black;
-                videoSurface.Controls.Add(wmpControl);
-
-                // 隐藏 WMP 自带的控制条（我们自己做）
-                wmpPlayer.uiMode = "none";
-                wmpPlayer.settings.autoStart = false;
-                wmpPlayer.settings.volume = 70;
-            }
-            catch
-            {
-                // WMP 不可用时静默降级（显示黑屏，功能禁用）
-                wmpPlayer = null;
-            }
+            browser = new WebBrowser();
+            browser.Dock = DockStyle.Fill;
+            browser.ScrollBarsEnabled = false;
+            browser.IsWebBrowserContextMenuEnabled = false;
+            browser.WebBrowserShortcutsEnabled = false;
+            browser.AllowWebBrowserDrop = false;
+            browser.ScriptErrorsSuppressed = true;
+            browser.DocumentCompleted += OnBrowserReady;
 
             controlBar = new Panel();
             controlBar.Dock = DockStyle.Bottom;
@@ -85,12 +66,15 @@ namespace VideoRenamer
             controlBar.Controls.Add(timeLabel);
             controlBar.Controls.Add(btnPlayPause);
 
-            Controls.Add(videoSurface);
+            Controls.Add(browser);
             Controls.Add(controlBar);
 
             progressTimer = new System.Windows.Forms.Timer();
             progressTimer.Interval = 200;
             progressTimer.Tick += OnProgressTimerTick;
+
+            // 初始化空白页面
+            browser.DocumentText = GetEmptyPageHtml();
         }
 
         public void ApplyTheme(bool isDarkMode)
@@ -103,21 +87,26 @@ namespace VideoRenamer
 
         public void LoadVideo(string path)
         {
-            if (wmpPlayer == null || string.IsNullOrWhiteSpace(path))
+            AppLog.Write("player", "LoadVideo: " + (path ?? "(null)"));
+
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
+                AppLog.Write("player", "LoadVideo 跳过: 文件不存在");
                 StopPlayback();
                 return;
             }
 
             try
             {
-                currentPath = path;
-                wmpPlayer.URL = path;
+                string html = GetVideoPageHtml(path);
+                browser.DocumentText = html;
+                browserReady = false;
                 ResetUiToStart();
-                progressTimer.Start();
+                AppLog.Write("player", "HTML5 video 页面已加载");
             }
-            catch
+            catch (Exception ex)
             {
+                AppLog.Write("player", "LoadVideo 失败", ex);
                 StopPlayback();
             }
         }
@@ -125,23 +114,27 @@ namespace VideoRenamer
         public void StopPlayback()
         {
             progressTimer.Stop();
-            currentPath = "";
-            if (wmpPlayer != null)
+            browserReady = false;
+            try
             {
-                try
-                {
-                    wmpPlayer.controls.stop();
-                }
-                catch
-                {
-                }
+                RunScript("if(window.videoEl) window.videoEl.pause();");
+            }
+            catch
+            {
             }
             ResetUiToStart();
         }
 
         public bool IsAvailable
         {
-            get { return wmpPlayer != null; }
+            get { return true; }
+        }
+
+        private void OnBrowserReady(object sender, WebBrowserDocumentCompletedEventArgs e)
+        {
+            browserReady = true;
+            progressTimer.Start();
+            AppLog.Write("player", "浏览器文档加载完成");
         }
 
         private void ResetUiToStart()
@@ -154,44 +147,47 @@ namespace VideoRenamer
 
         private void OnPlayPauseClick(object sender, EventArgs e)
         {
-            if (wmpPlayer == null)
+            if (!browserReady)
             {
+                AppLog.Write("player", "OnPlayPauseClick: 浏览器未就绪");
                 return;
             }
 
             try
             {
-                string state = wmpPlayer.playState.ToString();
-                // WMPPlayState: 1=Stopped, 2=Paused, 3=Playing
-                if (state == "3")
+                bool isPaused = GetScriptResult("window.videoEl ? window.videoEl.paused : true") == "true";
+                AppLog.Write("player", "OnPlayPauseClick: 当前状态 " + (isPaused ? "暂停" : "播放"));
+
+                if (isPaused)
                 {
-                    wmpPlayer.controls.pause();
-                    btnPlayPause.Text = "播放";
+                    RunScript("if(window.videoEl) window.videoEl.play();");
+                    btnPlayPause.Text = "暂停";
+                    AppLog.Write("player", "已开始播放");
                 }
                 else
                 {
-                    wmpPlayer.controls.play();
-                    btnPlayPause.Text = "暂停";
+                    RunScript("if(window.videoEl) window.videoEl.pause();");
+                    btnPlayPause.Text = "播放";
+                    AppLog.Write("player", "已暂停");
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                AppLog.Write("player", "OnPlayPauseClick 失败", ex);
             }
         }
 
         private void OnProgressScroll(object sender, EventArgs e)
         {
-            if (wmpPlayer == null)
+            if (!browserReady)
             {
                 return;
             }
 
             try
             {
-                double duration = wmpPlayer.currentMedia.duration;
-                double position = (progressBar.Value / 1000.0) * duration;
-                wmpPlayer.controls.currentPosition = position;
-                UpdateTimeText();
+                double position = progressBar.Value / 1000.0;
+                RunScript(string.Format("if(window.videoEl) window.videoEl.currentTime = window.videoEl.duration * {0};", position.ToString("0.000")));
             }
             catch
             {
@@ -200,29 +196,32 @@ namespace VideoRenamer
 
         private void OnProgressTimerTick(object sender, EventArgs e)
         {
-            if (wmpPlayer == null || seeking)
+            if (!browserReady || seeking)
             {
                 return;
             }
 
             try
             {
-                double duration = wmpPlayer.currentMedia.duration;
-                double position = wmpPlayer.controls.currentPosition;
+                string durationStr = GetScriptResult("window.videoEl ? window.videoEl.duration : 0");
+                string currentStr = GetScriptResult("window.videoEl ? window.videoEl.currentTime : 0");
+                string pausedStr = GetScriptResult("window.videoEl ? window.videoEl.paused : true");
+
+                double duration = ParseDouble(durationStr);
+                double current = ParseDouble(currentStr);
+                bool paused = pausedStr == "true";
 
                 if (duration > 0)
                 {
-                    int value = (int)Math.Round(position * 1000.0 / duration);
+                    int value = (int)Math.Round(current * 1000.0 / duration);
                     progressBar.Value = Math.Max(0, Math.Min(1000, value));
                 }
 
-                UpdateTimeText();
+                timeLabel.Text = FormatTime(current) + " / " + FormatTime(duration);
 
-                string state = wmpPlayer.playState.ToString();
-                if (btnPlayPause.Text == "暂停" && state != "3" && duration > 0 && position >= duration - 0.4)
+                if (btnPlayPause.Text == "暂停" && paused && duration > 0 && current >= duration - 0.4)
                 {
                     btnPlayPause.Text = "播放";
-                    wmpPlayer.controls.stop();
                 }
             }
             catch
@@ -230,23 +229,33 @@ namespace VideoRenamer
             }
         }
 
-        private void UpdateTimeText()
+        private string GetScriptResult(string script)
         {
-            if (wmpPlayer == null)
+            if (browser.Document == null)
             {
-                return;
+                return "";
             }
 
-            try
+            object result = browser.Document.InvokeScript("eval", new object[] { script });
+            return result == null ? "" : result.ToString();
+        }
+
+        private void RunScript(string script)
+        {
+            if (browser.Document != null)
             {
-                double duration = wmpPlayer.currentMedia.duration;
-                double position = wmpPlayer.controls.currentPosition;
-                timeLabel.Text = FormatTime(position) + " / " + FormatTime(duration);
+                browser.Document.InvokeScript("eval", new object[] { script });
             }
-            catch
+        }
+
+        private double ParseDouble(string s)
+        {
+            double result;
+            if (double.TryParse(s, out result))
             {
-                timeLabel.Text = "00:00 / 00:00";
+                return result;
             }
+            return 0;
         }
 
         private static string FormatTime(double seconds)
@@ -261,6 +270,48 @@ namespace VideoRenamer
             return string.Format("{0:00}:{1:00}", minutes, secs);
         }
 
+        private string GetEmptyPageHtml()
+        {
+            return @"<!DOCTYPE html>
+<html>
+<head><meta charset='utf-8'><style>body{margin:0;background:#000;}</style></head>
+<body></body>
+</html>";
+        }
+
+        private string GetVideoPageHtml(string videoPath)
+        {
+            string fileUrl = "file:///" + videoPath.Replace("\\", "/");
+            return string.Format(@"<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+<style>
+body {{
+    margin: 0;
+    padding: 0;
+    background: #000;
+    overflow: hidden;
+}}
+video {{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}}
+</style>
+</head>
+<body>
+<video id='videoEl' preload='auto'>
+<source src='{0}'>
+</video>
+<script>
+window.videoEl = document.getElementById('videoEl');
+</script>
+</body>
+</html>", fileUrl);
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -270,15 +321,9 @@ namespace VideoRenamer
                     progressTimer.Stop();
                     progressTimer.Dispose();
                 }
-                if (wmpPlayer != null)
+                if (browser != null)
                 {
-                    try
-                    {
-                        wmpPlayer.close();
-                    }
-                    catch
-                    {
-                    }
+                    browser.Dispose();
                 }
             }
             base.Dispose(disposing);
