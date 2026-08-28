@@ -2,13 +2,13 @@
 
 | | |
 | --- | --- |
-| **Source version** | **V1.0.10.0** |
+| **Source version** | **V1.0.11.0** |
 | **Published release** | **v1.0.8.0** |
 | **Branch policy** | `main` is the only remote branch |
 | **Status generated** | 2026-08-29 |
 | **Overall state** | 核心功能稳定 · 视频命名与导出工具 |
 
-## Current Version (V1.0.10.0)
+## Current Version (V1.0.11.0)
 
 ### Core Features
 - ✅ 视频素材批量重命名（场号 + 镜号 + 标签）

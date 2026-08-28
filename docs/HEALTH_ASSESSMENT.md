@@ -1,12 +1,12 @@
 # Project Health Assessment
 
-**Version:** V1.0.10.0  
+**Version:** V1.0.11.0  
 **Date:** 2026-08-29  
 **Verification:** SelfTest 79/79, SmokeTest OK, 构建EXE.ps1 PASS  
 
 ## Overall: **90 / 100**
 
-V1.0.10.0 通过删除不稳定的播放器子系统（583 行代码）和抽帧预览机制，显著提升了代码质量和可维护性。
+V1.0.11.0 通过删除不稳定的播放器子系统（583 行代码）和抽帧预览机制，显著提升了代码质量和可维护性。
 
 ---
 
