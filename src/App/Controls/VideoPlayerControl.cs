@@ -160,7 +160,17 @@ namespace VideoRenamer
 
                 if (isPaused)
                 {
-                    RunScript("if(window.videoEl) window.videoEl.play();");
+                    // play() 返回 Promise，需要异步处理，用 catch 捕获错误
+                    RunScript(@"
+                        if(window.videoEl) {
+                            var playPromise = window.videoEl.play();
+                            if(playPromise !== undefined) {
+                                playPromise.catch(function(e) {
+                                    console.log('Play failed: ' + e);
+                                });
+                            }
+                        }
+                    ");
                     btnPlayPause.Text = "暂停";
                     AppLog.Write("player", "已开始播放");
                 }
@@ -293,20 +303,70 @@ body {{
     padding: 0;
     background: #000;
     overflow: hidden;
-}}
-video {{
+    position: relative;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+}}
+#videoContainer {{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}}
+video {{
+    display: block;
 }}
 </style>
 </head>
 <body>
-<video id='videoEl' preload='auto'>
+<div id='videoContainer'>
+<video id='videoEl' preload='metadata'>
 <source src='{0}'>
 </video>
+</div>
 <script>
 window.videoEl = document.getElementById('videoEl');
+
+// 元数据加载完成后，根据视频真实尺寸调整显示尺寸（保持宽高比）
+window.videoEl.addEventListener('loadedmetadata', function() {{
+    resizeVideo();
+}});
+
+window.addEventListener('resize', resizeVideo);
+
+function resizeVideo() {{
+    var video = window.videoEl;
+    var container = document.getElementById('videoContainer');
+
+    var videoWidth = video.videoWidth;
+    var videoHeight = video.videoHeight;
+    var containerWidth = container.clientWidth;
+    var containerHeight = container.clientHeight;
+
+    if (videoWidth === 0 || videoHeight === 0) return;
+
+    var videoRatio = videoWidth / videoHeight;
+    var containerRatio = containerWidth / containerHeight;
+
+    var displayWidth, displayHeight;
+
+    if (videoRatio > containerRatio) {{
+        // 视频更宽，以容器宽度为准
+        displayWidth = containerWidth;
+        displayHeight = containerWidth / videoRatio;
+    }} else {{
+        // 视频更高（包括竖屏），以容器高度为准
+        displayHeight = containerHeight;
+        displayWidth = containerHeight * videoRatio;
+    }}
+
+    video.style.width = Math.floor(displayWidth) + 'px';
+    video.style.height = Math.floor(displayHeight) + 'px';
+}}
 </script>
 </body>
 </html>", fileUrl);
