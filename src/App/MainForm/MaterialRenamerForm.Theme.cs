@@ -50,10 +50,6 @@ namespace VideoRenamer
 
             UiTheme.ApplyForm(this, darkMode);
             ApplyGridNumberColumnStyles();
-            if (videoPlayer != null)
-            {
-                videoPlayer.ApplyTheme(darkMode);
-            }
             if (detailTitleLabel != null && (string.IsNullOrWhiteSpace(detailTitleLabel.Text) || detailTitleLabel.Text == "未选择素材"))
             {
                 ShowNoVideoDetails();

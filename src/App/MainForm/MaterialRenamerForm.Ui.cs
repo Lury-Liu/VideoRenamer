@@ -518,10 +518,9 @@ namespace VideoRenamer
             TableLayoutPanel panel = new TableLayoutPanel();
             panel.Dock = DockStyle.Fill;
             panel.ColumnCount = 1;
-            panel.RowCount = 5;
+            panel.RowCount = 4;
             panel.Padding = new Padding(10, 8, 10, 10);
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 180));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
             panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -546,30 +545,25 @@ namespace VideoRenamer
             titleRow.Controls.Add(collapseButton);
             panel.Controls.Add(titleRow, 0, 0);
 
-            videoPlayer = new VideoPlayerControl();
-            videoPlayer.Dock = DockStyle.Fill;
-            videoPlayer.Margin = new Padding(0);
-            panel.Controls.Add(videoPlayer, 0, 1);
-
             detailTitleLabel = new Label();
             detailTitleLabel.Dock = DockStyle.Fill;
             detailTitleLabel.AutoEllipsis = true;
             detailTitleLabel.Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold);
             detailTitleLabel.Padding = new Padding(0, 8, 0, 0);
-            panel.Controls.Add(detailTitleLabel, 0, 2);
+            panel.Controls.Add(detailTitleLabel, 0, 1);
 
             detailInfoLabel = new Label();
             detailInfoLabel.Dock = DockStyle.Fill;
             detailInfoLabel.AutoEllipsis = false;
             detailInfoLabel.Padding = new Padding(0, 4, 0, 0);
-            panel.Controls.Add(detailInfoLabel, 0, 3);
+            panel.Controls.Add(detailInfoLabel, 0, 2);
 
             detailPathLabel = new Label();
             detailPathLabel.Dock = DockStyle.Fill;
             detailPathLabel.Tag = "Muted";
             detailPathLabel.AutoEllipsis = true;
             detailPathLabel.Padding = new Padding(0, 4, 0, 0);
-            panel.Controls.Add(detailPathLabel, 0, 4);
+            panel.Controls.Add(detailPathLabel, 0, 3);
 
             ShowNoVideoDetails();
             return panel;

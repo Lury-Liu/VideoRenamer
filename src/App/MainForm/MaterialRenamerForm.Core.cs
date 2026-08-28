@@ -43,7 +43,6 @@ namespace VideoRenamer
 
         private DataGridView grid;
         private ListView previewList;
-        private VideoPlayerControl videoPlayer;
         private Label detailTitleLabel;
         private Label detailInfoLabel;
         private Label detailPathLabel;

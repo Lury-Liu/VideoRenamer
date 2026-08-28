@@ -64,7 +64,7 @@ namespace VideoRenamer
 
         private void UpdateSelectedCellDetails()
         {
-            if (rendering || grid == null || grid.CurrentCell == null || thumbnailBox == null)
+            if (rendering || grid == null || grid.CurrentCell == null)
             {
                 return;
             }
@@ -95,7 +95,7 @@ namespace VideoRenamer
 
         private void ShowVideoDetails(string path, string newName, string context)
         {
-            if (thumbnailBox == null || detailTitleLabel == null || detailInfoLabel == null || detailPathLabel == null)
+            if (detailTitleLabel == null || detailInfoLabel == null || detailPathLabel == null)
             {
                 return;
             }
@@ -112,18 +112,6 @@ namespace VideoRenamer
             }
 
             RenderVideoInfo(info, currentDetailNewName, currentDetailContext);
-            Image thumbnail;
-            if (thumbnailCache.TryGet(path, out thumbnail))
-            {
-                SetDetailImage(thumbnail, false);
-            }
-            else
-            {
-                SetDetailImage(CreatePlaceholderImage(info.Exists ? "缩略图读取中" : "无缩略图"), true);
-                QueueThumbnailLoad(path);
-            }
-
-            QueueFrameStripLoad(path);
         }
 
         private bool IsCurrentDetailPath(string path)
@@ -338,9 +326,7 @@ namespace VideoRenamer
 
         private void ShowNoVideoDetails()
         {
-            InvalidateFrameStrip();
-
-            if (thumbnailBox == null || detailTitleLabel == null || detailInfoLabel == null || detailPathLabel == null)
+            if (detailTitleLabel == null || detailInfoLabel == null || detailPathLabel == null)
             {
                 return;
             }
@@ -349,10 +335,9 @@ namespace VideoRenamer
             currentDetailNewName = "";
             currentDetailContext = "";
             detailTitleLabel.Text = "未选择素材";
-            detailInfoLabel.Text = "选中底部预览记录，或选中已有素材的主要/备用素材单元格，可查看缩略图、分辨率和文件大小。";
+            detailInfoLabel.Text = "选中底部预览记录，或选中已有素材的主要/备用素材单元格，可查看视频预览、分辨率和文件大小。";
             detailPathLabel.Text = "";
             UpdateCustomTailControls(null);
-            SetDetailImage(CreatePlaceholderImage("视频预览"), true);
         }
     }
 }
