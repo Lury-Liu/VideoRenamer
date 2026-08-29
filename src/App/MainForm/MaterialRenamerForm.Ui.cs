@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -63,7 +63,7 @@ namespace VideoRenamer
         {
             Panel headerHost = new Panel();
             headerHost.Dock = DockStyle.Top;
-            headerHost.Height = 52;
+            headerHost.Height = 96;
             Controls.Add(headerHost);
 
             Panel topPanel = new Panel();
@@ -73,6 +73,7 @@ namespace VideoRenamer
             headerHost.Controls.Add(topPanel);
 
             BuildSettingsRow(topPanel);
+            BuildDirectorySettingsRow(topPanel);
         }
 
         private void BuildSettingsRow(Panel topPanel)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -100,6 +100,18 @@ namespace VideoRenamer
             if (!string.IsNullOrWhiteSpace(directory))
             {
                 Directory.CreateDirectory(directory);
+            }
+
+            // In overwrite mode a selected external output directory is still a
+            // valid target: the temporary export is written beside the source,
+            // then moved to TargetPath after encoding succeeds.
+            if (outputMode == ExportOutputMode.OverwriteOriginal)
+            {
+                string targetDirectory = Path.GetDirectoryName(entry.TargetPath);
+                if (!string.IsNullOrWhiteSpace(targetDirectory))
+                {
+                    Directory.CreateDirectory(targetDirectory);
+                }
             }
 
             string outputPath = entry.TargetPath;

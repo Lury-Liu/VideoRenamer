@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -44,6 +44,12 @@ namespace VideoRenamer.Tests
             cases.Add(new TestCase("plan_status_text_goldens", PlanStatusTextGoldens));
             cases.Add(new TestCase("build_plan_with_fake_probe", BuildPlanWithFakeProbe));
             cases.Add(new TestCase("build_plan_resizes_tail_overrides", BuildPlanResizesTailOverrides));
+            cases.Add(new TestCase("build_plan_auto_resolves_comparison_conflict", BuildPlanAutoResolvesComparisonConflict));
+            cases.Add(new TestCase("build_plan_auto_resolves_batch_conflict", BuildPlanAutoResolvesBatchConflict));
+            cases.Add(new TestCase("build_plan_auto_resolves_custom_tail_conflict", BuildPlanAutoResolvesCustomTailConflict));
+            cases.Add(new TestCase("build_plan_auto_resolve_disabled_keeps_conflict", BuildPlanAutoResolveDisabledKeepsConflict));
+            cases.Add(new TestCase("build_plan_stops_at_t100", BuildPlanStopsAtT100));
+            cases.Add(new TestCase("build_plan_uses_output_directory", BuildPlanUsesOutputDirectory));
             cases.Add(new TestCase("shot_label_pattern_table", ShotLabelPatternTable));
             cases.Add(new TestCase("shot_label_try_parse_table", ShotLabelTryParseTable));
             cases.Add(new TestCase("clone_rename_plan_copies_all_fields", CloneRenamePlanCopiesFieldsDropsShotLabel));
@@ -51,11 +57,18 @@ namespace VideoRenamer.Tests
             cases.Add(new TestCase("prepare_export_plan_save_as_renames_unchanged", PrepareExportPlanSaveAsRenamesUnchanged));
             cases.Add(new TestCase("prepare_export_plan_duplicate_target_throws", PrepareExportPlanDuplicateTargetThrows));
             cases.Add(new TestCase("prepare_export_plan_existing_target_throws", PrepareExportPlanExistingTargetThrows));
+            cases.Add(new TestCase("prepare_export_only_keep_name_overwrite", PrepareExportOnlyKeepNameOverwrite));
+            cases.Add(new TestCase("prepare_export_only_save_as_suffix", PrepareExportOnlySaveAsSuffix));
+            cases.Add(new TestCase("prepare_export_only_skips_missing", PrepareExportOnlySkipsMissing));
+            cases.Add(new TestCase("prepare_export_only_uses_output_directory", PrepareExportOnlyUsesOutputDirectory));
+            cases.Add(new TestCase("prepare_export_only_generic_conflict_suffix", PrepareExportOnlyGenericConflictSuffix));
             cases.Add(new TestCase("history_value_roundtrip", HistoryValueRoundtrip));
             cases.Add(new TestCase("history_encode_golden", HistoryEncodeGolden));
             cases.Add(new TestCase("history_tsv_save_load_roundtrip", HistoryTsvSaveLoadRoundtrip));
             cases.Add(new TestCase("plan_executor_moves_and_reports", PlanExecutorMovesAndReports));
+            cases.Add(new TestCase("plan_executor_creates_output_directory", PlanExecutorCreatesOutputDirectory));
             cases.Add(new TestCase("patch_row_file_list_variants", PatchRowFileListVariants));
+            cases.Add(new TestCase("export_patch_decision_for_external_overwrite", ExportPatchDecisionForExternalOverwrite));
             cases.Add(new TestCase("unique_path_with_suffix_first_candidate", UniquePathWithSuffixFirstCandidate));
             cases.Add(new TestCase("unique_path_with_suffix_counter_and_default", UniquePathWithSuffixCounterAndDefault));
             return cases;
@@ -400,6 +413,166 @@ namespace VideoRenamer.Tests
             TestAssert.AreEqual(PlanStatus.SourceMissing, plan[2].Status, "fake probe source missing");
         }
 
+        private static void BuildPlanAutoResolvesComparisonConflict()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string source = Path.Combine(dir, "download.mp4");
+                File.WriteAllText(source, "x");
+                ShotRow row = new ShotRow { Sequence = 1 };
+                row.MainFiles.Add(source);
+
+                NamingSettings settings = new NamingSettings
+                {
+                    Episode = 1,
+                    DefaultScene = 1,
+                    KeepExtensionCase = true,
+                    Export1080p = false,
+                    UseRowScene = false,
+                    OutputDirectory = dir,
+                    ComparisonFileNames = new HashSet<string>(
+                        new[] { "E1-S1-1-T1.MP4", "E1-S1-1-T2.mp4" }),
+                    AutoResolveConflicts = true
+                };
+
+                List<RenamePlan> plan = RenamePlanBuilder.BuildPlan(
+                    new List<ShotRow> { row }, settings, RealFileSystemProbe.Instance);
+                TestAssert.AreEqual("E1-S1-1-T3.mp4", plan[0].NewName, "comparison folder advances to first free T number");
+                TestAssert.AreEqual(PlanStatus.Ready, plan[0].Status, "comparison conflict is resolved");
+            });
+        }
+
+        private static void BuildPlanAutoResolvesBatchConflict()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string first = Path.Combine(dir, "first.mp4");
+                string second = Path.Combine(dir, "second.mp4");
+                File.WriteAllText(first, "x");
+                File.WriteAllText(second, "y");
+                File.WriteAllText(Path.Combine(dir, "E1-S1-1-T1.mp4"), "existing");
+
+                ShotRow row = new ShotRow { Sequence = 1 };
+                row.MainFiles.Add(first);
+                row.MainFiles.Add(second);
+                NamingSettings settings = new NamingSettings
+                {
+                    Episode = 1,
+                    DefaultScene = 1,
+                    KeepExtensionCase = true,
+                    OutputDirectory = dir,
+                    AutoResolveConflicts = true
+                };
+
+                List<RenamePlan> plan = RenamePlanBuilder.BuildPlan(
+                    new List<ShotRow> { row }, settings, RealFileSystemProbe.Instance);
+                TestAssert.AreEqual("E1-S1-1-T2.mp4", plan[0].NewName, "first batch item advances past existing T1");
+                TestAssert.AreEqual("E1-S1-1-T3.mp4", plan[1].NewName, "second batch item advances past reserved T2");
+                TestAssert.AreEqual(PlanStatus.Ready, plan[0].Status, "first batch item is ready");
+                TestAssert.AreEqual(PlanStatus.Ready, plan[1].Status, "second batch item is ready");
+            });
+        }
+
+        private static void BuildPlanAutoResolvesCustomTailConflict()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string source = Path.Combine(dir, "download.mp4");
+                File.WriteAllText(source, "x");
+                ShotRow row = new ShotRow { Sequence = 1 };
+                row.MainFiles.Add(source);
+                row.MainTailOverrides.Add("Foo");
+                NamingSettings settings = new NamingSettings
+                {
+                    Episode = 1,
+                    DefaultScene = 1,
+                    KeepExtensionCase = true,
+                    OutputDirectory = dir,
+                    ComparisonFileNames = new HashSet<string>(new[] { "E1-S1-1-Foo.mp4" }),
+                    AutoResolveConflicts = true
+                };
+
+                List<RenamePlan> plan = RenamePlanBuilder.BuildPlan(
+                    new List<ShotRow> { row }, settings, RealFileSystemProbe.Instance);
+                TestAssert.AreEqual("E1-S1-1-Foo_2.mp4", plan[0].NewName, "custom tail conflict gets a deterministic suffix");
+                TestAssert.AreEqual(PlanStatus.Ready, plan[0].Status, "custom tail conflict is resolved");
+            });
+        }
+        private static void BuildPlanAutoResolveDisabledKeepsConflict()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string source = Path.Combine(dir, "download.mp4");
+                File.WriteAllText(source, "x");
+                File.WriteAllText(Path.Combine(dir, "E1-S1-1-T1.mp4"), "existing");
+                ShotRow row = new ShotRow { Sequence = 1 };
+                row.MainFiles.Add(source);
+                NamingSettings settings = new NamingSettings
+                {
+                    Episode = 1,
+                    DefaultScene = 1,
+                    KeepExtensionCase = true,
+                    OutputDirectory = dir,
+                    AutoResolveConflicts = false
+                };
+
+                List<RenamePlan> plan = RenamePlanBuilder.BuildPlan(
+                    new List<ShotRow> { row }, settings, RealFileSystemProbe.Instance);
+                TestAssert.AreEqual("E1-S1-1-T1.mp4", plan[0].NewName, "disabled auto resolution keeps requested name");
+                TestAssert.AreEqual(PlanStatus.TargetExists, plan[0].Status, "disabled auto resolution reports target conflict");
+            });
+        }
+
+        private static void BuildPlanStopsAtT100()
+        {
+            FakeFileSystemProbe probe = new FakeFileSystemProbe()
+                .AddExisting(@"C:\V\a.mp4");
+            ShotRow row = new ShotRow { Sequence = 1 };
+            row.MainFiles.Add(@"C:\V\a.mp4");
+            row.MainTailOverrides.Add("T100");
+            NamingSettings settings = new NamingSettings
+            {
+                Episode = 1,
+                DefaultScene = 1,
+                KeepExtensionCase = true,
+                OutputDirectory = @"C:\V",
+                ComparisonFileNames = new HashSet<string>(new[] { "E1-S1-1-T100.mp4" }),
+                AutoResolveConflicts = true
+            };
+
+            RenamePlan entry = RenamePlanBuilder.BuildPlan(
+                new List<ShotRow> { row }, settings, probe)[0];
+            TestAssert.AreEqual("E1-S1-1-T100.mp4", entry.NewName, "T100 never advances to T101");
+            TestAssert.AreEqual(PlanStatus.TargetExists, entry.Status, "T100 conflict stays visible");
+        }
+
+        private static void BuildPlanUsesOutputDirectory()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string sourceDir = Path.Combine(dir, "download");
+                string outputDir = Path.Combine(dir, "named");
+                Directory.CreateDirectory(sourceDir);
+                Directory.CreateDirectory(outputDir);
+                string source = Path.Combine(sourceDir, "download.mp4");
+                File.WriteAllText(source, "x");
+                ShotRow row = new ShotRow { Sequence = 4 };
+                row.MainFiles.Add(source);
+                NamingSettings settings = new NamingSettings
+                {
+                    Episode = 2,
+                    DefaultScene = 3,
+                    KeepExtensionCase = true,
+                    OutputDirectory = outputDir,
+                    AutoResolveConflicts = true
+                };
+
+                List<RenamePlan> plan = RenamePlanBuilder.BuildPlan(
+                    new List<ShotRow> { row }, settings, RealFileSystemProbe.Instance);
+                TestAssert.AreEqual(Path.Combine(outputDir, "E2-S3-4-T1.mp4"), plan[0].TargetPath, "target is placed in selected output directory");
+                TestAssert.AreEqual(PlanStatus.Ready, plan[0].Status, "cross-directory target is ready");
+            });
+        }
         private static void BuildPlanResizesTailOverrides()
         {
             // Pinned side effect: BuildPlan resizes the caller's tail-override lists
@@ -571,6 +744,96 @@ namespace VideoRenamer.Tests
             });
         }
 
+        private static void PrepareExportOnlyKeepNameOverwrite()
+        {
+            RenamePlan entry = BuildFullyPopulatedPlanEntry(new ShotRow());
+            List<RenamePlan> prepared = ExportPlanBuilder.PrepareExportOnly(
+                new List<RenamePlan> { entry }, ExportOutputMode.OverwriteOriginal);
+            TestAssert.AreEqual(1, prepared.Count, "export-only count");
+            TestAssert.AreEqual(entry.OldPath, prepared[0].TargetPath, "overwrite keeps original path");
+            TestAssert.AreEqual(entry.OldName, prepared[0].NewName, "overwrite keeps original name");
+            TestAssert.IsFalse(object.ReferenceEquals(entry, prepared[0]), "plan entry cloned");
+        }
+
+        private static void PrepareExportOnlySaveAsSuffix()
+        {
+            RenamePlan entry = new RenamePlan
+            {
+                Row = new ShotRow(),
+                OldPath = @"C:\VmrNoSuchDir_ff8a2\a.mp4",
+                TargetPath = @"C:\VmrNoSuchDir_ff8a2\b.mp4",
+                OldName = "a.mp4",
+                NewName = "b.mp4",
+                Status = PlanStatus.Ready
+            };
+            List<RenamePlan> prepared = ExportPlanBuilder.PrepareExportOnly(
+                new List<RenamePlan> { entry }, ExportOutputMode.SaveAsNewFile);
+            TestAssert.AreEqual(1, prepared.Count, "export-only count");
+            TestAssert.AreEqual("a_1080p.mp4", prepared[0].NewName, "save-as appends _1080p to original name");
+            TestAssert.AreEqual("另存为新文件", PlanStatusText.For(prepared[0].Status), "save-as status");
+            TestAssert.AreEqual("b.mp4", entry.NewName, "source entry untouched");
+        }
+
+        private static void PrepareExportOnlyUsesOutputDirectory()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string sourceDir = Path.Combine(dir, "source");
+                string outputDir = Path.Combine(dir, "output");
+                Directory.CreateDirectory(sourceDir);
+                Directory.CreateDirectory(outputDir);
+                string source = Path.Combine(sourceDir, "E1-S1-1-T1.mp4");
+                File.WriteAllText(source, "x");
+                RenamePlan entry = new RenamePlan
+                {
+                    OldPath = source,
+                    TargetPath = source,
+                    OldName = "E1-S1-1-T1.mp4",
+                    NewName = "E1-S1-1-T1.mp4",
+                    Status = PlanStatus.Unchanged
+                };
+                List<RenamePlan> prepared = ExportPlanBuilder.PrepareExportOnly(
+                    new List<RenamePlan> { entry }, ExportOutputMode.SaveAsNewFile, outputDir);
+                TestAssert.AreEqual(Path.Combine(outputDir, "E1-S1-1-T1.mp4"), prepared[0].TargetPath, "export-only uses selected output directory");
+                TestAssert.AreEqual("E1-S1-1-T1.mp4", prepared[0].NewName, "export-only keeps original name when destination is free");
+            });
+        }
+
+        private static void PrepareExportOnlyGenericConflictSuffix()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string sourceDir = Path.Combine(dir, "source");
+                string outputDir = Path.Combine(dir, "output");
+                Directory.CreateDirectory(sourceDir);
+                Directory.CreateDirectory(outputDir);
+                string source = Path.Combine(sourceDir, "raw.mp4");
+                File.WriteAllText(source, "x");
+                File.WriteAllText(Path.Combine(outputDir, "raw.mp4"), "existing");
+                RenamePlan entry = new RenamePlan
+                {
+                    OldPath = source,
+                    TargetPath = source,
+                    OldName = "raw.mp4",
+                    NewName = "raw.mp4",
+                    Status = PlanStatus.Ready
+                };
+                List<RenamePlan> prepared = ExportPlanBuilder.PrepareExportOnly(
+                    new List<RenamePlan> { entry }, ExportOutputMode.SaveAsNewFile, outputDir);
+                TestAssert.AreEqual("raw_2.mp4", prepared[0].NewName, "generic export conflict gets deterministic suffix");
+            });
+        }
+        private static void PrepareExportOnlySkipsMissing()
+        {
+            RenamePlan missing = BuildFullyPopulatedPlanEntry(new ShotRow());
+            missing.Status = PlanStatus.SourceMissing;
+            RenamePlan ready = BuildFullyPopulatedPlanEntry(new ShotRow());
+            List<RenamePlan> prepared = ExportPlanBuilder.PrepareExportOnly(
+                new List<RenamePlan> { null, missing, ready }, ExportOutputMode.OverwriteOriginal);
+            TestAssert.AreEqual(1, prepared.Count, "null and SourceMissing entries skipped");
+            TestAssert.AreEqual(ready.OldPath, prepared[0].OldPath, "kept entry is the ready one");
+        }
+
         private static void HistoryValueRoundtrip()
         {
             string[] samples =
@@ -669,6 +932,28 @@ namespace VideoRenamer.Tests
             });
         }
 
+        private static void PlanExecutorCreatesOutputDirectory()
+        {
+            WithTempDir(delegate(string dir)
+            {
+                string source = Path.Combine(dir, "download.mp4");
+                string target = Path.Combine(dir, "nested", "E1-S1-1-T1.mp4");
+                File.WriteAllText(source, "x");
+                RenamePlan entry = new RenamePlan
+                {
+                    OldPath = source,
+                    TargetPath = target,
+                    OldName = "download.mp4",
+                    NewName = "E1-S1-1-T1.mp4",
+                    Status = PlanStatus.Ready
+                };
+                PlanExecutor.ExecutionResult result = PlanExecutor.Execute(
+                    new List<RenamePlan> { entry }, null);
+                TestAssert.AreEqual(1, result.Successes.Count, "cross-directory move succeeds");
+                TestAssert.IsTrue(File.Exists(target), "target directory is created before move");
+                TestAssert.IsFalse(File.Exists(source), "source is moved away");
+            });
+        }
         private static void PatchRowFileListVariants()
         {
             ShotRow row = new ShotRow();
@@ -689,6 +974,24 @@ namespace VideoRenamer.Tests
 
             // 4. null 行：安全无操作。
             PlanExecutor.PatchRowFileList(null, true, 0, "a", "b");
+        }
+
+        private static void ExportPatchDecisionForExternalOverwrite()
+        {
+            string source = @"C:\source\a.mp4";
+            string external = @"D:\output\a.mp4";
+            TestAssert.IsTrue(
+                PlanExecutor.ShouldPatchRowFileListAfterExport(false, ExportOutputMode.OverwriteOriginal, source, external),
+                "external overwrite writes new path back");
+            TestAssert.IsFalse(
+                PlanExecutor.ShouldPatchRowFileListAfterExport(false, ExportOutputMode.OverwriteOriginal, source, @"c:\SOURCE\A.MP4"),
+                "same-path overwrite needs no patch");
+            TestAssert.IsFalse(
+                PlanExecutor.ShouldPatchRowFileListAfterExport(false, ExportOutputMode.SaveAsNewFile, source, external),
+                "export-only save-as keeps source path");
+            TestAssert.IsTrue(
+                PlanExecutor.ShouldPatchRowFileListAfterExport(true, ExportOutputMode.SaveAsNewFile, source, external),
+                "rename-and-export writes target back");
         }
 
         private static void ProcessArgumentsQuoteTable()

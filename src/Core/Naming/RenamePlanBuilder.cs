@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,6 +11,8 @@ namespace VideoRenamer
     // Pure naming / rename-plan logic, decoupled from the WinForms UI.
     public static class RenamePlanBuilder
     {
+        private const int MaxAutoSequence = 100;
+
 
         public static int GetEffectiveScene(ShotRow row, int defaultScene, bool useRowScene)
         {
@@ -26,7 +28,10 @@ namespace VideoRenamer
                 DefaultScene = scene,
                 KeepExtensionCase = keepExtensionCase,
                 Export1080p = export1080p,
-                UseRowScene = useRowScene
+                UseRowScene = useRowScene,
+                OutputDirectory = "",
+                ComparisonFileNames = null,
+                AutoResolveConflicts = false
             };
             return BuildPlan(sourceRows, settings, RealFileSystemProbe.Instance);
         }
@@ -35,18 +40,43 @@ namespace VideoRenamer
         {
             Dictionary<string, bool> seen = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
             List<RenamePlan> plan = new List<RenamePlan>();
+            if (sourceRows == null)
+            {
+                return plan;
+            }
+
+            if (probe == null)
+            {
+                probe = RealFileSystemProbe.Instance;
+            }
+            HashSet<string> comparisonFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (settings.ComparisonFileNames != null)
+            {
+                foreach (string comparisonName in settings.ComparisonFileNames)
+                {
+                    if (!string.IsNullOrWhiteSpace(comparisonName))
+                    {
+                        comparisonFileNames.Add(Path.GetFileName(comparisonName));
+                    }
+                }
+            }
             int rowIndex = 1;
 
             foreach (ShotRow row in sourceRows)
             {
+                if (row == null)
+                {
+                    rowIndex++;
+                    continue;
+                }
                 int rowScene = GetEffectiveScene(row, settings.DefaultScene, settings.UseRowScene);
                 int shot = Math.Max(1, row.Sequence);
                 int take = 1;
 
                 EnsureTailOverrideSize(row, true);
                 EnsureTailOverrideSize(row, false);
-                AddFilesToPlan(plan, seen, row, rowIndex, "主要素材", true, row.MainFiles, row.MainTailOverrides, settings.Episode, rowScene, shot, ref take, settings.KeepExtensionCase, settings.Export1080p, probe);
-                AddFilesToPlan(plan, seen, row, rowIndex, "备用素材", false, row.BackupFiles, row.BackupTailOverrides, settings.Episode, rowScene, shot, ref take, settings.KeepExtensionCase, settings.Export1080p, probe);
+                AddFilesToPlan(plan, seen, row, rowIndex, "主要素材", true, row.MainFiles, row.MainTailOverrides, settings.Episode, rowScene, shot, ref take, settings.KeepExtensionCase, settings.Export1080p, probe, settings.OutputDirectory, comparisonFileNames, settings.AutoResolveConflicts);
+                AddFilesToPlan(plan, seen, row, rowIndex, "备用素材", false, row.BackupFiles, row.BackupTailOverrides, settings.Episode, rowScene, shot, ref take, settings.KeepExtensionCase, settings.Export1080p, probe, settings.OutputDirectory, comparisonFileNames, settings.AutoResolveConflicts);
                 rowIndex++;
             }
 
@@ -68,15 +98,18 @@ namespace VideoRenamer
             ref int take,
             bool keepExtensionCase,
             bool export1080p,
-            IFileSystemProbe probe)
+            IFileSystemProbe probe,
+            string outputDirectory,
+            HashSet<string> comparisonFileNames,
+            bool autoResolveConflicts)
         {
             for (int fileIndex = 0; fileIndex < files.Count; fileIndex++)
             {
                 string oldPath = Path.GetFullPath(files[fileIndex]);
                 string customTail = tailOverrides != null && fileIndex < tailOverrides.Count ? NormalizeCustomTailText(tailOverrides[fileIndex]) : "";
                 string tailSegment = GetTailSegment(take, customTail);
+                string directory = ResolveOutputDirectory(outputDirectory, oldPath);
                 string newName = GetMaterialFileName(episode, scene, shot, row != null ? row.ShotSuffix : "", tailSegment, oldPath, keepExtensionCase);
-                string directory = Path.GetDirectoryName(oldPath);
                 string targetPath = Path.GetFullPath(Path.Combine(directory, newName));
                 PlanStatus status = PlanStatus.Ready;
 
@@ -88,9 +121,38 @@ namespace VideoRenamer
                 {
                     status = export1080p ? PlanStatus.PendingOverwriteExport : PlanStatus.Unchanged;
                 }
-                else if (probe.FileExists(targetPath))
+                else
                 {
-                    status = PlanStatus.TargetExists;
+                    bool pathConflict = probe.FileExists(targetPath) || seen.ContainsKey(targetPath);
+                    bool comparisonConflict = comparisonFileNames.Contains(Path.GetFileName(targetPath));
+                    if (autoResolveConflicts && (pathConflict || comparisonConflict))
+                    {
+                        string resolvedTail = FindAvailableTail(
+                            tailSegment,
+                            episode,
+                            scene,
+                            shot,
+                            row != null ? row.ShotSuffix : "",
+                            oldPath,
+                            keepExtensionCase,
+                            directory,
+                            seen,
+                            comparisonFileNames,
+                            probe);
+                        if (resolvedTail != null)
+                        {
+                            tailSegment = resolvedTail;
+                            newName = GetMaterialFileName(episode, scene, shot, row != null ? row.ShotSuffix : "", tailSegment, oldPath, keepExtensionCase);
+                            targetPath = Path.GetFullPath(Path.Combine(directory, newName));
+                            pathConflict = probe.FileExists(targetPath) || seen.ContainsKey(targetPath);
+                            comparisonConflict = comparisonFileNames.Contains(Path.GetFileName(targetPath));
+                        }
+                    }
+
+                    if (pathConflict || comparisonConflict)
+                    {
+                        status = seen.ContainsKey(targetPath) ? PlanStatus.DuplicateNewName : PlanStatus.TargetExists;
+                    }
                 }
 
                 if (export1080p && status == PlanStatus.Ready)
@@ -340,14 +402,73 @@ namespace VideoRenamer
 
         public static string BuildTargetPathForTail(RenamePlan entry, string tailSegment, int episode, int scene, bool keepExtensionCase)
         {
-            string directory = Path.GetDirectoryName(entry.OldPath);
-            if (string.IsNullOrWhiteSpace(directory))
-            {
-                directory = Environment.CurrentDirectory;
-            }
+            return BuildTargetPathForTail(entry, tailSegment, episode, scene, keepExtensionCase, "");
+        }
 
+        public static string BuildTargetPathForTail(RenamePlan entry, string tailSegment, int episode, int scene, bool keepExtensionCase, string outputDirectory)
+        {
+            string directory = ResolveOutputDirectory(outputDirectory, entry.OldPath);
             string newName = GetMaterialFileName(episode, scene, entry.Shot, entry.Row != null ? entry.Row.ShotSuffix : "", tailSegment, entry.OldPath, keepExtensionCase);
             return Path.GetFullPath(Path.Combine(directory, newName));
+        }
+
+        private static string ResolveOutputDirectory(string outputDirectory, string sourcePath)
+        {
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                return Path.GetFullPath(outputDirectory.Trim());
+            }
+
+            string directory = Path.GetDirectoryName(sourcePath);
+            return string.IsNullOrWhiteSpace(directory) ? Environment.CurrentDirectory : directory;
+        }
+
+        private static string FindAvailableTail(
+            string baseTail,
+            int episode,
+            int scene,
+            int shot,
+            string shotSuffix,
+            string sourcePath,
+            bool keepExtensionCase,
+            string directory,
+            Dictionary<string, bool> seen,
+            HashSet<string> comparisonFileNames,
+            IFileSystemProbe probe)
+        {
+            int numericStart;
+            bool isNumericTail = TryGetNumericTail(baseTail, out numericStart);
+            int attemptLimit = isNumericTail
+                ? Math.Max(0, MaxAutoSequence - numericStart + 1)
+                : MaxAutoSequence;
+            for (int attempt = 0; attempt < attemptLimit; attempt++)
+            {
+                string candidateTail = isNumericTail
+                    ? "T" + (numericStart + attempt)
+                    : (attempt == 0 ? baseTail : AppendCustomTailCounter(baseTail, attempt + 1));
+                string candidateName = GetMaterialFileName(episode, scene, shot, shotSuffix, candidateTail, sourcePath, keepExtensionCase);
+                string candidatePath = Path.GetFullPath(Path.Combine(directory, candidateName));
+                if (!probe.FileExists(candidatePath) &&
+                    !seen.ContainsKey(candidatePath) &&
+                    !comparisonFileNames.Contains(candidateName))
+                {
+                    return candidateTail;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool TryGetNumericTail(string value, out int number)
+        {
+            number = 0;
+            Match match = Regex.Match(value ?? "", "^T(?<num>[0-9]+)$", RegexOptions.IgnoreCase);
+            if (!match.Success || !int.TryParse(match.Groups["num"].Value, out number) || number < 1)
+            {
+                number = 0;
+                return false;
+            }
+            return true;
         }
 
         public static bool IsSamePlanEntry(RenamePlan left, RenamePlan right)

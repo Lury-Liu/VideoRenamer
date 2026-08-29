@@ -1,4 +1,4 @@
-﻿; ============================================================================
+; ============================================================================
 ;  VideoRenamer - Inno Setup 安装脚本
 ;  由 打包安装程序.ps1 调用，或直接用 Inno Setup 打开编译。
 ;  预处理变量 AppVersion 可由命令行覆盖： ISCC.exe /DAppVersion=1.0.6.0 installer.iss
@@ -8,7 +8,7 @@
 #define AppPublisher "@寒松"
 #define AppExeName "VideoRenamer.exe"
 #ifndef AppVersion
-  #define AppVersion "1.0.8.0"
+  #define AppVersion "1.0.12.0"
 #endif
 
 [Setup]

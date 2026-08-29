@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -55,6 +55,11 @@ namespace VideoRenamer
                     string renamedPath = entry.TargetPath;
                     if (!StringComparer.OrdinalIgnoreCase.Equals(entry.OldPath, entry.TargetPath))
                     {
+                        string targetDirectory = Path.GetDirectoryName(entry.TargetPath);
+                        if (!string.IsNullOrWhiteSpace(targetDirectory))
+                        {
+                            Directory.CreateDirectory(targetDirectory);
+                        }
                         File.Move(entry.OldPath, entry.TargetPath);
                     }
 
@@ -80,6 +85,18 @@ namespace VideoRenamer
             return result;
         }
 
+        // 导出完成后是否需要把成功操作写回行模型。仅导出高清通常保留原路径；
+        // 但覆盖导出到外部目录会删除源路径并留下新目标路径，必须同步更新。
+        public static bool ShouldPatchRowFileListAfterExport(
+            bool renameTargets,
+            ExportOutputMode outputMode,
+            string originalPath,
+            string renamedPath)
+        {
+            return renameTargets ||
+                (outputMode == ExportOutputMode.OverwriteOriginal &&
+                 !StringComparer.OrdinalIgnoreCase.Equals(originalPath, renamedPath));
+        }
         // 行模型路径写回的唯一实现：优先按记录的 FileIndex 且路径匹配写回，
         // 索引失配（例如中途行内容变化）时按路径 FindIndex 兜底。
         public static void PatchRowFileList(ShotRow row, bool isMain, int fileIndex, string fromPath, string toPath)

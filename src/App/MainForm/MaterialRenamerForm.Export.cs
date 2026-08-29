@@ -10,8 +10,9 @@ namespace VideoRenamer
         // 导出编排在 ExportController / VideoExportService；这里只剩 UI 侧：
         // 启动前的界面锁定、完成后的写回+刷新+对话框。逐行进度列已移除，
         // 导出进度仅由左下角总进度条呈现（按已完成文件数推进）。
-        // renameTargets=false 表示”仅导出高清、不重命名”：完成后不改写行模型
-        // 文件路径（原名不变或生成 _1080p 副本），仅失效内容缓存与提示文案不同。
+        // renameTargets=false 表示“仅导出高清、不重命名”：通常不改写行模型
+        // 文件路径（原名不变或生成 _1080p 副本）；但覆盖导出到外部目录时，
+        // 源文件会被成功生成的目标文件替代，必须同步写回新的路径。
         private void StartExport1080p(List<RenamePlan> plan, string ffmpegPath, ExportOutputMode outputMode, bool watermarkEnabled, bool renameTargets)
         {
             SetOperationUiEnabled(false);
@@ -46,7 +47,11 @@ namespace VideoRenamer
                 {
                     foreach (RenameOperation op in outcome.Successes)
                     {
-                        if (renameTargets)
+                        if (PlanExecutor.ShouldPatchRowFileListAfterExport(
+                            renameTargets,
+                            outputMode,
+                            op.OriginalPath,
+                            op.RenamedPath))
                         {
                             PlanExecutor.PatchRowFileList(op);
                         }
@@ -135,7 +140,7 @@ namespace VideoRenamer
             List<RenamePlan> exportPlan;
             try
             {
-                exportPlan = ExportPlanBuilder.PrepareExportOnly(currentPlan, outputMode);
+                exportPlan = ExportPlanBuilder.PrepareExportOnly(currentPlan, outputMode, GetOutputDirectoryForExport());
             }
             catch (Exception ex)
             {

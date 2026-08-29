@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -50,10 +50,15 @@ namespace VideoRenamer
         private NumericUpDown numScene;
         private CheckBox chkKeepExtension;
         private CheckBox chkRowScene;
+        private CheckBox chkAutoResolveConflicts;
         private CheckBox chkExport1080p;
         private CheckBox chkExportWatermark;
         private CheckBox chkCustomTail;
         private TextBox txtCustomTail;
+        private TextBox txtComparisonDirectory;
+        private TextBox txtOutputDirectory;
+        private Button btnChooseComparisonDirectory;
+        private Button btnChooseOutputDirectory;
         private Label statusLabel;
         private Button btnRename;
         private Button btnExportOnly;
@@ -122,6 +127,18 @@ namespace VideoRenamer
                 if (form.btnAbout == null || form.btnAbout.Text != "关于")
                 {
                     throw new Exception("关于按钮初始化失败。");
+                }
+                if (form.txtComparisonDirectory == null || form.txtOutputDirectory == null ||
+                    form.btnChooseComparisonDirectory == null || form.btnChooseOutputDirectory == null ||
+                    form.chkAutoResolveConflicts == null || !form.chkAutoResolveConflicts.Checked)
+                {
+                    throw new Exception("\u76EE\u5F55\u8BBE\u7F6E\u63A7\u4EF6\u521D\u59CB\u5316\u5931\u8D25\u3002");
+                }
+                NamingSettings smokeSettings = form.ReadNamingSettings();
+                if (!smokeSettings.AutoResolveConflicts || !string.IsNullOrEmpty(smokeSettings.OutputDirectory) ||
+                    smokeSettings.ComparisonFileNames == null)
+                {
+                    throw new Exception("\u76EE\u5F55\u8BBE\u7F6E\u9ED8\u8BA4\u503C\u6D4B\u8BD5\u5931\u8D25\u3002");
                 }
                 if (form.chkExportWatermark == null || form.chkExportWatermark.Checked)
                 {

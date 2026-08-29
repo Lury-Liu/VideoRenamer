@@ -15,9 +15,6 @@ namespace VideoRenamer.Tests
         private const string ExportArgsAudioReencodeGolden =
             "-hide_banner -nostdin -nostats -y -i \"C:\\Temp\\input.mp4\" -vf \"scale=1080:1920:flags=bicubic,setsar=1\" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -threads 0 -progress pipe:1 -c:a aac -b:a 160k \"C:\\Temp\\output.mp4\"";
 
-        private const string StripArgsGolden =
-            "-hide_banner -nostdin -nostats -y -i \"C:\\Temp\\in.mp4\" -vf \"thumbnail=n=12,scale=320:-1\" -frames:v 12 -vsync vfr \"C:\\Temp\\out\\f_%03d.png\"";
-
         public static List<TestCase> Cases()
         {
             List<TestCase> cases = new List<TestCase>();
@@ -25,7 +22,6 @@ namespace VideoRenamer.Tests
             cases.Add(new TestCase("ffmpeg_export_args_audio_reencode_golden", FfmpegExportArgsAudioReencodeGolden));
             cases.Add(new TestCase("ffmpeg_watermark_args_structure", FfmpegWatermarkArgsStructure));
             cases.Add(new TestCase("ffmpeg_no_watermark_args_clean", FfmpegNoWatermarkArgsClean));
-            cases.Add(new TestCase("frame_strip_args_golden", FrameStripArgsGolden));
             return cases;
         }
 
@@ -59,13 +55,6 @@ namespace VideoRenamer.Tests
             string args = FfmpegArguments.BuildExportArguments(@"C:\Temp\input.mp4", @"C:\Temp\output.mp4", true, "");
             TestAssert.IsFalse(args.Contains("drawtext="), "no drawtext without watermark");
             TestAssert.IsFalse(args.Contains("未命名视频"), "no placeholder text without watermark");
-        }
-
-        private static void FrameStripArgsGolden()
-        {
-            TestAssert.AreEqual(StripArgsGolden,
-                VideoFrameStripProvider.BuildStripArguments(@"C:\Temp\in.mp4", @"C:\Temp\out\f_%03d.png", 12),
-                "frame strip args golden");
         }
     }
 }

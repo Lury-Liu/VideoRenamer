@@ -106,14 +106,10 @@ namespace VideoRenamer
             lines.Add("制作人：" + AppInfo.Author);
             lines.Add("");
 
+            lines.Add(LicenseManager.FormatRemainingDays(licenseInfo));
             if (licenseInfo != null)
             {
-                lines.Add("授权剩余时间：" + LicenseManager.GetRemainingDays(licenseInfo) + " 天");
-                lines.Add("授权到期时间：" + licenseInfo.ExpiresUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
-            }
-            else
-            {
-                lines.Add("授权剩余时间：未知");
+                lines.Add(LicenseManager.FormatExpiryTime(licenseInfo));
             }
 
             return string.Join("\r\n", lines.ToArray());

@@ -28,6 +28,18 @@ namespace VideoRenamer
             return Math.Max(0, (int)Math.Ceiling((info.ExpiresUtc - DateTime.UtcNow).TotalDays));
         }
 
+        // 授权剩余时间统一文案（启动页/关于页共用）：措辞单一所有者，避免
+        // 各处手写"剩余激活天数"/"授权剩余时间"漂移。
+        public static string FormatRemainingDays(LicenseInfo info)
+        {
+            return info == null ? "授权剩余时间：未知" : "授权剩余时间：" + GetRemainingDays(info) + " 天";
+        }
+
+        public static string FormatExpiryTime(LicenseInfo info)
+        {
+            return info == null ? "" : "授权到期时间：" + info.ExpiresUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+        }
+
         public static string GetMachineCode()
         {
             string raw = "";

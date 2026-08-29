@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -47,7 +47,10 @@ namespace VideoRenamer
                 KeepExtensionCase = chkKeepExtension != null && chkKeepExtension.Checked,
                 Export1080p = IsExport1080pEnabled(),
                 ExportWatermark = IsExportWatermarkEnabled(),
-                UseRowScene = IsRowSceneEnabled()
+                UseRowScene = IsRowSceneEnabled(),
+                OutputDirectory = txtOutputDirectory == null || txtOutputDirectory.Text == null ? "" : txtOutputDirectory.Text.Trim(),
+                ComparisonFileNames = ReadComparisonFileNames(),
+                AutoResolveConflicts = chkAutoResolveConflicts == null || chkAutoResolveConflicts.Checked
             };
         }
 

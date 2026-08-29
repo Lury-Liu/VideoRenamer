@@ -66,7 +66,8 @@ if ($hyphenFree.Count -ne 1) {
     $failures += ("Expected exactly one hyphen-free EXE in {0}, found {1}" -f $distDir, $hyphenFree.Count)
 }
 
-# --- 6. No stray DLLs beside the EXE (single-file contract) ---
+# --- 6. No stray DLLs beside the EXE (single-file contract; the green
+#        libvlc runtime lives in dist\libvlc\ subdirectory, not the root) ---
 $strayDlls = @(Get-ChildItem -LiteralPath $distDir -Filter *.dll -File)
 if ($strayDlls.Count -gt 0) {
     $failures += ("Stray DLLs in {0}: {1}" -f $distDir, (($strayDlls | ForEach-Object Name) -join ", "))

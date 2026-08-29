@@ -82,7 +82,7 @@ namespace VideoRenamer
             panel.Controls.Add(author);
 
             Label days = new Label();
-            days.Text = "剩余激活天数：" + LicenseManager.GetRemainingDays(licenseInfo) + " 天";
+            days.Text = LicenseManager.FormatRemainingDays(licenseInfo);
             days.AutoSize = false;
             days.TextAlign = ContentAlignment.MiddleLeft;
             days.Location = new Point(34, 176);

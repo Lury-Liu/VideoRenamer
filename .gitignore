@@ -14,6 +14,7 @@
 
 # Large local binary dependencies
 /tools/ffmpeg.exe
+/tools/libvlc/
 
 # Developer-only authorization material
 生成授权密钥工具.ps1

@@ -1,45 +1,62 @@
 # Project Status — VideoRenamer
 
-| | |
+**Status date:** 2026-08-29
+**Current source/build version:** **V1.0.12.0**
+**Overall state:** 核心功能稳定，可用于素材命名与 1080p 导出
+
+| 项目 | 当前状态 |
 | --- | --- |
-| **Source version** | **V1.0.11.0** |
-| **Published release** | **v1.0.8.0** |
-| **Branch policy** | `main` is the only remote branch |
-| **Status generated** | 2026-08-29 |
-| **Overall state** | 核心功能稳定 · 视频命名与导出工具 |
+| 本地 EXE | `dist\VideoRenamer.exe` |
+| EXE 文件版本 | `1.0.12.0` |
+| EXE 文件大小 | `104,074,240` bytes（约 104 MB） |
+| 本地更新清单 | `updates\latest.json`，版本 `1.0.12.0` |
+| 远程 Release | 本文只确认本地清单与构建产物；线上可用性以 GitHub Release 实际页面为准 |
+| 分支约定 | 远程主分支为 `main` |
+| Git 提交状态 | 当前工作树仍有本次功能修改，尚未创建新的提交 |
 
-## Current Version (V1.0.11.0)
+## 已完成能力
 
-### Core Features
-- ✅ 视频素材批量重命名（场号 + 镜号 + 标签）
-- ✅ 素材信息显示（大小、分辨率、时长、修改时间）
-- ✅ FFmpeg 视频导出（可选 1080p 缩放、水印）
-- ✅ 重命名历史记录与撤销
-- ✅ 双主题（护眼模式 / 暗色模式）
-- ✅ 自动更新检测
+- ✅ 批量重命名：`E{集数}-S{场号}-{镜号}{后缀}-{尾段}{扩展名}`。
+- ✅ 顶部统一集数、默认场号；可按行使用场号。
+- ✅ 镜号支持 1–2 位英文字母后缀并统一为大写。
+- ✅ 主要素材和备用素材按当前行顺序自动生成 `T1`、`T2`……。
+- ✅ 可选择对比文件夹，阻止与已有命名素材重名（文件名大小写不敏感，当前只扫描第一层）。
+- ✅ 可选择输出文件夹，将全部目标集中到指定目录；不指定时保留源目录行为。
+- ✅ 冲突自动递增：数字尾段最多尝试 `T1` 到 `T100`；自定义尾段使用 `_2`、`_3` 等分隔序号。
+- ✅ 冲突无法解决时保持阻塞状态，不覆盖已有文件。
+- ✅ 1080p 导出、总体进度、取消；支持原位覆盖和 `_1080p` 副本模式。
+- ✅ 导出-only：只升级视频，不改变原文件名。
+- ✅ 重命名历史记录与撤销。
+- ✅ 护眼/暗色主题、免责声明、授权校验和自动更新。
 
-### Technical Details
-- **EXE 大小**: 104 MB（单文件，内嵌 FFmpeg）
-- **依赖**: .NET Framework 4.x（Windows 内置）
-- **测试覆盖**: 79 个自测用例全部通过
-- **构建门**: 6 个质量门全部通过
+## 命名与冲突决策顺序
 
-## Build & Test
+1. 根据 E、S、镜号/后缀和素材顺序生成候选名。
+2. 决定目标目录：有输出目录就使用输出目录，否则使用源文件目录。
+3. 检查目标文件是否存在、当前批次是否重复、对比目录是否存在同名文件，以及目标是否被占用。
+4. 未开启自动递增时，冲突显示为阻塞状态。
+5. 开启自动递增时：数字尾段尝试到 `T100`；自定义尾段尝试带下划线的序号；仍无可用名称则保持阻塞。
+6. 只有预览中没有阻塞项时才允许执行。
 
-```powershell
-# 自测（必须通过）
-powershell -ExecutionPolicy Bypass -File "VideoRenamer.ps1" -SelfTest
+## 验证结果
 
-# 构建 EXE
-powershell -ExecutionPolicy Bypass -File "构建EXE.ps1"
+- **SelfTest：89/89，通过。**
+- **SmokeTest：通过（`SmokeTest OK`）。**
+- **构建门：6 个质量门全部通过。**
+- **产物校验：通过。**
+- `dist\VideoRenamer.exe` 文件版本为 `1.0.12.0`，内嵌 FFmpeg，无额外 DLL 依赖。
 
-# 打包安装程序（需要 Inno Setup 6）
-powershell -ExecutionPolicy Bypass -File "打包安装程序.ps1"
-```
+## 已知边界
 
-## Documentation
+- 对比文件夹当前只扫描第一层，不递归子目录。
+- 软件不会分析视频画面来自动识别真实镜号；用户仍需提供或确认 E、S 和镜号。
+- 从 `VideoRenamer.ps1` 直接运行不会嵌入 FFmpeg，因此媒体信息和导出功能会静默降级；正式使用应运行 `dist\VideoRenamer.exe`。
+- Inno Setup 6 的 `ISCC.exe` 未在本次环境中确认可用，因此本地已有单文件 EXE，但不能把安装包构建状态写成已完成。
 
-- [README.md](README.md) — 产品说明、构建和打包说明
-- [CHANGELOG.md](CHANGELOG.md) — 版本更新日志
-- [AGENTS.md](AGENTS.md) — 开发环境和构建约束
-- [docs/HEALTH_ASSESSMENT.md](docs/HEALTH_ASSESSMENT.md) — 项目健康评估
+## 相关文档
+
+- [README.md](README.md)：用户说明、命名规则和使用步骤。
+- [CHANGELOG.md](CHANGELOG.md)：版本变更记录。
+- [AGENTS.md](AGENTS.md)：构建、测试、分层和冻结契约。
+- [docs/HEALTH_ASSESSMENT.md](docs/HEALTH_ASSESSMENT.md)：健康度评估。
+- [handoff.md](handoff.md)：本次交接摘要与后续操作清单。
