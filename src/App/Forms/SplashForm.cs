@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -42,7 +42,8 @@ namespace VideoRenamer
             mark.Location = new Point(32, 34);
             mark.Size = new Size(64, 64);
             mark.SizeMode = PictureBoxSizeMode.Zoom;
-            startupImage = AppIcon.GetStartupPreview();
+            Icon icon = AppIcon.Get();
+            startupImage = icon == null ? null : icon.ToBitmap();
             if (startupImage != null)
             {
                 mark.Image = startupImage;
@@ -90,7 +91,7 @@ namespace VideoRenamer
             panel.Controls.Add(days);
 
             Label hint = new Label();
-            hint.Text = "正在启动，窗口将在 4 秒后自动关闭";
+            hint.Text = "正在启动，窗口将在 3 秒后自动关闭";
             hint.Tag = "Muted";
             hint.AutoSize = false;
             hint.TextAlign = ContentAlignment.MiddleLeft;
@@ -105,7 +106,7 @@ namespace VideoRenamer
             panel.Controls.Add(line);
 
             closeTimer = new System.Windows.Forms.Timer();
-            closeTimer.Interval = 4000;
+            closeTimer.Interval = 3000;
             closeTimer.Tick += delegate
             {
                 closeTimer.Stop();

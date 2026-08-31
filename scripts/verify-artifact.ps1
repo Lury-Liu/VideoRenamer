@@ -50,15 +50,7 @@ if (-not $AllowNoFfmpeg) {
     }
 }
 
-# --- 4. Startup icons stay embedded so auto-update remains a single EXE. ---
-for ($index = 1; $index -le 9; $index++) {
-    $expectedIconResource = $script:StartupIconResourcePrefix + ("{0:D2}.ico" -f $index)
-    if ($resourceNames -notcontains $expectedIconResource) {
-        $failures += "EXE lacks startup icon resource '$expectedIconResource'"
-    }
-}
-
-# --- 5. Exactly one hyphen-free EXE in dist (publish-script selection heuristic) ---
+# --- 4. Exactly one hyphen-free EXE in dist (publish-script selection heuristic) ---
 $distDir = Split-Path -Parent $ExePath
 $hyphenFree = @(Get-ChildItem -LiteralPath $distDir -Filter *.exe -File |
     Where-Object { $_.BaseName -notmatch "-" })
@@ -66,7 +58,7 @@ if ($hyphenFree.Count -ne 1) {
     $failures += ("Expected exactly one hyphen-free EXE in {0}, found {1}" -f $distDir, $hyphenFree.Count)
 }
 
-# --- 6. No stray DLLs beside the EXE (single-file contract; the green
+# --- 5. No stray DLLs beside the EXE (single-file contract; the green
 #        libvlc runtime lives in dist\libvlc\ subdirectory, not the root) ---
 $strayDlls = @(Get-ChildItem -LiteralPath $distDir -Filter *.dll -File)
 if ($strayDlls.Count -gt 0) {
@@ -80,5 +72,5 @@ if ($failures.Count -gt 0) {
     throw ("verify-artifact: {0} check(s) failed for {1}" -f $failures.Count, $ExePath)
 }
 
-Write-Host ("[verify-artifact] PASS: version={0}, size={1:N0} bytes, ffmpeg resource {2}, 9 startup icon resources, single hyphen-free EXE, no stray DLLs" -f `
+Write-Host ("[verify-artifact] PASS: version={0}, size={1:N0} bytes, ffmpeg resource {2}, single app icon, single hyphen-free EXE, no stray DLLs" -f `
     $fileVersion, $exeItem.Length, $(if ($AllowNoFfmpeg) { "check skipped (-AllowNoFfmpeg)" } else { "present" }))

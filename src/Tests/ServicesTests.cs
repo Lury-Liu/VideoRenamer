@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace VideoRenamer.Tests
@@ -44,7 +44,7 @@ namespace VideoRenamer.Tests
         private static void UpdaterScriptShape()
         {
             string script = UpdateManager.BuildUpdaterScript(
-                @"C:\Program Files\VideoRenamer\VideoRenamer.exe",
+                @"C:\Protected\VideoRenamer\VideoRenamer.exe",
                 @"C:\Temp\VideoRenamer_Update\update_abc.exe",
                 1234,
                 @"C:\Users\u\AppData\Local\VideoRenamer\update-failed.txt");

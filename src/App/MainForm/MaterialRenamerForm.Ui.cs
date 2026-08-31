@@ -243,7 +243,7 @@ namespace VideoRenamer
             btnUndo.Margin = new Padding(0, 3, 6, 3);
             footerRight.Controls.Add(btnUndo);
 
-            btnExportOnly = NewButton("仅导出高清", 100);
+            btnExportOnly = NewButton("仅高清", 100);
             btnExportOnly.Click += delegate { Export1080pOnly(); };
             btnExportOnly.Margin = new Padding(0, 3, 6, 3);
             footerRight.Controls.Add(btnExportOnly);
@@ -662,7 +662,7 @@ namespace VideoRenamer
         {
             if (btnRename != null)
             {
-                btnRename.Text = IsExport1080pEnabled() ? "导出并重命名" : "执行重命名";
+                btnRename.Text = IsExport1080pEnabled() ? "高清命名" : "执行重命名";
             }
         }
 

@@ -1,12 +1,12 @@
 # Project Health Assessment
 
-**Version:** V1.0.12.0
+**Version:** V1.0.11.0
 **Date:** 2026-08-29
 **Evidence:** SelfTest 89/89, SmokeTest OK, six build gates passed, artifact verification passed
 
 ## Overall: **90 / 100**
 
-V1.0.12.0 is suitable for continued maintenance and normal local use. The core naming path is isolated and testable, directory-aware conflict handling is implemented, and the distributable EXE has been built and verified. The score deliberately leaves room for installer and online-release verification, plus future recursive comparison scanning.
+V1.0.11.0 is suitable for continued maintenance and normal local use. The core naming path is isolated and testable, directory-aware conflict handling is implemented, and the distributable EXE has been built and verified. The score deliberately leaves room for installer and online-release verification, plus future recursive comparison scanning.
 
 ---
 
@@ -111,13 +111,13 @@ src/
 ### Verified
 
 - Local single-file EXE exists at `dist\VideoRenamer.exe`.
-- File version is `1.0.12.0` and size is `104,074,240` bytes.
-- The local update manifest points to version `1.0.12.0` and includes a SHA-256 value.
+- File version is `1.0.11.0` and size is `101,919,744` bytes.
+- The local update manifest points to version `1.0.11.0` and includes a SHA-256 value.
 - Artifact verification passed.
 
 ### Not claimed as complete
 
-- Inno Setup 6 `ISCC.exe` was not confirmed in this environment, so an installer is not claimed as verified.
+- Inno Setup installer delivery was intentionally removed; the portable single-file EXE is the only supported distribution format.
 - Online GitHub Release availability was not rechecked as part of this documentation pass.
 
 ---

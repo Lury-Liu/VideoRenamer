@@ -2,7 +2,6 @@
 /build/
 /dist/
 /updates/
-/installer/
 
 # Local IDE/cache files
 /.vs/

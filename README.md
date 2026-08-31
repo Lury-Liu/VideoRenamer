@@ -4,7 +4,7 @@ A Windows desktop tool for batch-renaming raw video footage into a consistent, s
 
 | | |
 | --- | --- |
-| **Version** | V1.0.12.0 |
+| **Version** | V1.0.11.0 |
 | **Status** | Local EXE built and verified on 2026-08-29 |
 | **Platform** | Windows · .NET Framework 4.x · WinForms |
 | **Language** | C# 5 (compiled with `csc.exe` / `Add-Type`) |
@@ -122,10 +122,9 @@ VideoRenamer/
 │  └─ Tests/        Compiled-in self-test cases
 ├─ scripts/         Build gates, artifact verification and UI capture helpers
 ├─ docs/            Project health assessment
-├─ assets/          App icon, startup icons and installer messages
+├─ assets/          App icon
 ├─ tools/           Local ffmpeg.exe input (git-ignored)
 ├─ dist/            Build output (git-ignored)
-├─ installer/       Inno Setup output (git-ignored)
 ├─ updates/         Local update manifest and release asset (git-ignored)
 ├─ AGENTS.md        Developer constraints and build contract
 ├─ CHANGELOG.md     Version history
@@ -152,18 +151,15 @@ powershell -ExecutionPolicy Bypass -File "VideoRenamer.ps1" -SmokeTest
 
 The source loader intentionally does not contain FFmpeg. Use the built EXE for media metadata and export functionality.
 
-## Build a distributable
+## Build a portable distributable
 
 ```powershell
 # Build dist\VideoRenamer.exe; embeds tools\ffmpeg.exe and assets\app.ico
 powershell -ExecutionPolicy Bypass -File "构建EXE.ps1"
 
-# Build the EXE and then compile an Inno Setup installer
-powershell -ExecutionPolicy Bypass -File "打包安装程序.ps1"
-# Add -SkipExeBuild when an already-built EXE is available
 ```
 
-The current local EXE is `dist\VideoRenamer.exe`, version `1.0.12.0`, approximately 104 MB. Building it requires `tools\ffmpeg.exe`, which is intentionally git-ignored. Packaging the installer additionally requires Inno Setup 6 (`ISCC.exe`).
+The distributable is the portable single-file EXE `dist\VideoRenamer.exe`. Building it requires `tools\ffmpeg.exe`, which is intentionally git-ignored. Keep the EXE in a directory where the current user has write permission so GitHub automatic updates can replace it in place.
 
 ## Publish an update
 
@@ -179,7 +175,6 @@ The release script verifies that the EXE version matches `AppInfo.Version`, comp
 | --- | --- |
 | Run from source | Windows, .NET Framework 4.x, PowerShell 5.1 |
 | Build embedded EXE | Above + `tools\ffmpeg.exe` |
-| Package installer | Above + Inno Setup 6 |
 | Publish update | GitHub CLI (`gh auth login`) and repository push rights |
 
 ## Licensing and first-run gates

@@ -24,7 +24,7 @@ $ffmpegResourceCandidates = @(
 $version = Assert-VersionConsistency
 Write-Host "版本号：$version"
 
-# 全局应用标识必须在运行时、构建、安装器和产物名称之间保持一致。
+# 全局应用标识必须在运行时、构建和产物名称之间保持一致。
 Assert-AppIdentity
 
 # 状态字面量所有权检查：状态中文串只允许在 PlanStatusText/PlanStatus/Tests 中出现
@@ -43,7 +43,7 @@ Assert-PaletteOwnership
 Assert-CsprojParity
 
 $sourceFiles = Get-SourceFiles
-$startupIconResources = Get-StartupIconResourceFiles -Root $root
+
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
@@ -84,11 +84,6 @@ elseif ($AllowNoFfmpeg) {
 }
 else {
     throw "未找到 tools\ffmpeg.exe。缺少内置 FFmpeg 的 EXE 会静默失去媒体功能，禁止发布。开发构建请使用 -AllowNoFfmpeg。"
-}
-
-foreach ($startupIconResource in $startupIconResources) {
-    $resourceName = $script:StartupIconResourcePrefix + $startupIconResource.Name
-    $arguments += "/resource:$($startupIconResource.FullName),$resourceName"
 }
 
 $arguments += "/out:$outputExe"

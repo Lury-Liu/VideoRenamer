@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -233,7 +233,7 @@ namespace VideoRenamer
         }
 
         // 阶段12b（标注：行为加固）：替换脚本从"一路 Stop 直行"改为
-        // try/catch/finally——Copy-Item 失败（典型：装在 Program Files 且
+        // try/catch/finally——Copy-Item 失败（典型：目标目录没有写入权限且
         // 未提权）不再让用户"窗口关了、什么都没发生"：写失败标记（下次
         // 启动提示原因）、重启旧版本，下载文件必清。脚本文本可测。
         public static string UpdateFailureMarkerPath
@@ -267,7 +267,7 @@ namespace VideoRenamer
                 "}\r\n";
         }
 
-        // 目录可写性探测：决定替换脚本是否需要提权（Program Files 场景）。
+        // 目录可写性探测：决定替换脚本是否需要提权（受保护目录场景）。
         internal static bool IsDirectoryWritable(string directory)
         {
             try

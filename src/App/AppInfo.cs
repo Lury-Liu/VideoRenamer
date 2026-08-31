@@ -19,7 +19,7 @@ namespace VideoRenamer
     public static class AppInfo
     {
         public const string Name = "VideoRenamer";
-        public const string Version = "V1.0.12.0";
+        public const string Version = "V1.0.11.0";
         public const string Author = "@寒松";
         public const int DefaultRowCount = 1;
         public const string UpdateManifestUrl = "https://github.com/Lury-Liu/VideoRenamer/releases/latest/download/latest.json";

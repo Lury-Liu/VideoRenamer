@@ -41,7 +41,6 @@
     <!-- 承重：LogicalName 必须逐字节等于 "VideoRenamer.ffmpeg.exe"，
          SDK 默认资源命名会静默破坏 ExtractEmbeddedFfmpeg -->
     <EmbeddedResource Include="tools\ffmpeg.exe" LogicalName="VideoRenamer.ffmpeg.exe" Condition="Exists('tools\ffmpeg.exe')" />
-    <EmbeddedResource Include="assets\startup-icons\*.ico" LogicalName="VideoRenamer.StartupIcons.%(Filename).ico" />
   </ItemGroup>
 
 </Project>

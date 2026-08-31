@@ -5,8 +5,8 @@
 VideoRenamer 是一个面向 Windows 的视频素材批量命名与导出工具。它不是标准的 .NET SDK 项目：发布构建使用 Windows 自带的 .NET Framework `csc.exe`，通过 PowerShell 脚本编译 `src/` 下全部 C# 源码。
 
 **文档核对日期：2026-08-29**
-**当前版本：V1.0.12.0**
-**当前验证结果：SelfTest 89/89、SmokeTest OK、构建产物校验通过**
+**当前版本：V1.0.11.0**
+**当前验证结果：SelfTest 86/86、SmokeTest OK、构建产物校验通过**
 
 ## 构建与测试
 
@@ -22,9 +22,6 @@ powershell -ExecutionPolicy Bypass -File "VideoRenamer.ps1" -SmokeTest
 
 # 构建单文件 EXE（嵌入 tools\ffmpeg.exe 和图标）
 powershell -ExecutionPolicy Bypass -File "构建EXE.ps1"
-
-# 构建 EXE 并打包 Inno Setup 安装程序
-powershell -ExecutionPolicy Bypass -File "打包安装程序.ps1"
 
 # 发布 GitHub Release 更新（需要已登录 gh CLI）
 powershell -ExecutionPolicy Bypass -File "发布更新到GitHub.ps1"
@@ -76,13 +73,12 @@ E{集数}-S{场号}-{镜号}{后缀}-{尾段}{扩展名}
 - 发布 tag 为 `v{FileVersion}`，裸 EXE 资产名为 `VideoRenamer-v{version}.exe`，更新清单为 `updates/latest.json`。
 - 许可证/免责声明状态目录为 `%LocalAppData%\VideoRenamer`，现有状态键和文件名不得随意改变。
 - `-SelfTest` / `-SmokeTest` 必须分别打印 `SelfTest OK` / `SmokeTest OK`。
-- `installer.iss` 中的 AppId GUID 是冻结值，不得重新生成。
 
 ## 目录与提交约定
 
 - 远程主分支为 `main`。
 - 提交前缀使用 `feat:`、`perf:`、`refactor:` 或 `build:`。
-- `dist/`、`installer/`、`updates/` 是构建/发布产物目录，通常被 Git 忽略；`tools/ffmpeg.exe` 体积较大，也不提交。
+- `dist/`、`updates/` 是构建/发布产物目录，通常被 Git 忽略；`tools/ffmpeg.exe` 体积较大，也不提交。
 - `生成授权密钥工具.ps1` 仅供开发使用，绝不随软件发布。
 
 ## 文档索引

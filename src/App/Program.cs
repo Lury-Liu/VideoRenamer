@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -36,7 +36,6 @@ namespace VideoRenamer
                 AppLog.Write("crash", "未处理异常", e.ExceptionObject as Exception);
             };
             AppLog.Write("app", "启动 " + AppInfo.Version);
-            AppIcon.InitializeForApplication();
 
             // TLS 1.2：全进程启用一次（更新检查/下载共用；替代原先散布在
             // UpdateManager 两处的 (SecurityProtocolType)3072 魔数写法）。
@@ -60,7 +59,7 @@ namespace VideoRenamer
                 return;
             }
 
-            // 更新检查移到后台线程，与固定 4 秒的启动画面并行——原实现在
+            // 更新检查移到后台线程，与固定 3 秒的启动画面并行——原实现在
             // 启动画面之后于 UI 线程同步联网，离线冷启动最长可再挂 ~24 秒
             //（6s 直链 + 2×9s API 串行超时）不见任何窗口。启动画面结束时
             // 若检查尚未返回（慢网），本次启动跳过提示，下次启动再提示。
@@ -134,7 +133,7 @@ namespace VideoRenamer
                     }
                     AppLog.Write("update", "检测到上次更新失败标记：" + reason);
                     MessageBox.Show(
-                        "上次自动更新未能完成：\r\n" + reason + "\r\n\r\n如软件安装在 Program Files，请以管理员身份运行一次后重试更新，或重新下载安装。",
+                        "上次自动更新未能完成：\r\n" + reason + "\r\n\r\n请确认软件所在目录具有写入权限后重试更新，或手动下载新版 EXE 并替换旧文件。",
                         "更新未完成",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Warning);

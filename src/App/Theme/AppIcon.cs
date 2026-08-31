@@ -1,18 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-using System.Text;
-using System.Threading;
 using System.Windows.Forms;
-using Microsoft.Win32;
 
 namespace VideoRenamer
 {
@@ -20,19 +10,8 @@ namespace VideoRenamer
     {
         private static Icon cachedIcon;
 
-        public static void InitializeForApplication()
-        {
-            StartupIconManager.InitializeForApplication();
-        }
-
         public static Icon Get()
         {
-            Icon startupIcon = StartupIconManager.GetSessionIcon();
-            if (startupIcon != null)
-            {
-                return startupIcon;
-            }
-
             if (cachedIcon != null)
             {
                 return cachedIcon;
@@ -66,18 +45,6 @@ namespace VideoRenamer
             }
 
             return cachedIcon;
-        }
-
-        public static Image GetStartupPreview()
-        {
-            Image preview = StartupIconManager.GetSessionPreviewImage();
-            if (preview != null)
-            {
-                return preview;
-            }
-
-            Icon icon = Get();
-            return icon == null ? null : icon.ToBitmap();
         }
 
         public static void Apply(Form form)

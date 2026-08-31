@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading;
 using System.Windows.Forms;
@@ -166,7 +166,7 @@ namespace VideoRenamer
                 }
 
                 UpdateManager.ReportUpdateProgress(progress, "正在准备重启软件...", 100, 0, 0);
-                // 阶段12b：安装目录不可写（典型：Program Files）→ 提权启动
+                // 阶段12b：目标目录不可写（例如受保护目录）→ 提权启动
                 // 替换脚本（一次 UAC）；脚本启动失败（如拒绝提权）绝不退出
                 // 进程——报错并回到可用状态。
                 bool elevate = !UpdateManager.IsDirectoryWritable(Path.GetDirectoryName(currentExe));

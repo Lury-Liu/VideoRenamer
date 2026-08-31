@@ -1,26 +1,25 @@
 ﻿# ============================================================================
-# build-common.ps1 - shared helpers for the build / package / publish scripts.
+# build-common.ps1 - shared helpers for the build / publish scripts.
 # Dot-source from a repo-root script:
 #     . (Join-Path $PSScriptRoot "scripts\build-common.ps1")
 #
-# FROZEN CONTRACTS - relied upon by every installed copy of the app.
+# FROZEN CONTRACTS - relied upon by the runtime and every published EXE.
 # Changing any of these bricks auto-update, media features, or activations:
 #   1. Embedded ffmpeg resource name : VideoRenamer.ffmpeg.exe
 #      (producer: csc /resource flag below; consumer: ExtractEmbeddedFfmpeg)
 #   2. App EXE base name             : one loose VideoRenamer.exe in dist\
-#      (installer.iss and the publish script's hyphen-free heuristic assume it)
+#      (the publish script's hyphen-free heuristic assumes it)
 #   3. Release artifacts             : tag v{FileVersion}, asset VideoRenamer-v{ver}.exe,
 #                                      plus a file literally named latest.json
 #   4. FileVersion source            : src/AssemblyInfo.cs AssemblyFileVersion
 #      (drives the publish script's tag/asset/manifest derivation)
 #   5. License/DPAPI formats & paths : %LocalAppData%\VideoRenamer,
 #                                      license.v2.dat / license.state.v2.dat, "LicenseStateV2"
-#   6. Installer AppId GUID          : installer.iss - never regenerate
-#   7. Loader switches               : -SelfTest / -SmokeTest printing exactly
+#   6. Loader switches               : -SelfTest / -SmokeTest printing exactly
 #                                      "SelfTest OK" / "SmokeTest OK"
-#   8. Runtime ffmpeg search order   : baseDir > baseDir\tools > cwd > cwd\tools
+#   7. Runtime ffmpeg search order   : baseDir > baseDir\tools > cwd > cwd\tools
 #                                      > PATH > embedded resource
-#   9. Encoding                      : .ps1/.iss containing Chinese = UTF-8 with BOM;
+#   8. Encoding                      : .ps1 containing Chinese = UTF-8 with BOM;
 #                                      .cs = UTF-8 without BOM
 # ============================================================================
 
@@ -28,21 +27,7 @@ $script:RepoRoot = Split-Path -Parent $PSScriptRoot
 $script:AppName = "VideoRenamer"
 $script:AppExeName = "$($script:AppName).exe"
 $script:FfmpegResourceName = "$($script:AppName).ffmpeg.exe"
-$script:StartupIconResourcePrefix = "$($script:AppName).StartupIcons."
 
-function Get-StartupIconResourceFiles {
-    param([string]$Root = $script:RepoRoot)
-    $iconDirectory = Join-Path $Root "assets\startup-icons"
-    if (!(Test-Path -LiteralPath $iconDirectory)) {
-        throw "Startup icon directory not found: $iconDirectory"
-    }
-
-    $files = @(Get-ChildItem -LiteralPath $iconDirectory -Filter *.ico -File | Sort-Object Name)
-    if ($files.Count -ne 9) {
-        throw "Expected exactly 9 startup icon ICO files in $iconDirectory, found $($files.Count)."
-    }
-    return $files
-}
 
 function Get-SourceFiles {
     param([string]$Root = $script:RepoRoot)
@@ -128,16 +113,7 @@ function Assert-AppIdentity {
     if ($sourceName -ne $script:AppName) {
         throw "App identity drift: AppInfo.Name is '$sourceName' but build name is '$($script:AppName)'."
     }
-
-    $installerPath = Join-Path $Root "installer.iss"
-    $installer = [System.IO.File]::ReadAllText($installerPath)
-    if (-not $installer.Contains("#define AppName `"$sourceName`"")) {
-        throw "App identity drift: installer AppName must be '$sourceName'."
-    }
-    if (-not $installer.Contains("#define AppExeName `"$sourceName.exe`"")) {
-        throw "App identity drift: installer AppExeName must be '$sourceName.exe'."
-    }
-    Write-Host "[app-identity-gate] PASS: runtime, build, installer and artifact names use $sourceName"
+    Write-Host "[app-identity-gate] PASS: runtime, build and artifact names use $sourceName"
 }
 
 function Get-EmbeddedResourceNames {
@@ -177,12 +153,6 @@ function Assert-CsprojParity {
     if ($compileInclude.Include -ne "src\**\*.cs") { $failures += "Compile glob must match Get-SourceFiles (src\**\*.cs)" }
     $resource = @($xml.Project.ItemGroup.EmbeddedResource) | Where-Object { $_ } | Select-Object -First 1
     if ($resource.LogicalName -ne $script:FfmpegResourceName) { $failures += "EmbeddedResource LogicalName drifted from '$($script:FfmpegResourceName)'" }
-    $startupIconResource = @($xml.Project.ItemGroup.EmbeddedResource) |
-        Where-Object { $_ -and $_.Include -eq "assets\startup-icons\*.ico" } |
-        Select-Object -First 1
-    if ($startupIconResource -eq $null -or $startupIconResource.LogicalName -ne ($script:StartupIconResourcePrefix + "%(Filename).ico")) {
-        $failures += "Startup icon EmbeddedResource must match the csc resource naming contract"
-    }
     if ($failures.Count -gt 0) {
         $failures | ForEach-Object { Write-Host "[csproj-parity] FAIL: $_" -ForegroundColor Red }
         throw "Assert-CsprojParity: $($failures.Count) drift(s) between shadow csproj and release path."
